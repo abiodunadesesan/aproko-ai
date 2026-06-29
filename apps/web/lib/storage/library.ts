@@ -2,7 +2,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
   DEFAULT_FOLDER_SLUG,
   DEFAULT_PROJECT_SLUG,
-  sanitizeSlug
+  sanitizeSlug,
 } from '@/lib/storage/workspace-taxonomy';
 
 export type LibrarySource = {
@@ -37,7 +37,7 @@ function parseProjectAndFolder(objectPath: string): { project: string; folder: s
   const parts = objectPath.split('/');
   return {
     project: parts[1] ?? DEFAULT_PROJECT_SLUG,
-    folder: parts[2] ?? DEFAULT_FOLDER_SLUG
+    folder: parts[2] ?? DEFAULT_FOLDER_SLUG,
   };
 }
 
@@ -65,7 +65,11 @@ function inferSourceType(fileName: string, mimeType: string | null): string {
 function toSourceFromStorage(
   workspaceId: string,
   objectPath: string,
-  item: { name: string; updated_at?: string; metadata?: { size?: number; mimetype?: string } }
+  item: {
+    name: string;
+    updated_at?: string | null;
+    metadata?: { size?: number; mimetype?: string } | null;
+  },
 ): LibrarySource {
   const { project, folder } = parseProjectAndFolder(objectPath);
 
@@ -78,7 +82,7 @@ function toSourceFromStorage(
     objectPath,
     size: item.metadata?.size ?? 0,
     updatedAt: item.updated_at ?? null,
-    mimeType: item.metadata?.mimetype ?? null
+    mimeType: item.metadata?.mimetype ?? null,
   };
 }
 
@@ -95,14 +99,14 @@ function toSourceFromDb(workspaceId: string, row: DbSourceRecord): LibrarySource
     objectPath: row.storage_path,
     size: row.byte_size ?? 0,
     updatedAt: row.updated_at ?? null,
-    mimeType: row.mime_type ?? null
+    mimeType: row.mime_type ?? null,
   };
 }
 
 async function listObjectsRecursive(
   workspaceId: string,
   prefix: string,
-  visited: Set<string>
+  visited: Set<string>,
 ): Promise<LibrarySource[]> {
   const supabase = getSupabaseAdminClient();
 
@@ -150,7 +154,9 @@ async function listSourcesFromDatabase(workspaceId: string): Promise<LibrarySour
 
   const { data, error } = await supabase
     .from('sources')
-    .select('storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at')
+    .select(
+      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at',
+    )
     .eq('workspace_id', workspaceId)
     .order('updated_at', { ascending: false });
 
@@ -159,7 +165,7 @@ async function listSourcesFromDatabase(workspaceId: string): Promise<LibrarySour
     return null;
   }
 
-  return ((data ?? []) as DbSourceRecord[]).map(row => toSourceFromDb(workspaceId, row));
+  return ((data ?? []) as DbSourceRecord[]).map((row) => toSourceFromDb(workspaceId, row));
 }
 
 async function persistSourceMetadata(params: {
@@ -192,7 +198,7 @@ async function persistSourceMetadata(params: {
     project_slug: params.project,
     folder_slug: params.folder,
     mime_type: params.mimeType,
-    byte_size: params.fileSize
+    byte_size: params.fileSize,
   };
 
   const extendedResult = await supabase.from('sources').insert(extendedPayload);
@@ -205,7 +211,7 @@ async function persistSourceMetadata(params: {
     workspace_id: params.workspaceId,
     source_type: sourceType,
     storage_path: params.objectPath,
-    status: 'ready'
+    status: 'ready',
   };
 
   const fallbackResult = await supabase.from('sources').insert(fallbackPayload);
@@ -238,7 +244,7 @@ export async function uploadLibraryFile(
   projectRaw: string | null,
   folderRaw: string | null,
   projectId: string | null = null,
-  folderId: string | null = null
+  folderId: string | null = null,
 ): Promise<LibrarySource> {
   const supabase = getSupabaseAdminClient();
 
@@ -251,10 +257,12 @@ export async function uploadLibraryFile(
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const objectPath = `${workspaceId}/${project}/${folder}/${Date.now()}-${safeName}`;
 
-  const { data, error } = await supabase.storage.from(getLibraryBucketName()).upload(objectPath, file, {
-    upsert: false,
-    contentType: file.type || 'application/octet-stream'
-  });
+  const { data, error } = await supabase.storage
+    .from(getLibraryBucketName())
+    .upload(objectPath, file, {
+      upsert: false,
+      contentType: file.type || 'application/octet-stream',
+    });
 
   if (error || !data) {
     throw new Error(error?.message || 'Upload failed');
@@ -269,7 +277,7 @@ export async function uploadLibraryFile(
     project,
     folder,
     mimeType: file.type || null,
-    fileSize: file.size
+    fileSize: file.size,
   });
 
   return {
@@ -281,11 +289,14 @@ export async function uploadLibraryFile(
     objectPath,
     size: file.size,
     updatedAt: new Date().toISOString(),
-    mimeType: file.type || null
+    mimeType: file.type || null,
   };
 }
 
-export async function getLibrarySource(workspaceId: string, sourceId: string): Promise<LibrarySource | null> {
+export async function getLibrarySource(
+  workspaceId: string,
+  sourceId: string,
+): Promise<LibrarySource | null> {
   const objectPath = decodeSourceId(sourceId);
 
   if (!objectPath.startsWith(`${workspaceId}/`)) {
@@ -300,7 +311,9 @@ export async function getLibrarySource(workspaceId: string, sourceId: string): P
 
   const dbLookup = await supabase
     .from('sources')
-    .select('storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at')
+    .select(
+      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at',
+    )
     .eq('workspace_id', workspaceId)
     .eq('storage_path', objectPath)
     .maybeSingle();
@@ -315,14 +328,14 @@ export async function getLibrarySource(workspaceId: string, sourceId: string): P
 
   const { data, error } = await supabase.storage.from(getLibraryBucketName()).list(parent, {
     limit: 100,
-    search: filename
+    search: filename,
   });
 
   if (error || !data) {
     return null;
   }
 
-  const item = data.find(entry => entry.name === filename && entry.id !== null);
+  const item = data.find((entry) => entry.name === filename && entry.id !== null);
 
   if (!item) {
     return null;
@@ -331,7 +344,10 @@ export async function getLibrarySource(workspaceId: string, sourceId: string): P
   return toSourceFromStorage(workspaceId, objectPath, item);
 }
 
-export async function getLibrarySignedUrl(objectPath: string, expiresInSeconds = 3600): Promise<string | null> {
+export async function getLibrarySignedUrl(
+  objectPath: string,
+  expiresInSeconds = 3600,
+): Promise<string | null> {
   const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
@@ -375,7 +391,7 @@ export async function updateLibrarySourceMetadata(params: {
       name: normalizedName,
       project: normalizedProject,
       folder: normalizedFolder,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
   }
 
@@ -388,7 +404,7 @@ export async function updateLibrarySourceMetadata(params: {
   } = {
     display_name: normalizedName,
     project_slug: normalizedProject,
-    folder_slug: normalizedFolder
+    folder_slug: normalizedFolder,
   };
 
   if (params.projectId !== undefined) {
@@ -405,7 +421,7 @@ export async function updateLibrarySourceMetadata(params: {
     .eq('workspace_id', params.workspaceId)
     .eq('storage_path', existing.objectPath)
     .select(
-      'storage_path, display_name, project_slug, folder_slug, project_id, folder_id, byte_size, mime_type, updated_at'
+      'storage_path, display_name, project_slug, folder_slug, project_id, folder_id, byte_size, mime_type, updated_at',
     )
     .maybeSingle();
 
@@ -422,7 +438,7 @@ export async function updateLibrarySourceMetadata(params: {
     name: normalizedName,
     project: normalizedProject,
     folder: normalizedFolder,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 }
 

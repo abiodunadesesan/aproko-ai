@@ -1,6 +1,8 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { cardClass } from '@aproko/ui';
+import Link from 'next/link';
+import { buttonPrimaryClass, buttonSecondaryClass, cardClass } from '@aproko/ui';
 import { syncProfileFromClerkUser } from '@/lib/auth/profile-sync';
+import { AppShell } from '@/components/app-shell';
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -18,27 +20,33 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="grid min-h-screen grid-cols-1 md:grid-cols-[220px_1fr]">
-      <aside className="border-r p-4">
-        <nav className="space-y-2 text-sm">
-          <div className="font-semibold">Home</div>
-          <div>Chat</div>
-          <div>Library</div>
-          <div>Memory</div>
-          <div>Research</div>
-          <div>Study</div>
-          <div>Settings</div>
-        </nav>
-      </aside>
-      <section className="space-y-4 p-6">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Foundation shell ready. Sprint 1 will progressively add activity, uploads, and quick actions.
-        </p>
+    <AppShell
+      subtitle="Foundation shell ready. Sprint 1 focuses on navigation quality, responsive layout, and reusable structure."
+      title="Dashboard"
+    >
+      <section className="space-y-4">
         <div className={cardClass}>
-          Clerk user: {userId ?? 'unknown'} | Profile sync: {profileSynced ? 'ok' : 'pending'}
+          <p className="text-sm font-medium">Workspace is ready</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You are signed in and using the authenticated shell. Next tickets will progressively
+            activate chat, memory, and study modules.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link className={buttonPrimaryClass} href="/library">
+              Open Library
+            </Link>
+            <button className={buttonSecondaryClass} type="button">
+              New Chat (Soon)
+            </button>
+          </div>
+        </div>
+
+        <div className={cardClass}>
+          <p className="text-sm">
+            Clerk user: {userId ?? 'unknown'} | Profile sync: {profileSynced ? 'ok' : 'pending'}
+          </p>
         </div>
       </section>
-    </main>
+    </AppShell>
   );
 }

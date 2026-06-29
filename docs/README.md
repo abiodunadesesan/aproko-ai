@@ -5,6 +5,7 @@ This documentation defines the product and technical architecture for **Aproko A
 ## Scope
 
 Version 1 includes only:
+
 - Web application
 - Authentication (email, Google sign-in, password reset, user profile)
 - Dashboard (recent activity, uploads, conversations, memory timeline, quick actions)
@@ -21,6 +22,7 @@ Version 1 excludes desktop apps, mobile apps, browser automation, and live meeti
 
 ## Document Map
 
+- `00-product/APROKO_PRODUCT_BIBLE.md` - Product identity, principles, and long-term direction
 - `01-prd` - Product Requirements Document
 - `02-architecture/PRODUCT_BLUEPRINT.md` - Product blueprint and engineering constitution
 - `02-architecture/00-technical-blueprint.md` - Unified epic-driven technical architecture

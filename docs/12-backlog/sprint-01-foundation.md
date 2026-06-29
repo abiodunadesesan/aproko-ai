@@ -19,6 +19,7 @@ Ship a production-ready foundation with working web app authentication and basel
 ## Tickets
 
 ### AUTH-001 - Clerk Authentication Baseline
+
 - **Epic**: Epic 1 - Foundation
 - **Status**: Done
 - **Product Specification**: Users can register/login/reset password and maintain authenticated sessions.
@@ -42,6 +43,7 @@ Ship a production-ready foundation with working web app authentication and basel
   - Sprint monorepo baseline.
 
 ### AUTH-002 - User Profile Sync Contract
+
 - **Epic**: Epic 1 - Foundation
 - **Status**: Done
 - **Product Specification**: App stores profile metadata keyed by `clerk_user_id`.
@@ -60,7 +62,37 @@ Ship a production-ready foundation with working web app authentication and basel
 - **Tests**: sync idempotency and profile fetch tests.
 - **Dependencies**: AUTH-001.
 
+### APP-001 - Application Shell
+
+- **Epic**: Epic 1 - Foundation
+- **Status**: Done
+- **Product Specification**: Authenticated users see a reusable workspace shell with responsive navigation and top-level workspace controls.
+- **UX Specification**: `docs/06-wireframes/01-ux-specification.md` (Dashboard, Library)
+- **Database Changes**: none.
+- **API Contract**: none.
+- **Acceptance Criteria**:
+  1. Responsive sidebar and top navigation render on authenticated pages.
+  2. Theme switch is available in shell header.
+  3. Profile menu is available in shell header.
+  4. Breadcrumbs and keyboard-shortcut placeholder are visible.
+  5. Shell is reused by Dashboard and Library routes.
+- **Definition of Done**:
+  - Shared shell component implemented and consumed by authenticated pages.
+  - Mobile sidebar toggle/close behavior implemented.
+  - Navigation controls are keyboard reachable.
+- **Artifacts**:
+  - `apps/web/components/app-shell.tsx`
+  - `apps/web/components/theme-toggle.tsx`
+  - `apps/web/app/dashboard/page.tsx`
+  - `apps/web/app/library/page.tsx`
+  - `docs/05-design-system/README.md`
+- **Tests**:
+  - Manual shell responsiveness and keyboard navigation smoke verification.
+- **Dependencies**:
+  - AUTH-001
+
 ### DASH-001 - Dashboard Shell
+
 - **Epic**: Epic 2 - Knowledge Workspace
 - **Status**: Done
 - **Product Specification**: Authenticated users see dashboard shell with placeholders for modules.
@@ -75,6 +107,7 @@ Ship a production-ready foundation with working web app authentication and basel
 - **Dependencies**: AUTH-001.
 
 ### DS-001 - Design System Baseline
+
 - **Epic**: Epic 1 - Foundation
 - **Status**: Done
 - **Product Specification**: Core visual tokens and shared components available.
@@ -89,6 +122,7 @@ Ship a production-ready foundation with working web app authentication and basel
 - **Dependencies**: none.
 
 ### CICD-001 - Vercel CI/CD Baseline
+
 - **Epic**: Epic 1 - Foundation
 - **Status**: In Review
 - **Product Specification**: Preview/production deployment pipeline is repeatable.
@@ -110,11 +144,11 @@ Ship a production-ready foundation with working web app authentication and basel
 - CI pipeline committed.
 - Deployment guide updated for current setup.
 
-
 ## Sprint 01 Exit Status
 
 - AUTH-001: Done
 - AUTH-002: Done
+- APP-001: Done
 - DASH-001: Done
 - DS-001: Done
 - CICD-001: In Review (awaiting GitHub secret configuration and live pipeline run)

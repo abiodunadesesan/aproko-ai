@@ -6,7 +6,7 @@ import { getLibrarySignedUrl, getLibrarySource } from '@/lib/storage/library';
 const WORKSPACE_ID = 'default-workspace';
 
 export default async function LibrarySourcePage({
-  params
+  params,
 }: {
   params: Promise<{ sourceId: string }>;
 }) {
@@ -52,15 +52,20 @@ export default async function LibrarySourcePage({
       <section className={cardClass}>
         {signedUrl ? (
           isImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img alt={source.name} className="max-h-[560px] w-auto rounded-md border" src={signedUrl} />
+            <img
+              alt={source.name}
+              className="max-h-[560px] w-auto rounded-md border"
+              src={signedUrl}
+            />
           ) : (
             <a className="underline" href={signedUrl} rel="noreferrer" target="_blank">
               Open file
             </a>
           )
         ) : (
-          <p className="text-sm text-muted-foreground">File preview unavailable. Check storage configuration.</p>
+          <p className="text-sm text-muted-foreground">
+            File preview unavailable. Check storage configuration.
+          </p>
         )}
       </section>
     </main>

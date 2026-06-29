@@ -11,25 +11,26 @@ export default tseslint.config(
       '**/build/**',
       '**/.turbo/**',
       '**/coverage/**',
-      '**/public/**'
-    ]
+      '**/public/**',
+      '**/postcss.config.mjs',
+    ],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.recommended,
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname
-      }
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': [
         'error',
-        { prefer: 'type-imports', fixStyle: 'inline-type-imports' }
-      ]
-    }
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+    },
   },
-  eslintConfigPrettier
+  eslintConfigPrettier,
 );

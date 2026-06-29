@@ -50,21 +50,37 @@ Supports light/dark themes with WCAG contrast targets.
 Built with shadcn/ui primitives and controlled variants.
 
 ### Buttons
+
 - variants: `primary`, `secondary`, `ghost`, `destructive`, `link`
 - sizes: `sm`, `md`, `lg`, `icon`
 - loading and disabled states required
 
 ### Cards
+
 - workspace cards, source cards, result cards, study cards
 
 ### Inputs
+
 - text input, search input, textarea, select, command palette input
 - inline validation messaging and assistive text patterns
 
 ### Navigation
+
 - left sidebar with workspace context
 - top nav for global search/actions/profile
 - breadcrumbs on deep content routes
+
+### App Shell Components (APP-001)
+
+- `AppShell`:
+  - provides authenticated frame (responsive sidebar, top navigation, breadcrumbs, content slot)
+  - keyboard access baseline for navigation links and shell controls
+  - mobile sidebar open/close behavior for small screens
+- `ThemeToggle`:
+  - toggles light/dark mode using document root class
+  - persists user preference in browser storage
+- `User profile menu`:
+  - Clerk `UserButton` in top navigation for account actions
 
 ### Dashboard Layout
 

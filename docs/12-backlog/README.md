@@ -26,10 +26,13 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Current Sprint
 
-- Active: `Sprint 1 - Foundation`
-- Board: `./sprint-01-foundation.md`
+- Active: `Sprint 5 - Study`
+- Board: `./sprint-05-study.md`
 
 ## Sprint Boards
 
 - `./sprint-01-foundation.md`
 - `./sprint-02-knowledge-workspace.md`
+- `./sprint-03-ai-core.md`
+- `./sprint-04-memory.md`
+- `./sprint-05-study.md`
