@@ -1,2 +1,3 @@
-# aproko-ai
-AI operating system for knowledge , research , meetings, and productivity.
+# Aproko AI
+
+Production-grade AI SaaS monorepo scaffold.
