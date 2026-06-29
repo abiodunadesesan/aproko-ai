@@ -24,6 +24,6 @@
 
 - Billing, settings, analytics, error tracking, performance, launch.
 
-## Current active implementation: Sprint 05 (Study)
+## Current active implementation: Sprint 06 (Polish)
 
-Next ticket target: `QUIZ-001 - Quiz Baseline`
+Next ticket target: `LAUNCH-001 - Launch Hardening`

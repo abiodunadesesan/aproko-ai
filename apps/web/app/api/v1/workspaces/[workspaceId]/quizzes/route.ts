@@ -1,36 +1,32 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import {
-  createFlashcardDeck,
-  listFlashcardDecks,
-  type FlashcardDeck,
-} from '@/lib/storage/flashcards';
+import { createQuiz, listQuizzes, type Quiz } from '@/lib/storage/quizzes';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
-type FlashcardDecksRouteDependencies = {
+type QuizzesRouteDependencies = {
   auth: AuthDependency;
-  listFlashcardDecks: typeof listFlashcardDecks;
-  createFlashcardDeck: typeof createFlashcardDeck;
+  listQuizzes: typeof listQuizzes;
+  createQuiz: typeof createQuiz;
 };
 
 type RouteContext = {
   params: Promise<{ workspaceId: string }>;
 };
 
-function toDeckPayload(deck: FlashcardDeck) {
+function toQuizPayload(quiz: Quiz) {
   return {
-    id: deck.id,
-    workspaceId: deck.workspaceId,
-    title: deck.title,
-    sourceNoteId: deck.sourceNoteId,
-    createdAt: deck.createdAt,
-    updatedAt: deck.updatedAt,
+    id: quiz.id,
+    workspaceId: quiz.workspaceId,
+    title: quiz.title,
+    sourceNoteId: quiz.sourceNoteId,
+    createdAt: quiz.createdAt,
+    updatedAt: quiz.updatedAt,
   };
 }
 
-export function createFlashcardDecksRouteHandlers(deps: FlashcardDecksRouteDependencies) {
+export function createQuizzesRouteHandlers(deps: QuizzesRouteDependencies) {
   return {
     GET: async (_request: Request, context: RouteContext) => {
       const startedAtMs = Date.now();
@@ -43,52 +39,46 @@ export function createFlashcardDecksRouteHandlers(deps: FlashcardDecksRouteDepen
       }
 
       const { workspaceId } = await context.params;
-      const decks = await deps.listFlashcardDecks(workspaceId);
+      const quizzes = await deps.listQuizzes(workspaceId);
       return withPerformanceHeaders(
-        NextResponse.json({ data: decks.map(toDeckPayload) }),
+        NextResponse.json({ data: quizzes.map(toQuizPayload) }),
         startedAtMs,
         {
           cacheControl: 'private, max-age=20, stale-while-revalidate=90',
         },
       );
     },
-
     POST: async (request: Request, context: RouteContext) => {
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      const { workspaceId } = await context.params;
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         sourceNoteId?: string | null;
       } | null;
-
       const title = rawBody?.title?.trim() ?? '';
       if (!title) {
-        return NextResponse.json({ error: 'Deck title is required' }, { status: 400 });
+        return NextResponse.json({ error: 'Quiz title is required' }, { status: 400 });
       }
 
-      const deck = await deps.createFlashcardDeck(
-        workspaceId,
-        title,
-        rawBody?.sourceNoteId ?? null,
-      );
-      if (!deck) {
-        return NextResponse.json({ error: 'Failed to create flashcard deck' }, { status: 500 });
+      const { workspaceId } = await context.params;
+      const quiz = await deps.createQuiz(workspaceId, title, rawBody?.sourceNoteId ?? null);
+      if (!quiz) {
+        return NextResponse.json({ error: 'Failed to create quiz' }, { status: 500 });
       }
 
-      return NextResponse.json({ data: toDeckPayload(deck) }, { status: 201 });
+      return NextResponse.json({ data: toQuizPayload(quiz) }, { status: 201 });
     },
   };
 }
 
-export const { GET, POST } = createFlashcardDecksRouteHandlers({
+export const { GET, POST } = createQuizzesRouteHandlers({
   auth: async () => {
     const { userId } = await auth();
     return { userId };
   },
-  listFlashcardDecks,
-  createFlashcardDeck,
+  listQuizzes,
+  createQuiz,
 });

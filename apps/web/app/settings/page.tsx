@@ -1,0 +1,201 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { buttonPrimaryClass, cardClass, inputClass } from '@aproko/ui';
+import { AppShell } from '@/components/app-shell';
+
+type MeProfile = {
+  clerk_user_id: string;
+  profile: {
+    email: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
+const STORAGE_KEYS = {
+  defaultChatModel: 'aproko.settings.defaultChatModel',
+  autoMemoryCapture: 'aproko.settings.autoMemoryCapture',
+} as const;
+
+export default function SettingsPage() {
+  const [me, setMe] = useState<MeProfile | null>(null);
+  const [fullNameDraft, setFullNameDraft] = useState('');
+  const [defaultChatModel, setDefaultChatModel] = useState<'gpt-4.1-mini' | 'claude-3.5-sonnet'>(
+    'gpt-4.1-mini',
+  );
+  const [autoMemoryCapture, setAutoMemoryCapture] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const emailText = useMemo(() => me?.profile?.email ?? 'Not available', [me]);
+
+  async function loadMe() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/v1/me');
+      const payload = (await response.json()) as MeProfile | { error?: string };
+      if (!response.ok || !('clerk_user_id' in payload)) {
+        throw new Error((payload as { error?: string }).error ?? 'Failed to load profile');
+      }
+
+      setMe(payload);
+      setFullNameDraft(payload.profile?.full_name ?? '');
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Failed to load profile');
+      setMe(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function saveProfile() {
+    setIsSavingProfile(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch('/api/v1/me', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ full_name: fullNameDraft }),
+      });
+      const payload = (await response.json()) as MeProfile | { error?: string };
+      if (!response.ok || !('clerk_user_id' in payload)) {
+        throw new Error((payload as { error?: string }).error ?? 'Failed to update profile');
+      }
+
+      setMe(payload);
+      setNotice('Profile updated.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to update profile');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  function loadPreferenceDefaults() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const storedModel = window.localStorage.getItem(STORAGE_KEYS.defaultChatModel);
+    if (storedModel === 'gpt-4.1-mini' || storedModel === 'claude-3.5-sonnet') {
+      setDefaultChatModel(storedModel);
+    }
+
+    const storedAutoMemoryCapture = window.localStorage.getItem(STORAGE_KEYS.autoMemoryCapture);
+    if (storedAutoMemoryCapture === 'true' || storedAutoMemoryCapture === 'false') {
+      setAutoMemoryCapture(storedAutoMemoryCapture === 'true');
+    }
+  }
+
+  function savePreferences() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    setIsSavingPrefs(true);
+    setError(null);
+    setNotice(null);
+
+    window.localStorage.setItem(STORAGE_KEYS.defaultChatModel, defaultChatModel);
+    window.localStorage.setItem(STORAGE_KEYS.autoMemoryCapture, String(autoMemoryCapture));
+    setNotice('AI preferences saved locally.');
+    setIsSavingPrefs(false);
+  }
+
+  useEffect(() => {
+    void loadMe();
+    loadPreferenceDefaults();
+  }, []);
+
+  return (
+    <AppShell subtitle="Manage your profile and default AI preferences." title="Settings">
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className={`${cardClass} space-y-3`}>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">Profile</p>
+            <p className="text-xs text-muted-foreground">
+              Update your display name used across Aproko AI.
+            </p>
+          </div>
+
+          {isLoading ? <p className="text-sm text-muted-foreground">Loading profile...</p> : null}
+
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Email</span>
+            <input className={inputClass} disabled value={emailText} />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Full Name</span>
+            <input
+              className={inputClass}
+              onChange={(event) => setFullNameDraft(event.target.value)}
+              placeholder="Your full name"
+              value={fullNameDraft}
+            />
+          </label>
+
+          <button
+            className={buttonPrimaryClass}
+            disabled={isLoading || isSavingProfile}
+            onClick={() => void saveProfile()}
+            type="button"
+          >
+            {isSavingProfile ? 'Saving...' : 'Save Profile'}
+          </button>
+        </article>
+
+        <article className={`${cardClass} space-y-3`}>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">AI Preferences</p>
+            <p className="text-xs text-muted-foreground">
+              Baseline preferences stored in this browser for current workspace.
+            </p>
+          </div>
+
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Default Chat Model</span>
+            <select
+              className={inputClass}
+              onChange={(event) =>
+                setDefaultChatModel(event.target.value as 'gpt-4.1-mini' | 'claude-3.5-sonnet')
+              }
+              value={defaultChatModel}
+            >
+              <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+              <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              checked={autoMemoryCapture}
+              onChange={(event) => setAutoMemoryCapture(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Auto-capture memory signals from chats</span>
+          </label>
+
+          <button
+            className={buttonPrimaryClass}
+            disabled={isSavingPrefs}
+            onClick={savePreferences}
+            type="button"
+          >
+            {isSavingPrefs ? 'Saving...' : 'Save AI Preferences'}
+          </button>
+        </article>
+      </section>
+
+      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
+      {notice ? <p className="mt-4 text-sm text-emerald-700">{notice}</p> : null}
+    </AppShell>
+  );
+}

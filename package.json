@@ -13,6 +13,8 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "test:e2e:web": "pnpm --filter @aproko/web e2e",
+    "test:e2e:web:headed": "pnpm --filter @aproko/web e2e:headed",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "turbo clean && rm -rf node_modules",

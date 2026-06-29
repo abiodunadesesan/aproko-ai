@@ -19,6 +19,10 @@ type NavItem = {
   isEnabled: boolean;
 };
 
+function toNavTestId(label: string): string {
+  return `nav-link-${label.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', isEnabled: true },
   { label: 'Library', href: '/library', isEnabled: true },
@@ -26,7 +30,8 @@ const navItems: NavItem[] = [
   { label: 'Memory', href: '/memory', isEnabled: true },
   { label: 'Research', isEnabled: false },
   { label: 'Study', href: '/study', isEnabled: true },
-  { label: 'Settings', isEnabled: false },
+  { label: 'Settings', href: '/settings', isEnabled: true },
+  { label: 'Billing', href: '/billing', isEnabled: true },
 ];
 
 function Breadcrumbs() {
@@ -59,6 +64,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
       <div className="flex min-h-screen">
         <aside
           aria-label="Primary"
+          data-testid="app-sidebar"
           className={`fixed inset-y-0 left-0 z-30 w-72 border-r bg-background p-4 transition-transform md:static md:translate-x-0 ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
@@ -96,6 +102,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                   className={`block rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     active ? 'bg-foreground text-background' : 'hover:bg-muted'
                   }`}
+                  data-testid={toNavTestId(item.label)}
                   href={item.href}
                   key={item.label}
                   onClick={() => setMobileNavOpen(false)}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createWorkspaceNote, listWorkspaceNotes, type WorkspaceNote } from '@/lib/storage/notes';
+import { withPerformanceHeaders } from '@/lib/perf/http';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -28,14 +29,24 @@ function toNotePayload(note: WorkspaceNote) {
 export function createNotesRouteHandlers(deps: NotesRouteDependencies) {
   return {
     GET: async (_request: Request, context: RouteContext) => {
+      const startedAtMs = Date.now();
       const { userId } = await deps.auth();
       if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withPerformanceHeaders(
+          NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+          startedAtMs,
+        );
       }
 
       const { workspaceId } = await context.params;
       const notes = await deps.listWorkspaceNotes(workspaceId);
-      return NextResponse.json({ data: notes.map(toNotePayload) });
+      return withPerformanceHeaders(
+        NextResponse.json({ data: notes.map(toNotePayload) }),
+        startedAtMs,
+        {
+          cacheControl: 'private, max-age=20, stale-while-revalidate=90',
+        },
+      );
     },
 
     POST: async (request: Request, context: RouteContext) => {

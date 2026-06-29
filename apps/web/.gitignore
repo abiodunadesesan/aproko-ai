@@ -1,0 +1,10 @@
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# local environment secrets
+.env.local
+
+# Playwright artifacts
+/playwright-report/
+/test-results/

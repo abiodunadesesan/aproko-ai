@@ -81,17 +81,66 @@ Transform captured and retrieved knowledge into structured learning outputs (not
 
 ### QUIZ-001 - Quiz Baseline
 
-- **Status**: Todo
-- **Notes**: Generate quizzes and track attempts/results.
+- **Status**: Done
+- **Product Specification**: Users can create quizzes, generate baseline multiple-choice questions from notes, submit attempts, and view recent quiz scores in Study.
+- **API Contract**:
+  - `GET /api/v1/workspaces/{workspaceId}/quizzes`
+  - `POST /api/v1/workspaces/{workspaceId}/quizzes`
+  - `GET /api/v1/workspaces/{workspaceId}/quizzes/{quizId}`
+  - `POST /api/v1/workspaces/{workspaceId}/quizzes/{quizId}/generate`
+  - `GET /api/v1/workspaces/{workspaceId}/quizzes/{quizId}/attempts`
+  - `POST /api/v1/workspaces/{workspaceId}/quizzes/{quizId}/attempts`
+  - `POST /api/v1/workspaces/{workspaceId}/quizzes/{quizId}/attempts/{attemptId}/submit`
+- **Acceptance Criteria**:
+  1. Study page allows creating and selecting quizzes.
+  2. User can generate quiz questions from the active note.
+  3. User can answer generated quiz questions and submit an attempt.
+  4. Attempt score and totals are returned and displayed.
+  5. Quiz APIs are auth-protected and tested.
+- **Definition of Done**:
+  - Quizzes storage module implemented.
+  - Quiz, generation, and attempt API routes implemented with dependency-injected handlers.
+  - Study page updated with quiz creation, question answer, and result display.
+  - Quiz API contract tests added and passing.
+- **Artifacts**:
+  - `apps/web/lib/storage/quizzes.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/quizzes/route.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/quizzes/[quizId]/route.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/quizzes/[quizId]/generate/route.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/quizzes/[quizId]/attempts/route.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/quizzes/[quizId]/attempts/[attemptId]/submit/route.ts`
+  - `apps/web/app/study/page.tsx`
+  - `apps/web/lib/study/quiz-api-routes.test.ts`
 
 ### STUDY-001 - AI Study Summary
 
-- **Status**: Todo
-- **Notes**: Produce concise study summaries from workspace context.
+- **Status**: Done
+- **Product Specification**: Users can generate and persist concise AI-style study summaries from active note context (or workspace notes fallback) directly in Study.
+- **API Contract**:
+  - `GET /api/v1/workspaces/{workspaceId}/summaries`
+  - `POST /api/v1/workspaces/{workspaceId}/summaries`
+  - `POST /api/v1/workspaces/{workspaceId}/summaries/generate`
+- **Acceptance Criteria**:
+  1. Study page can generate summary from the active note.
+  2. When no active note is selected, summary generation uses workspace notes context.
+  3. Generated summary is persisted and visible in the Study summaries list.
+  4. User can search summaries by title/content.
+  5. Summaries APIs are auth-protected and tested.
+- **Definition of Done**:
+  - Study summaries storage module implemented.
+  - Summary list/create/generate API routes implemented with dependency-injected handlers.
+  - Study page updated with AI summary generation and summary list UI.
+  - Study summary API contract tests added and passing.
+- **Artifacts**:
+  - `apps/web/lib/storage/summaries.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/summaries/route.ts`
+  - `apps/web/app/api/v1/workspaces/[workspaceId]/summaries/generate/route.ts`
+  - `apps/web/app/study/page.tsx`
+  - `apps/web/lib/study/study-summaries-api-routes.test.ts`
 
 ## Sprint 05 Exit Snapshot
 
 - NOTE-001: Done
 - FLASH-001: Done
-- QUIZ-001: Todo
-- STUDY-001: Todo
+- QUIZ-001: Done
+- STUDY-001: Done
