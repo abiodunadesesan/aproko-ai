@@ -1,0 +1,28 @@
+# Sprint 01 CI/CD Baseline
+
+## Workflow Files
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/vercel-deploy.yml`
+
+## Required GitHub Secrets
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
+
+## Pipeline Behavior
+
+- Pull requests: run CI checks and create Vercel preview deployment.
+- Main branch: run CI checks and deploy production artifacts.
+
+## Vercel Notes
+
+- `vercel pull` is required before build to hydrate environment values.
+- `vercel build` + `vercel deploy --prebuilt` keeps CI deterministic.
+
+## Verification Checklist
+
+1. Open PR and confirm CI + preview deploy jobs pass.
+2. Merge to `main` and confirm production deployment completes.
+3. Confirm app routes (`/`, `/sign-in`, `/sign-up`, `/dashboard`) are reachable.

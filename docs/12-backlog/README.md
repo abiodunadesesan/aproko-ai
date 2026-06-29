@@ -1,0 +1,35 @@
+# Engineering Backlog (Sprint Mode)
+
+This backlog is the operational execution system for Aproko AI.
+
+## Working Model
+
+- Work is organized by **Sprint** and **Epic**.
+- Every ticket must define:
+  - Product specification
+  - UX specification link
+  - Database changes
+  - API contract
+  - Acceptance criteria
+  - Definition of Done
+  - Test plan
+  - Dependencies
+
+## Sprint Plan
+
+- Sprint 1: Foundation
+- Sprint 2: Knowledge Workspace
+- Sprint 3: AI Core
+- Sprint 4: Memory
+- Sprint 5: Study
+- Sprint 6: Polish and Launch
+
+## Current Sprint
+
+- Active: `Sprint 1 - Foundation`
+- Board: `./sprint-01-foundation.md`
+
+## Sprint Boards
+
+- `./sprint-01-foundation.md`
+- `./sprint-02-knowledge-workspace.md`

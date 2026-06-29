@@ -13,7 +13,7 @@
 graph TD
   U[Web User] --> W[Next.js Web App]
   W --> API[FastAPI Backend]
-  API --> AUTH[Supabase Auth]
+  WEB --> AUTH[Clerk Auth]
   API --> PG[(Supabase PostgreSQL)]
   API --> ST[(Supabase Storage)]
   API --> QD[(Qdrant Vector DB)]
@@ -62,7 +62,7 @@ Responsibilities:
 
 ## Authentication
 
-- Supabase Auth for identity and session management
+- Clerk for identity and session management
 - Authentication flows in V1: email/password, Google OAuth, password reset, user profile management
 - Backend validates JWTs and enforces workspace authorization
 - Row-level access strategy in PostgreSQL + backend checks

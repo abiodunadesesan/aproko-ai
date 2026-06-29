@@ -68,7 +68,7 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 9. User has timeline view of key memory events.
 
 ### Account & Administration
-10. User can authenticate via Supabase Auth (email + Google sign-in + password reset).
+10. User can authenticate via Clerk (email + Google sign-in + password reset).
 11. User can manage profile and settings.
 12. Billing plans and subscription state are enforced in feature gates.
 13. Admin dashboard supports user/workspace/usage oversight.

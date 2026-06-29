@@ -12,11 +12,15 @@
 
 ```mermaid
 erDiagram
-  auth_users ||--o{ profiles : has
+  clerk_users ||--o{ profiles : has
   profiles ||--o{ workspace_memberships : has
   workspaces ||--o{ workspace_memberships : has
 
+  workspaces ||--o{ projects : has
+  projects ||--o{ folders : has
   workspaces ||--o{ sources : contains
+  projects ||--o{ sources : groups
+  folders ||--o{ sources : groups
   sources ||--o{ source_versions : versions
   source_versions ||--o{ source_chunks : split_into
   source_chunks ||--o{ chunk_embeddings : embedded_as
@@ -51,7 +55,8 @@ erDiagram
 ### Identity and Membership
 
 1. `profiles`
-- `id uuid pk` (references `auth.users.id`)
+- `id uuid pk`
+- `clerk_user_id text unique not null` (external identity key from Clerk)
 - `email text unique not null`
 - `full_name text`
 - `avatar_url text`
@@ -69,27 +74,46 @@ erDiagram
 3. `workspace_memberships`
 - `id uuid pk`
 - `workspace_id uuid not null`
-- `user_id uuid not null`
+- `clerk_user_id text not null`
 - `role text not null check (role in ('owner','editor','viewer'))`
-- unique (`workspace_id`, `user_id`)
+- unique (`workspace_id`, `clerk_user_id`)
+- audit fields
+
+4. `projects`
+- `id uuid pk`
+- `workspace_id uuid not null`
+- `name text not null`
+- `slug text not null`
+- unique (`workspace_id`, `slug`)
+- audit fields
+
+5. `folders`
+- `id uuid pk`
+- `workspace_id uuid not null`
+- `project_id uuid not null`
+- `name text not null`
+- `slug text not null`
+- unique (`project_id`, `slug`)
 - audit fields
 
 ### Content Ingestion
 
-4. `sources`
+6. `sources`
 - represents uploaded source entity
 - `source_type text` (`pdf`,`pptx`,`docx`,`txt`,`markdown`,`image`,`audio`,`transcript`,`note_import`)
 - `storage_path text not null`
+- `project_id uuid null` (references `projects.id`)
+- `folder_id uuid null` (references `folders.id`)
 - `status text` (`uploaded`,`processing`,`ready`,`failed`)
 - `workspace_id` FK + audit + soft delete
 
-5. `source_versions`
+7. `source_versions`
 - immutable ingestion versions
 - parser and extraction metadata
 - `language text`, `page_count int`, `token_count int`
 - unique (`source_id`,`version_number`)
 
-6. `source_chunks`
+8. `source_chunks`
 - chunk text and metadata
 - `chunk_index int not null`
 - `content text not null`
@@ -97,7 +121,7 @@ erDiagram
 - `metadata jsonb not null default '{}'::jsonb`
 - unique (`source_version_id`,`chunk_index`)
 
-7. `chunk_embeddings`
+9. `chunk_embeddings`
 - embedding records with model metadata
 - `chunk_id uuid not null`
 - `embedding_model text not null`
@@ -107,24 +131,24 @@ erDiagram
 
 ### Conversation and Memory
 
-8. `conversations`
+10. `conversations`
 - `title text`
 - `workspace_id`, `created_by`
 - `context_mode text` (`workspace`,`selected_sources`,`global`)
 - audit + soft delete
 
-9. `messages`
+11. `messages`
 - `conversation_id`, `role text` (`system`,`user`,`assistant`,`tool`)
 - `content jsonb not null`
 - `token_input int`, `token_output int`
 - `model_used text`
 - audit + soft delete
 
-10. `message_citations`
+12. `message_citations`
 - maps assistant messages to chunks/sources
 - `message_id`, `chunk_id`, `confidence numeric(5,4)`
 
-11. `memory_items`
+13. `memory_items`
 - canonical memory objects
 - `memory_type text` (`fact`,`preference`,`project`,`decision`,`task`,`timeline_event`)
 - `content jsonb`
@@ -132,48 +156,48 @@ erDiagram
 - `last_referenced_at timestamptz`
 - `workspace_id` FK + soft delete
 
-12. `timeline_events`
+14. `timeline_events`
 - rendered timeline units
 - links to source/message/memory as optional refs
 - `event_type text`, `event_time timestamptz`, `summary text`
 
 ### Notes and Study
 
-13. `notes`
+15. `notes`
 - rich text/json content
 - optional linkage to conversation/source
 
-14. `flashcard_decks`
-15. `flashcards`
-16. `flashcard_reviews`
+16. `flashcard_decks`
+17. `flashcards`
+18. `flashcard_reviews`
 - SM-2 style review metadata fields (ease, interval, due_at)
 
-17. `quizzes`
-18. `quiz_questions`
-19. `quiz_attempts`
-20. `quiz_answers`
+19. `quizzes`
+20. `quiz_questions`
+21. `quiz_attempts`
+22. `quiz_answers`
 
 ### Meeting Intelligence
 
-21. `meetings`
+23. `meetings`
 - title, meeting date, participants metadata
 
-22. `meeting_transcripts`
+24. `meeting_transcripts`
 - transcript body + diarization metadata + processing status
 
-23. `summaries`
+25. `summaries`
 - generic summary artifacts
 - `summary_type text` (`meeting`,`document`,`workspace`,`research`)
 
 ### Billing and Accounts
 
-24. `accounts`
+26. `accounts`
 - account owner + org-level metadata
 
-25. `subscriptions`
+27. `subscriptions`
 - provider ids, plan code, status, current period fields
 
-26. `billing_events`
+28. `billing_events`
 - webhook/event log for billing lifecycle changes
 
 ## Relationships and Constraints
@@ -215,6 +239,14 @@ Standard columns on mutable entities:
 - `updated_at timestamptz not null default now()`
 - `created_by uuid`
 - `updated_by uuid`
+
+
+## Clerk Identity Strategy
+
+- Clerk is the source of truth for authentication and user sessions.
+- Every user-owned or user-authored record should carry a `clerk_user_id` reference (directly or via author fields).
+- `profiles.clerk_user_id` is globally unique and used to resolve workspace membership and ownership.
+- Supabase Auth is not used in this architecture.
 
 ## Qdrant Integration Notes
 

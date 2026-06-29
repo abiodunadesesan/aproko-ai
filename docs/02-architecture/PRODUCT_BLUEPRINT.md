@@ -73,7 +73,7 @@ Create the world's best AI-powered knowledge workspace where users ask an AI tha
 ### Backend and Data
 - FastAPI (Python)
 - Supabase PostgreSQL
-- Supabase Auth
+- Clerk
 - Supabase Storage
 - Qdrant
 

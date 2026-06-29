@@ -53,7 +53,7 @@ Use these defaults unless a documented architecture decision changes them:
 ### Backend and Data
 - FastAPI (Python)
 - Supabase PostgreSQL
-- Supabase Auth
+- Clerk
 - Supabase Storage
 - Qdrant
 

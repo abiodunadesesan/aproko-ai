@@ -20,7 +20,7 @@ This document is the primary system architecture reference for implementation se
 graph TD
   U[User Browser] --> FE[Frontend: Next.js 15]
   FE --> API[Backend API: FastAPI]
-  API --> AUTH[Supabase Auth]
+  FE --> AUTH[Clerk Auth]
   API --> PG[(Supabase PostgreSQL)]
   API --> STORE[(Supabase Storage)]
   API --> VDB[(Qdrant Vector DB)]
@@ -100,7 +100,7 @@ graph TD
 ## Authentication Architecture
 
 ### Provider
-- Supabase Auth
+- Clerk
 
 ### V1 Flows
 - Email/password sign-up and sign-in

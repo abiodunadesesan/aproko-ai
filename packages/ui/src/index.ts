@@ -1,3 +1,2 @@
-export const moduleName = '@aproko/ui';
-
-export type ModuleKind = 'ui';
+export * from './tokens';
+export * from './primitives';

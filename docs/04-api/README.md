@@ -11,8 +11,8 @@
 
 ## Authentication
 
-- Supabase JWT in `Authorization: Bearer <token>`
-- Backend verifies token and membership per workspace
+- Clerk session/JWT in `Authorization: Bearer <token>` or Clerk middleware context
+- Backend verifies Clerk identity and membership per workspace
 - Admin endpoints require elevated role
 
 ## Error Handling Format
@@ -74,12 +74,11 @@ Response:
 - `GET /v1/health`
 - `GET /v1/version`
 
-### Auth (Supabase Auth-backed)
-- `POST /v1/auth/sign-up` (email/password)
-- `POST /v1/auth/sign-in` (email/password)
-- `POST /v1/auth/google` (Google OAuth start/callback orchestration)
-- `POST /v1/auth/password-reset/request`
-- `POST /v1/auth/password-reset/confirm`
+### Auth (Clerk-backed)
+- Auth UI and OAuth flows are handled by Clerk-hosted components/routes.
+- Backend verifies Clerk session/JWT on protected requests.
+- Optional sync endpoint for profile hydration:
+  - `POST /v1/auth/session/sync`
 
 ### Workspaces
 - `GET /v1/workspaces`
@@ -96,8 +95,21 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 - `POST /v1/workspaces/{workspace_id}/sources`
 - `GET /v1/workspaces/{workspace_id}/sources`
 - `GET /v1/workspaces/{workspace_id}/sources/{source_id}`
+- `PATCH /v1/workspaces/{workspace_id}/sources/{source_id}`
 - `DELETE /v1/workspaces/{workspace_id}/sources/{source_id}`
 - `POST /v1/workspaces/{workspace_id}/sources/{source_id}/reprocess`
+
+### Projects and Folders
+- `GET /v1/workspaces/{workspace_id}/projects`
+- `POST /v1/workspaces/{workspace_id}/projects`
+- `GET /v1/workspaces/{workspace_id}/projects/{project_id}`
+- `PATCH /v1/workspaces/{workspace_id}/projects/{project_id}`
+- `DELETE /v1/workspaces/{workspace_id}/projects/{project_id}`
+- `GET /v1/workspaces/{workspace_id}/projects/{project_id}/folders`
+- `POST /v1/workspaces/{workspace_id}/projects/{project_id}/folders`
+- `GET /v1/workspaces/{workspace_id}/folders/{folder_id}`
+- `PATCH /v1/workspaces/{workspace_id}/folders/{folder_id}`
+- `DELETE /v1/workspaces/{workspace_id}/folders/{folder_id}`
 
 ### Chat
 - `POST /v1/workspaces/{workspace_id}/chat/sessions`

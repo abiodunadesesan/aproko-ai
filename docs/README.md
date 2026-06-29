@@ -23,6 +23,7 @@ Version 1 excludes desktop apps, mobile apps, browser automation, and live meeti
 
 - `01-prd` - Product Requirements Document
 - `02-architecture/PRODUCT_BLUEPRINT.md` - Product blueprint and engineering constitution
+- `02-architecture/00-technical-blueprint.md` - Unified epic-driven technical architecture
 - `02-architecture` - System architecture and runtime topology
 - `03-database` - PostgreSQL schema and data model
 - `04-api` - REST API contracts

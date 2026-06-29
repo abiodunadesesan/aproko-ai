@@ -1,0 +1,1143 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { buttonPrimaryClass, buttonSecondaryClass, cardClass } from '@aproko/ui';
+
+type Source = {
+  id: string;
+  name: string;
+  project: string;
+  folder: string;
+  size: number;
+  updatedAt: string | null;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type Folder = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type SortField = 'name' | 'project' | 'folder' | 'size' | 'updatedAt';
+type SortDirection = 'asc' | 'desc';
+type SourceEditorMode = 'rename' | 'move';
+
+const WORKSPACE_ID = 'default-workspace';
+const PAGE_SIZE = 10;
+
+function formatBytes(size: number): string {
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function LibraryPage() {
+  const [sources, setSources] = useState<Source[]>([]);
+  const [query, setQuery] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [projectId, setProjectId] = useState('');
+  const [folderId, setFolderId] = useState('');
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [folderFilter, setFolderFilter] = useState('all');
+  const [sortField, setSortField] = useState<SortField>('updatedAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [file, setFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [isSavingFolder, setIsSavingFolder] = useState(false);
+  const [mutatingSourceId, setMutatingSourceId] = useState<string | null>(null);
+  const [sourceEditorMode, setSourceEditorMode] = useState<SourceEditorMode | null>(null);
+  const [sourceEditorTarget, setSourceEditorTarget] = useState<Source | null>(null);
+  const [sourceNameDraft, setSourceNameDraft] = useState('');
+  const [sourceMoveProjectId, setSourceMoveProjectId] = useState('');
+  const [sourceMoveFolderId, setSourceMoveFolderId] = useState('');
+  const [sourceMoveFolders, setSourceMoveFolders] = useState<Folder[]>([]);
+  const [isSourceEditorLoadingFolders, setIsSourceEditorLoadingFolders] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const selectedProject = useMemo(
+    () => projects.find(item => item.id === projectId) ?? null,
+    [projectId, projects]
+  );
+
+  const selectedFolder = useMemo(
+    () => folders.find(item => item.id === folderId) ?? null,
+    [folderId, folders]
+  );
+
+  function applySort(field: SortField) {
+    setSortField(currentField => {
+      if (currentField === field) {
+        setSortDirection(currentDirection => (currentDirection === 'asc' ? 'desc' : 'asc'));
+        return currentField;
+      }
+
+      setSortDirection(field === 'updatedAt' ? 'desc' : 'asc');
+      return field;
+    });
+  }
+
+  function closeSourceEditor() {
+    setSourceEditorMode(null);
+    setSourceEditorTarget(null);
+    setSourceNameDraft('');
+    setSourceMoveProjectId('');
+    setSourceMoveFolderId('');
+    setSourceMoveFolders([]);
+    setIsSourceEditorLoadingFolders(false);
+  }
+
+  async function fetchFoldersByProject(nextProjectId: string): Promise<Folder[]> {
+    if (!nextProjectId) {
+      return [];
+    }
+
+    const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects/${nextProjectId}/folders`, {
+      cache: 'no-store'
+    });
+    const payload = await res.json();
+
+    if (!res.ok) {
+      throw new Error(payload.error || 'Failed to load folders');
+    }
+
+    return (payload.data ?? []) as Folder[];
+  }
+
+  async function loadProjects() {
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects`, { cache: 'no-store' });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to load projects');
+      }
+
+      const nextProjects = (payload.data ?? []) as Project[];
+      setProjects(nextProjects);
+
+      if (!nextProjects.length) {
+        setProjectId('');
+        setFolders([]);
+        setFolderId('');
+        return;
+      }
+
+      setProjectId(current => {
+        if (current && nextProjects.some(item => item.id === current)) {
+          return current;
+        }
+        return nextProjects[0]?.id ?? '';
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
+    }
+  }
+
+  async function loadFolders(nextProjectId: string) {
+    if (!nextProjectId) {
+      setFolders([]);
+      setFolderId('');
+      return;
+    }
+
+    try {
+      const nextFolders = await fetchFoldersByProject(nextProjectId);
+      setFolders(nextFolders);
+      setFolderId(current => {
+        if (current && nextFolders.some(item => item.id === current)) {
+          return current;
+        }
+        return nextFolders[0]?.id ?? '';
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load folders');
+    }
+  }
+
+  async function loadSources() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources`, { cache: 'no-store' });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to load library');
+      }
+
+      setSources(payload.data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load library');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadSources();
+    void loadProjects();
+  }, []);
+
+  useEffect(() => {
+    void loadFolders(projectId);
+  }, [projectId]);
+
+  async function handleCreateProject() {
+    const name = window.prompt('Project name');
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    setIsSavingProject(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to create project');
+      }
+
+      const created = payload.data as Project;
+      setProjects(current => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setProjectId(created.id);
+      setFolders([]);
+      setFolderId('');
+      setNotice(`Project "${created.name}" created.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create project');
+    } finally {
+      setIsSavingProject(false);
+    }
+  }
+
+  async function handleRenameProject() {
+    if (!projectId) {
+      setError('Select a project to rename.');
+      return;
+    }
+
+    const current = projects.find(item => item.id === projectId);
+    const name = window.prompt('New project name', current?.name ?? '');
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    setIsSavingProject(true);
+    setError(null);
+    setNotice(null);
+
+    const optimisticName = name.trim();
+    const previousProjects = projects;
+    setProjects(current =>
+      current
+        .map(item => (item.id === projectId ? { ...item, name: optimisticName } : item))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to rename project');
+      }
+
+      const updated = payload.data as Project;
+      setProjects(current =>
+        current
+          .map(item => (item.id === projectId ? { ...item, name: updated.name, slug: updated.slug } : item))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setNotice(`Project renamed to "${updated.name}".`);
+      await loadSources();
+    } catch (err) {
+      setProjects(previousProjects);
+      setError(err instanceof Error ? err.message : 'Failed to rename project');
+    } finally {
+      setIsSavingProject(false);
+    }
+  }
+
+  async function handleDeleteProject() {
+    if (!projectId) {
+      setError('Select a project to delete.');
+      return;
+    }
+
+    const current = projects.find(item => item.id === projectId);
+    const confirmed = window.confirm(
+      `Delete project "${current?.name ?? 'this project'}"? This also removes its folders.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSavingProject(true);
+    setError(null);
+    setNotice(null);
+
+    const previousProjects = projects;
+    const previousProjectId = projectId;
+    const previousFolders = folders;
+    const previousFolderId = folderId;
+
+    setProjects(current => current.filter(item => item.id !== projectId));
+    setProjectId('');
+    setFolders([]);
+    setFolderId('');
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects/${projectId}`, {
+        method: 'DELETE'
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to delete project');
+      }
+
+      setNotice(`Project "${current?.name ?? 'project'}" deleted.`);
+      await loadSources();
+    } catch (err) {
+      setProjects(previousProjects);
+      setProjectId(previousProjectId);
+      setFolders(previousFolders);
+      setFolderId(previousFolderId);
+      setError(err instanceof Error ? err.message : 'Failed to delete project');
+    } finally {
+      setIsSavingProject(false);
+    }
+  }
+
+  async function handleCreateFolder() {
+    if (!projectId) {
+      setError('Select or create a project before adding a folder.');
+      return;
+    }
+
+    const name = window.prompt('Folder name');
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    setIsSavingFolder(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects/${projectId}/folders`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to create folder');
+      }
+
+      const created = payload.data as Folder;
+      setFolders(current => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setFolderId(created.id);
+      setNotice(`Folder "${created.name}" created.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create folder');
+    } finally {
+      setIsSavingFolder(false);
+    }
+  }
+
+  async function handleRenameFolder() {
+    if (!folderId) {
+      setError('Select a folder to rename.');
+      return;
+    }
+
+    const current = folders.find(item => item.id === folderId);
+    const name = window.prompt('New folder name', current?.name ?? '');
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    setIsSavingFolder(true);
+    setError(null);
+    setNotice(null);
+
+    const optimisticName = name.trim();
+    const previousFolders = folders;
+    setFolders(current =>
+      current
+        .map(item => (item.id === folderId ? { ...item, name: optimisticName } : item))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/folders/${folderId}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to rename folder');
+      }
+
+      const updated = payload.data as Folder;
+      setFolders(current =>
+        current
+          .map(item => (item.id === folderId ? { ...item, name: updated.name, slug: updated.slug } : item))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setNotice(`Folder renamed to "${updated.name}".`);
+      await loadSources();
+    } catch (err) {
+      setFolders(previousFolders);
+      setError(err instanceof Error ? err.message : 'Failed to rename folder');
+    } finally {
+      setIsSavingFolder(false);
+    }
+  }
+
+  async function handleDeleteFolder() {
+    if (!folderId) {
+      setError('Select a folder to delete.');
+      return;
+    }
+
+    const current = folders.find(item => item.id === folderId);
+    const confirmed = window.confirm(`Delete folder "${current?.name ?? 'this folder'}"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSavingFolder(true);
+    setError(null);
+    setNotice(null);
+
+    const previousFolders = folders;
+    const previousFolderId = folderId;
+    setFolders(current => current.filter(item => item.id !== folderId));
+    setFolderId('');
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/folders/${folderId}`, {
+        method: 'DELETE'
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to delete folder');
+      }
+
+      setNotice(`Folder "${current?.name ?? 'folder'}" deleted.`);
+      await loadSources();
+    } catch (err) {
+      setFolders(previousFolders);
+      setFolderId(previousFolderId);
+      setError(err instanceof Error ? err.message : 'Failed to delete folder');
+    } finally {
+      setIsSavingFolder(false);
+    }
+  }
+
+  const sourceProjectOptions = useMemo(
+    () => Array.from(new Set(sources.map(item => item.project))).sort((a, b) => a.localeCompare(b)),
+    [sources]
+  );
+
+  const sourceFolderOptions = useMemo(() => {
+    const filteredByProject =
+      projectFilter === 'all' ? sources : sources.filter(item => item.project === projectFilter);
+
+    return Array.from(new Set(filteredByProject.map(item => item.folder))).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [projectFilter, sources]);
+
+  async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!file) {
+      setError('Select a file before uploading.');
+      return;
+    }
+
+    if (!projectId || !folderId) {
+      setError('Select a project and folder before uploading.');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', projectId);
+      formData.append('folderId', folderId);
+      formData.append('project', selectedProject?.slug ?? '');
+      formData.append('folder', selectedFolder?.slug ?? '');
+
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Upload failed');
+      }
+
+      setFile(null);
+      (event.currentTarget.querySelector('input[type=file]') as HTMLInputElement | null)?.value = '';
+      await loadSources();
+      setNotice(`Uploaded "${file.name}" successfully.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  function openRenameSourceEditor(source: Source) {
+    setSourceEditorMode('rename');
+    setSourceEditorTarget(source);
+    setSourceNameDraft(source.name);
+    setError(null);
+    setNotice(null);
+  }
+
+  async function openMoveSourceEditor(source: Source) {
+    setSourceEditorMode('move');
+    setSourceEditorTarget(source);
+    setError(null);
+    setNotice(null);
+
+    const project = projects.find(item => item.slug === source.project) ?? null;
+    const nextProjectId = project?.id ?? '';
+    setSourceMoveProjectId(nextProjectId);
+    setSourceMoveFolderId('');
+    setSourceMoveFolders([]);
+
+    if (!nextProjectId) {
+      return;
+    }
+
+    setIsSourceEditorLoadingFolders(true);
+
+    try {
+      const nextFolders = await fetchFoldersByProject(nextProjectId);
+      setSourceMoveFolders(nextFolders);
+      const folder = nextFolders.find(item => item.slug === source.folder) ?? null;
+      setSourceMoveFolderId(folder?.id ?? nextFolders[0]?.id ?? '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load folders');
+    } finally {
+      setIsSourceEditorLoadingFolders(false);
+    }
+  }
+
+  async function handleSourceEditorProjectChange(nextProjectId: string) {
+    setSourceMoveProjectId(nextProjectId);
+    setSourceMoveFolderId('');
+    setSourceMoveFolders([]);
+
+    if (!nextProjectId) {
+      return;
+    }
+
+    setIsSourceEditorLoadingFolders(true);
+
+    try {
+      const nextFolders = await fetchFoldersByProject(nextProjectId);
+      setSourceMoveFolders(nextFolders);
+      setSourceMoveFolderId(nextFolders[0]?.id ?? '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load folders');
+    } finally {
+      setIsSourceEditorLoadingFolders(false);
+    }
+  }
+
+  async function submitSourceEditor() {
+    if (!sourceEditorTarget || !sourceEditorMode) {
+      return;
+    }
+
+    if (sourceEditorMode === 'rename' && !sourceNameDraft.trim()) {
+      setError('Source name is required.');
+      return;
+    }
+
+    if (sourceEditorMode === 'move' && (!sourceMoveProjectId || !sourceMoveFolderId)) {
+      setError('Select both project and folder.');
+      return;
+    }
+
+    const previousSources = sources;
+    setMutatingSourceId(sourceEditorTarget.id);
+    setError(null);
+    setNotice(null);
+
+    if (sourceEditorMode === 'rename') {
+      const optimisticName = sourceNameDraft.trim();
+      setSources(current =>
+        current.map(item => (item.id === sourceEditorTarget.id ? { ...item, name: optimisticName } : item))
+      );
+    }
+
+    if (sourceEditorMode === 'move') {
+      const selectedProject = projects.find(item => item.id === sourceMoveProjectId) ?? null;
+      const selectedFolder = sourceMoveFolders.find(item => item.id === sourceMoveFolderId) ?? null;
+      setSources(current =>
+        current.map(item =>
+          item.id === sourceEditorTarget.id
+            ? {
+                ...item,
+                project: selectedProject?.slug ?? item.project,
+                folder: selectedFolder?.slug ?? item.folder
+              }
+            : item
+        )
+      );
+    }
+
+    try {
+      const body =
+        sourceEditorMode === 'rename'
+          ? { name: sourceNameDraft.trim() }
+          : {
+              projectId: sourceMoveProjectId,
+              folderId: sourceMoveFolderId,
+              project: projects.find(item => item.id === sourceMoveProjectId)?.slug ?? null,
+              folder: sourceMoveFolders.find(item => item.id === sourceMoveFolderId)?.slug ?? null
+            };
+
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources/${sourceEditorTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to update source');
+      }
+
+      const updated = payload.source as Source;
+      setSources(current =>
+        current.map(item =>
+          item.id === sourceEditorTarget.id
+            ? {
+                ...item,
+                name: updated.name,
+                project: updated.project,
+                folder: updated.folder,
+                updatedAt: updated.updatedAt
+              }
+            : item
+        )
+      );
+
+      if (sourceEditorMode === 'rename') {
+        setNotice(`Source renamed to "${updated.name}".`);
+      } else {
+        setNotice(`Source moved to ${updated.project}/${updated.folder}.`);
+      }
+
+      closeSourceEditor();
+    } catch (err) {
+      setSources(previousSources);
+      setError(err instanceof Error ? err.message : 'Failed to update source');
+    } finally {
+      setMutatingSourceId(null);
+    }
+  }
+
+  async function handleDeleteSource(source: Source) {
+    const confirmed = window.confirm(`Delete "${source.name}" from library?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    const previousSources = sources;
+    setMutatingSourceId(source.id);
+    setError(null);
+    setNotice(null);
+    if (sourceEditorTarget?.id === source.id) {
+      closeSourceEditor();
+    }
+    setSources(current => current.filter(item => item.id !== source.id));
+
+    try {
+      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources/${source.id}`, {
+        method: 'DELETE'
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to delete source');
+      }
+
+      setNotice(`Source "${source.name}" deleted.`);
+    } catch (err) {
+      setSources(previousSources);
+      setError(err instanceof Error ? err.message : 'Failed to delete source');
+    } finally {
+      setMutatingSourceId(null);
+    }
+  }
+
+  const filteredSources = useMemo(() => {
+    const normalized = query.toLowerCase().trim();
+
+    return sources.filter(item => {
+      const matchesQuery = normalized
+        ? `${item.name} ${item.project} ${item.folder}`.toLowerCase().includes(normalized)
+        : true;
+      const matchesProject = projectFilter === 'all' ? true : item.project === projectFilter;
+      const matchesFolder = folderFilter === 'all' ? true : item.folder === folderFilter;
+
+      return matchesQuery && matchesProject && matchesFolder;
+    });
+  }, [folderFilter, projectFilter, query, sources]);
+
+  const sortedSources = useMemo(() => {
+    const direction = sortDirection === 'asc' ? 1 : -1;
+    const copy = [...filteredSources];
+
+    copy.sort((a, b) => {
+      if (sortField === 'size') {
+        return (a.size - b.size) * direction;
+      }
+
+      if (sortField === 'updatedAt') {
+        const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+        const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+        return (aTime - bTime) * direction;
+      }
+
+      return a[sortField].localeCompare(b[sortField]) * direction;
+    });
+
+    return copy;
+  }, [filteredSources, sortDirection, sortField]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedSources.length / PAGE_SIZE));
+  const paginatedSources = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return sortedSources.slice(start, start + PAGE_SIZE);
+  }, [currentPage, sortedSources]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, projectFilter, folderFilter, sortField, sortDirection]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  return (
+    <main className="space-y-6 p-6">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold">Library</h1>
+        <p className="text-sm text-muted-foreground">
+          Upload and organize workspace knowledge by projects and folders.
+        </p>
+      </header>
+
+      <section className={cardClass}>
+        <form className="grid gap-3 md:grid-cols-[1fr_200px_200px_auto]" onSubmit={handleUpload}>
+          <input
+            className="h-10 rounded-md border px-3 text-sm"
+            type="file"
+            onChange={event => setFile(event.target.files?.[0] ?? null)}
+            required
+          />
+          <select
+            className="h-10 rounded-md border px-3 text-sm"
+            value={projectId}
+            onChange={event => setProjectId(event.target.value)}
+          >
+            <option value="">{projects.length ? 'Select project' : 'No projects'}</option>
+            {projects.map(item => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="h-10 rounded-md border px-3 text-sm"
+            value={folderId}
+            onChange={event => setFolderId(event.target.value)}
+          >
+            <option value="">{folders.length ? 'Select folder' : 'No folders'}</option>
+            {folders.map(item => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          <button className={buttonPrimaryClass} disabled={isUploading} type="submit">
+            {isUploading ? 'Uploading...' : 'Upload'}
+          </button>
+        </form>
+        <div className="mt-3 flex gap-2">
+          <button
+            className={buttonSecondaryClass}
+            disabled={isSavingProject}
+            onClick={() => void handleCreateProject()}
+            type="button"
+          >
+            {isSavingProject ? 'Creating project...' : 'New project'}
+          </button>
+          <button
+            className={buttonSecondaryClass}
+            disabled={isSavingProject || !projectId}
+            onClick={() => void handleRenameProject()}
+            type="button"
+          >
+            Rename project
+          </button>
+          <button
+            className={buttonSecondaryClass}
+            disabled={isSavingProject || !projectId}
+            onClick={() => void handleDeleteProject()}
+            type="button"
+          >
+            Delete project
+          </button>
+          <button
+            className={buttonSecondaryClass}
+            disabled={isSavingFolder || !projectId}
+            onClick={() => void handleCreateFolder()}
+            type="button"
+          >
+            {isSavingFolder ? 'Creating folder...' : 'New folder'}
+          </button>
+          <button
+            className={buttonSecondaryClass}
+            disabled={isSavingFolder || !folderId}
+            onClick={() => void handleRenameFolder()}
+            type="button"
+          >
+            Rename folder
+          </button>
+          <button
+            className={buttonSecondaryClass}
+            disabled={isSavingFolder || !folderId}
+            onClick={() => void handleDeleteFolder()}
+            type="button"
+          >
+            Delete folder
+          </button>
+        </div>
+      </section>
+
+      <section className={cardClass}>
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <input
+            className="h-10 w-full rounded-md border px-3 text-sm md:max-w-sm"
+            placeholder="Search by name, project, or folder"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <select
+              className="h-10 rounded-md border px-3 text-sm"
+              value={projectFilter}
+              onChange={event => {
+                const nextProjectFilter = event.target.value;
+                setProjectFilter(nextProjectFilter);
+                setFolderFilter('all');
+              }}
+            >
+              <option value="all">All projects</option>
+              {sourceProjectOptions.map(project => (
+                <option key={project} value={project}>
+                  {project}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border px-3 text-sm"
+              value={folderFilter}
+              onChange={event => setFolderFilter(event.target.value)}
+            >
+              <option value="all">All folders</option>
+              {sourceFolderOptions.map(folder => (
+                <option key={folder} value={folder}>
+                  {folder}
+                </option>
+              ))}
+            </select>
+            <button className={buttonSecondaryClass} onClick={() => void loadSources()} type="button">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {sourceEditorMode && sourceEditorTarget ? (
+          <div className="mb-3 space-y-3 rounded-md border p-3">
+            <p className="text-sm font-medium">
+              {sourceEditorMode === 'rename' ? 'Rename source' : 'Move source'}: {sourceEditorTarget.name}
+            </p>
+
+            {sourceEditorMode === 'rename' ? (
+              <input
+                className="h-10 w-full rounded-md border px-3 text-sm"
+                value={sourceNameDraft}
+                onChange={event => setSourceNameDraft(event.target.value)}
+                placeholder="Source name"
+              />
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2">
+                <select
+                  className="h-10 rounded-md border px-3 text-sm"
+                  value={sourceMoveProjectId}
+                  onChange={event => void handleSourceEditorProjectChange(event.target.value)}
+                >
+                  <option value="">Select project</option>
+                  {projects.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 rounded-md border px-3 text-sm"
+                  value={sourceMoveFolderId}
+                  onChange={event => setSourceMoveFolderId(event.target.value)}
+                >
+                  <option value="">
+                    {isSourceEditorLoadingFolders
+                      ? 'Loading folders...'
+                      : sourceMoveFolders.length
+                        ? 'Select folder'
+                        : 'No folders'}
+                  </option>
+                  {sourceMoveFolders.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                className={buttonPrimaryClass}
+                disabled={mutatingSourceId === sourceEditorTarget.id}
+                onClick={() => void submitSourceEditor()}
+                type="button"
+              >
+                {mutatingSourceId === sourceEditorTarget.id ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={mutatingSourceId === sourceEditorTarget.id}
+                onClick={() => closeSourceEditor()}
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+            <p className="text-sm text-destructive">{error}</p>
+            <button className={buttonSecondaryClass} onClick={() => void loadSources()} type="button">
+              Retry
+            </button>
+          </div>
+        ) : null}
+        {notice ? (
+          <p className="mb-3 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700">
+            {notice}
+          </p>
+        ) : null}
+
+        {isLoading ? (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Loading library...</p>
+            <p className="text-xs text-muted-foreground">
+              Fetching files, filters, and metadata for this workspace.
+            </p>
+          </div>
+        ) : sources.length === 0 ? (
+          <div className="rounded-md border border-dashed p-4">
+            <p className="text-sm text-muted-foreground">No files yet. Upload your first source above.</p>
+          </div>
+        ) : filteredSources.length === 0 ? (
+          <div className="rounded-md border border-dashed p-4">
+            <p className="text-sm text-muted-foreground">No files match your current search and filters.</p>
+            <button
+              className={`${buttonSecondaryClass} mt-3`}
+              onClick={() => {
+                setQuery('');
+                setProjectFilter('all');
+                setFolderFilter('all');
+              }}
+              type="button"
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <p>
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}-
+                {Math.min(currentPage * PAGE_SIZE, sortedSources.length)} of {sortedSources.length} results
+              </p>
+              <p>
+                Page {currentPage} of {totalPages}
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="py-2 pr-4">
+                    <button className="font-medium" onClick={() => applySort('name')} type="button">
+                      Name
+                    </button>
+                  </th>
+                  <th className="py-2 pr-4">
+                    <button className="font-medium" onClick={() => applySort('project')} type="button">
+                      Project
+                    </button>
+                  </th>
+                  <th className="py-2 pr-4">
+                    <button className="font-medium" onClick={() => applySort('folder')} type="button">
+                      Folder
+                    </button>
+                  </th>
+                  <th className="py-2 pr-4">
+                    <button className="font-medium" onClick={() => applySort('size')} type="button">
+                      Size
+                    </button>
+                  </th>
+                  <th className="py-2 pr-4">
+                    <button className="font-medium" onClick={() => applySort('updatedAt')} type="button">
+                      Updated
+                    </button>
+                  </th>
+                  <th className="py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedSources.map(source => (
+                  <tr className="border-b" key={source.id}>
+                    <td className="py-2 pr-4">{source.name}</td>
+                    <td className="py-2 pr-4">{source.project}</td>
+                    <td className="py-2 pr-4">{source.folder}</td>
+                    <td className="py-2 pr-4">{formatBytes(source.size)}</td>
+                    <td className="py-2 pr-4">
+                      {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
+                    </td>
+                    <td className="py-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Link className="text-sm underline" href={`/library/${source.id}`}>
+                          View
+                        </Link>
+                        <button
+                          className="text-sm underline"
+                          disabled={mutatingSourceId === source.id}
+                          onClick={() => openRenameSourceEditor(source)}
+                          type="button"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          className="text-sm underline"
+                          disabled={mutatingSourceId === source.id}
+                          onClick={() => void openMoveSourceEditor(source)}
+                          type="button"
+                        >
+                          Move
+                        </button>
+                        <button
+                          className="text-sm text-destructive underline"
+                          disabled={mutatingSourceId === source.id}
+                          onClick={() => void handleDeleteSource(source)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                className={buttonSecondaryClass}
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                type="button"
+              >
+                Previous
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                type="button"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
