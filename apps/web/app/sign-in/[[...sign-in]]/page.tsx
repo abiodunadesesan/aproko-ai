@@ -1,4 +1,5 @@
 import { AuthShell } from '@/components/auth-shell';
+import { clerkDarkAppearance } from '@/lib/clerk-appearance';
 import { SignIn } from '@clerk/nextjs';
 
 export default function SignInPage() {
@@ -9,12 +10,7 @@ export default function SignInPage() {
       title="Welcome back"
     >
       <SignIn
-        appearance={{
-          elements: {
-            rootBox: 'w-full',
-            card: 'w-full border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-xl shadow-black/40',
-          },
-        }}
+        appearance={clerkDarkAppearance}
         fallbackRedirectUrl="/dashboard"
         forceRedirectUrl="/dashboard"
       />
