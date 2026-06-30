@@ -1253,12 +1253,14 @@ export default function LibraryPage() {
               onSubmit={handleUpload}
             >
               <input
+                aria-label="Upload source file"
                 className="h-10 rounded-md border px-3 text-sm"
                 type="file"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 required
               />
               <select
+                aria-label="Select project for upload"
                 className="h-10 rounded-md border px-3 text-sm"
                 value={projectId}
                 onChange={(event) => setProjectId(event.target.value)}
@@ -1271,6 +1273,7 @@ export default function LibraryPage() {
                 ))}
               </select>
               <select
+                aria-label="Select folder for upload"
                 className="h-10 rounded-md border px-3 text-sm"
                 value={folderId}
                 onChange={(event) => setFolderId(event.target.value)}
@@ -1365,6 +1368,7 @@ export default function LibraryPage() {
                 {taxonomyEditorMode !== 'delete-project' &&
                 taxonomyEditorMode !== 'delete-folder' ? (
                   <input
+                    aria-label="Taxonomy name"
                     className="h-10 w-full rounded-md border px-3 text-sm"
                     placeholder="Name"
                     value={taxonomyNameDraft}
@@ -1405,6 +1409,7 @@ export default function LibraryPage() {
           <CardContent>
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <input
+                aria-label="Search library sources"
                 className="h-10 w-full rounded-md border px-3 text-sm md:max-w-sm"
                 placeholder="Search by name, project, or folder"
                 value={query}
@@ -1412,6 +1417,7 @@ export default function LibraryPage() {
               />
               <div className="flex flex-wrap gap-2">
                 <select
+                  aria-label="Filter by project"
                   className="h-10 rounded-md border px-3 text-sm"
                   value={projectFilter}
                   onChange={(event) => {
@@ -1428,6 +1434,7 @@ export default function LibraryPage() {
                   ))}
                 </select>
                 <select
+                  aria-label="Filter by folder"
                   className="h-10 rounded-md border px-3 text-sm"
                   value={folderFilter}
                   onChange={(event) => setFolderFilter(event.target.value)}
@@ -1441,6 +1448,7 @@ export default function LibraryPage() {
                 </select>
                 <button
                   className={buttonSecondaryClass}
+                  aria-label="Refresh sources list"
                   onClick={() => void loadSources()}
                   type="button"
                 >
@@ -1457,6 +1465,7 @@ export default function LibraryPage() {
                 </p>
                 <div className="grid gap-2 md:grid-cols-2">
                   <select
+                    aria-label="Move selected sources to project"
                     className="h-10 rounded-md border px-3 text-sm"
                     value={bulkMoveProjectId}
                     onChange={(event) => void handleBulkMoveProjectChange(event.target.value)}
@@ -1469,6 +1478,7 @@ export default function LibraryPage() {
                     ))}
                   </select>
                   <select
+                    aria-label="Move selected sources to folder"
                     className="h-10 rounded-md border px-3 text-sm"
                     value={bulkMoveFolderId}
                     onChange={(event) => setBulkMoveFolderId(event.target.value)}
@@ -1525,6 +1535,7 @@ export default function LibraryPage() {
 
                 {sourceEditorMode === 'rename' ? (
                   <input
+                    aria-label="Source name"
                     className="h-10 w-full rounded-md border px-3 text-sm"
                     value={sourceNameDraft}
                     onChange={(event) => setSourceNameDraft(event.target.value)}
@@ -1533,6 +1544,7 @@ export default function LibraryPage() {
                 ) : (
                   <div className="grid gap-2 md:grid-cols-2">
                     <select
+                      aria-label="Select destination project"
                       className="h-10 rounded-md border px-3 text-sm"
                       value={sourceMoveProjectId}
                       onChange={(event) => void handleSourceEditorProjectChange(event.target.value)}
@@ -1545,6 +1557,7 @@ export default function LibraryPage() {
                       ))}
                     </select>
                     <select
+                      aria-label="Select destination folder"
                       className="h-10 rounded-md border px-3 text-sm"
                       value={sourceMoveFolderId}
                       onChange={(event) => setSourceMoveFolderId(event.target.value)}
@@ -1587,7 +1600,10 @@ export default function LibraryPage() {
             ) : null}
 
             {error ? (
-              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+              <div
+                className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3"
+                role="alert"
+              >
                 <p className="text-sm text-destructive">{error}</p>
                 <button
                   className={buttonSecondaryClass}
@@ -1599,12 +1615,18 @@ export default function LibraryPage() {
               </div>
             ) : null}
             {notice ? (
-              <p className="mb-3 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700">
+              <p
+                className="mb-3 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+                role="status"
+              >
                 {notice}
               </p>
             ) : null}
             {pendingSourceDeleteJob ? (
-              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3">
+              <div
+                className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3"
+                role="status"
+              >
                 <p className="text-sm text-amber-800">
                   {pendingSourceDeleteJob.targets.length} source
                   {pendingSourceDeleteJob.targets.length === 1 ? '' : 's'} pending deletion.
@@ -1619,7 +1641,10 @@ export default function LibraryPage() {
               </div>
             ) : null}
             {pendingTaxonomyDeleteJob ? (
-              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3">
+              <div
+                className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3"
+                role="status"
+              >
                 <p className="text-sm text-amber-800">
                   {pendingTaxonomyDeleteJob.mode === 'project' ? 'Project' : 'Folder'} "
                   {pendingTaxonomyDeleteJob.targetName}" pending deletion.
@@ -1635,7 +1660,7 @@ export default function LibraryPage() {
             ) : null}
 
             {isLoading ? (
-              <div className="space-y-3">
+              <div className="space-y-3" role="status">
                 <p className="text-sm text-muted-foreground">Loading library...</p>
                 <div className="space-y-2">
                   <Skeleton className="h-10 w-full rounded-md" />
@@ -1703,6 +1728,7 @@ export default function LibraryPage() {
                       <TableHead>
                         <button
                           className="font-medium"
+                          aria-label={`Sort by name${sortField === 'name' ? `, currently ${sortDirection}` : ''}`}
                           onClick={() => applySort('name')}
                           type="button"
                         >
@@ -1712,6 +1738,7 @@ export default function LibraryPage() {
                       <TableHead>
                         <button
                           className="font-medium"
+                          aria-label={`Sort by project${sortField === 'project' ? `, currently ${sortDirection}` : ''}`}
                           onClick={() => applySort('project')}
                           type="button"
                         >
@@ -1721,6 +1748,7 @@ export default function LibraryPage() {
                       <TableHead>
                         <button
                           className="font-medium"
+                          aria-label={`Sort by folder${sortField === 'folder' ? `, currently ${sortDirection}` : ''}`}
                           onClick={() => applySort('folder')}
                           type="button"
                         >
@@ -1730,6 +1758,7 @@ export default function LibraryPage() {
                       <TableHead>
                         <button
                           className="font-medium"
+                          aria-label={`Sort by size${sortField === 'size' ? `, currently ${sortDirection}` : ''}`}
                           onClick={() => applySort('size')}
                           type="button"
                         >
@@ -1739,6 +1768,7 @@ export default function LibraryPage() {
                       <TableHead>
                         <button
                           className="font-medium"
+                          aria-label={`Sort by updated time${sortField === 'updatedAt' ? `, currently ${sortDirection}` : ''}`}
                           onClick={() => applySort('updatedAt')}
                           type="button"
                         >
@@ -1772,7 +1802,8 @@ export default function LibraryPage() {
                               View
                             </Link>
                             <button
-                              className="text-sm underline"
+                              aria-label={`Rename ${source.name}`}
+                              className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               disabled={mutatingSourceId === source.id || isBulkProcessing}
                               onClick={() => openRenameSourceEditor(source)}
                               type="button"
@@ -1780,7 +1811,8 @@ export default function LibraryPage() {
                               Rename
                             </button>
                             <button
-                              className="text-sm underline"
+                              aria-label={`Move ${source.name}`}
+                              className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               disabled={mutatingSourceId === source.id || isBulkProcessing}
                               onClick={() => void openMoveSourceEditor(source)}
                               type="button"
@@ -1788,7 +1820,8 @@ export default function LibraryPage() {
                               Move
                             </button>
                             <button
-                              className="text-sm text-destructive underline"
+                              aria-label={`Delete ${source.name}`}
+                              className="text-sm text-destructive underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               disabled={mutatingSourceId === source.id || isBulkProcessing}
                               onClick={() => void handleDeleteSource(source)}
                               type="button"

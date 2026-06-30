@@ -12,7 +12,7 @@ export default function SignInPage() {
         appearance={{
           elements: {
             rootBox: 'w-full',
-            card: 'w-full border border-border shadow-md',
+            card: 'w-full border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-xl shadow-black/40',
           },
         }}
         fallbackRedirectUrl="/dashboard"
