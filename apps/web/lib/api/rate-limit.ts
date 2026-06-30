@@ -1,3 +1,5 @@
+import { Redis } from '@upstash/redis';
+
 type RateLimitPolicy = {
   windowMs: number;
   maxRequests: number;
@@ -16,6 +18,8 @@ type RateLimitEntry = {
 };
 
 const store = new Map<string, RateLimitEntry>();
+let cachedUpstashClient: Redis | null = null;
+let upstashDisabledForProcess = false;
 
 function getClientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -32,7 +36,7 @@ function buildKey(request: Request, policy: RateLimitPolicy, userId?: string | n
   return `${policy.bucket}:${actor}`;
 }
 
-export function enforceRateLimit(input: RateLimitInput): Response | null {
+function enforceInMemoryRateLimit(input: RateLimitInput): Response | null {
   const now = Date.now();
   const key = buildKey(input.request, input.policy, input.userId);
   const current = store.get(key);
@@ -63,6 +67,68 @@ export function enforceRateLimit(input: RateLimitInput): Response | null {
   current.count += 1;
   store.set(key, current);
   return null;
+}
+
+function getUpstashClient(): Redis | null {
+  if (upstashDisabledForProcess) {
+    return null;
+  }
+
+  if (cachedUpstashClient) {
+    return cachedUpstashClient;
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url || !token) {
+    return null;
+  }
+
+  try {
+    cachedUpstashClient = new Redis({ url, token });
+    return cachedUpstashClient;
+  } catch {
+    upstashDisabledForProcess = true;
+    return null;
+  }
+}
+
+export async function enforceRateLimit(input: RateLimitInput): Promise<Response | null> {
+  const redis = getUpstashClient();
+  if (!redis) {
+    return enforceInMemoryRateLimit(input);
+  }
+
+  const key = buildKey(input.request, input.policy, input.userId);
+
+  try {
+    const counter = await redis.incr(key);
+    if (counter === 1) {
+      await redis.pexpire(key, input.policy.windowMs);
+    }
+
+    const ttlMs = await redis.pttl(key);
+    const resolvedTtlMs = ttlMs > 0 ? ttlMs : input.policy.windowMs;
+
+    if (counter > input.policy.maxRequests) {
+      const retryAfterSeconds = Math.max(1, Math.ceil(resolvedTtlMs / 1000));
+      return Response.json(
+        {
+          error: 'Rate limit exceeded',
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfterSeconds),
+          },
+        },
+      );
+    }
+    return null;
+  } catch {
+    upstashDisabledForProcess = true;
+    return enforceInMemoryRateLimit(input);
+  }
 }
 
 export const rateLimitPolicies = {

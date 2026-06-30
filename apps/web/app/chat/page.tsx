@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -509,9 +510,13 @@ export default function ChatPage() {
             New session
           </Button>
 
-          <div className="space-y-2">
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
             {isLoadingSessions ? (
-              <p className="text-sm text-muted-foreground">Loading sessions...</p>
+              <div className="space-y-2">
+                <Skeleton className="h-16 w-full rounded-md" />
+                <Skeleton className="h-16 w-full rounded-md" />
+                <Skeleton className="h-16 w-full rounded-md" />
+              </div>
             ) : sessions.length === 0 ? (
               <p className="text-sm text-muted-foreground">No chat sessions yet.</p>
             ) : (
@@ -535,7 +540,7 @@ export default function ChatPage() {
                       {formatSessionModel(session) ?? 'model pending'}
                     </p>
                   </button>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <Button
                       onClick={() => {
                         void renameSession(session);
@@ -576,13 +581,13 @@ export default function ChatPage() {
           <CardContent className="flex flex-1 flex-col p-6 pt-0">
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {messages.length === 0 ? (
-                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                <div className="rounded-md border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
                   Start a conversation. Your first message creates a session automatically.
                 </div>
               ) : (
                 messages.map((message) => (
                   <article
-                    className={`rounded-md border px-3 py-2 ${
+                    className={`rounded-md border px-3 py-2 transition-colors ${
                       message.role === 'assistant' ? 'bg-muted/50' : 'bg-background'
                     }`}
                     key={message.id}
@@ -647,7 +652,7 @@ export default function ChatPage() {
                 value={input}
               />
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-muted-foreground" htmlFor="chat-model-select">
                     Model
@@ -673,8 +678,8 @@ export default function ChatPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground">
+                <div className="flex items-center justify-between gap-2 sm:justify-end">
+                  <p className="hidden text-xs text-muted-foreground md:block">
                     Streaming contract active (CHAT-005)
                   </p>
                   <Button disabled={isSending || !input.trim()} type="submit">

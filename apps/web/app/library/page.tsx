@@ -14,7 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -1238,294 +1239,229 @@ export default function LibraryPage() {
       subtitle="Upload and organize workspace knowledge by projects and folders."
       title="Library"
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload And Taxonomy</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-3 md:grid-cols-[1fr_200px_200px_auto]" onSubmit={handleUpload}>
-            <input
-              className="h-10 rounded-md border px-3 text-sm"
-              type="file"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              required
-            />
-            <select
-              className="h-10 rounded-md border px-3 text-sm"
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
+      <section className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload and taxonomy</CardTitle>
+            <CardDescription>
+              Add new sources and keep your project-folder structure clean as your workspace grows.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="grid gap-3 md:grid-cols-[1fr_200px_200px_auto]"
+              onSubmit={handleUpload}
             >
-              <option value="">{projects.length ? 'Select project' : 'No projects'}</option>
-              {projects.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="h-10 rounded-md border px-3 text-sm"
-              value={folderId}
-              onChange={(event) => setFolderId(event.target.value)}
-            >
-              <option value="">{folders.length ? 'Select folder' : 'No folders'}</option>
-              {folders.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <button className={buttonPrimaryClass} disabled={isUploading} type="submit">
-              {isUploading ? 'Uploading...' : 'Upload'}
-            </button>
-          </form>
-          <div className="mt-3 flex gap-2">
-            <button
-              className={buttonSecondaryClass}
-              disabled={isSavingProject}
-              onClick={() => void handleCreateProject()}
-              type="button"
-            >
-              {isSavingProject ? 'Creating project...' : 'New project'}
-            </button>
-            <button
-              className={buttonSecondaryClass}
-              disabled={isSavingProject || !projectId}
-              onClick={() => void handleRenameProject()}
-              type="button"
-            >
-              Rename project
-            </button>
-            <button
-              className={buttonSecondaryClass}
-              disabled={isSavingProject || !projectId}
-              onClick={() => void handleDeleteProject()}
-              type="button"
-            >
-              Delete project
-            </button>
-            <button
-              className={buttonSecondaryClass}
-              disabled={isSavingFolder || !projectId}
-              onClick={() => void handleCreateFolder()}
-              type="button"
-            >
-              {isSavingFolder ? 'Creating folder...' : 'New folder'}
-            </button>
-            <button
-              className={buttonSecondaryClass}
-              disabled={isSavingFolder || !folderId}
-              onClick={() => void handleRenameFolder()}
-              type="button"
-            >
-              Rename folder
-            </button>
-            <button
-              className={buttonSecondaryClass}
-              disabled={isSavingFolder || !folderId}
-              onClick={() => void handleDeleteFolder()}
-              type="button"
-            >
-              Delete folder
-            </button>
-          </div>
-
-          {taxonomyEditorMode ? (
-            <div className="mt-3 space-y-3 rounded-md border p-3">
-              <p className="text-sm font-medium">
-                {taxonomyEditorMode === 'create-project' && 'Create project'}
-                {taxonomyEditorMode === 'rename-project' && 'Rename project'}
-                {taxonomyEditorMode === 'delete-project' && 'Delete project'}
-                {taxonomyEditorMode === 'create-folder' && 'Create folder'}
-                {taxonomyEditorMode === 'rename-folder' && 'Rename folder'}
-                {taxonomyEditorMode === 'delete-folder' && 'Delete folder'}
-              </p>
-
-              {taxonomyEditorMode === 'delete-project' ? (
-                <p className="text-sm text-muted-foreground">
-                  Delete selected project and its folders? This action affects{' '}
-                  {affectedProjectSourcesCount} source{affectedProjectSourcesCount === 1 ? '' : 's'}{' '}
-                  and cannot be undone.
-                </p>
-              ) : null}
-              {taxonomyEditorMode === 'delete-folder' ? (
-                <p className="text-sm text-muted-foreground">
-                  Delete selected folder? This action affects {affectedFolderSourcesCount} source
-                  {affectedFolderSourcesCount === 1 ? '' : 's'} and cannot be undone.
-                </p>
-              ) : null}
-
-              {taxonomyEditorMode !== 'delete-project' && taxonomyEditorMode !== 'delete-folder' ? (
-                <input
-                  className="h-10 w-full rounded-md border px-3 text-sm"
-                  placeholder="Name"
-                  value={taxonomyNameDraft}
-                  onChange={(event) => setTaxonomyNameDraft(event.target.value)}
-                />
-              ) : null}
-
-              <div className="flex gap-2">
-                <button
-                  className={buttonPrimaryClass}
-                  disabled={isSavingProject || isSavingFolder}
-                  onClick={() => void submitTaxonomyEditor()}
-                  type="button"
-                >
-                  {isSavingProject || isSavingFolder ? 'Saving...' : 'Confirm'}
-                </button>
-                <button
-                  className={buttonSecondaryClass}
-                  disabled={isSavingProject || isSavingFolder}
-                  onClick={() => closeTaxonomyEditor()}
-                  type="button"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Sources</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <input
-              className="h-10 w-full rounded-md border px-3 text-sm md:max-w-sm"
-              placeholder="Search by name, project, or folder"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            <div className="flex flex-wrap gap-2">
+              <input
+                className="h-10 rounded-md border px-3 text-sm"
+                type="file"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                required
+              />
               <select
                 className="h-10 rounded-md border px-3 text-sm"
-                value={projectFilter}
-                onChange={(event) => {
-                  const nextProjectFilter = event.target.value;
-                  setProjectFilter(nextProjectFilter);
-                  setFolderFilter('all');
-                }}
+                value={projectId}
+                onChange={(event) => setProjectId(event.target.value)}
               >
-                <option value="all">All projects</option>
-                {sourceProjectOptions.map((project) => (
-                  <option key={project} value={project}>
-                    {project}
+                <option value="">{projects.length ? 'Select project' : 'No projects'}</option>
+                {projects.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
                   </option>
                 ))}
               </select>
               <select
                 className="h-10 rounded-md border px-3 text-sm"
-                value={folderFilter}
-                onChange={(event) => setFolderFilter(event.target.value)}
+                value={folderId}
+                onChange={(event) => setFolderId(event.target.value)}
               >
-                <option value="all">All folders</option>
-                {sourceFolderOptions.map((folder) => (
-                  <option key={folder} value={folder}>
-                    {folder}
+                <option value="">{folders.length ? 'Select folder' : 'No folders'}</option>
+                {folders.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
                   </option>
                 ))}
               </select>
+              <button className={buttonPrimaryClass} disabled={isUploading} type="submit">
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </form>
+            <div className="mt-3 flex gap-2">
               <button
                 className={buttonSecondaryClass}
-                onClick={() => void loadSources()}
+                disabled={isSavingProject}
+                onClick={() => void handleCreateProject()}
                 type="button"
               >
-                Refresh
+                {isSavingProject ? 'Creating project...' : 'New project'}
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={isSavingProject || !projectId}
+                onClick={() => void handleRenameProject()}
+                type="button"
+              >
+                Rename project
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={isSavingProject || !projectId}
+                onClick={() => void handleDeleteProject()}
+                type="button"
+              >
+                Delete project
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={isSavingFolder || !projectId}
+                onClick={() => void handleCreateFolder()}
+                type="button"
+              >
+                {isSavingFolder ? 'Creating folder...' : 'New folder'}
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={isSavingFolder || !folderId}
+                onClick={() => void handleRenameFolder()}
+                type="button"
+              >
+                Rename folder
+              </button>
+              <button
+                className={buttonSecondaryClass}
+                disabled={isSavingFolder || !folderId}
+                onClick={() => void handleDeleteFolder()}
+                type="button"
+              >
+                Delete folder
               </button>
             </div>
-          </div>
 
-          {selectedSourceIds.length > 0 ? (
-            <div className="mb-3 space-y-3 rounded-md border p-3">
-              <p className="text-sm font-medium">
-                {selectedSourceIds.length} source{selectedSourceIds.length === 1 ? '' : 's'}{' '}
-                selected
-              </p>
-              <div className="grid gap-2 md:grid-cols-2">
-                <select
-                  className="h-10 rounded-md border px-3 text-sm"
-                  value={bulkMoveProjectId}
-                  onChange={(event) => void handleBulkMoveProjectChange(event.target.value)}
-                >
-                  <option value="">Move to project...</option>
-                  {projects.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="h-10 rounded-md border px-3 text-sm"
-                  value={bulkMoveFolderId}
-                  onChange={(event) => setBulkMoveFolderId(event.target.value)}
-                >
-                  <option value="">
-                    {isBulkMoveLoadingFolders
-                      ? 'Loading folders...'
-                      : bulkMoveFolders.length
-                        ? 'Move to folder...'
-                        : 'No folders'}
-                  </option>
-                  {bulkMoveFolders.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
+            {taxonomyEditorMode ? (
+              <div className="mt-3 space-y-3 rounded-md border p-3">
+                <p className="text-sm font-medium">
+                  {taxonomyEditorMode === 'create-project' && 'Create project'}
+                  {taxonomyEditorMode === 'rename-project' && 'Rename project'}
+                  {taxonomyEditorMode === 'delete-project' && 'Delete project'}
+                  {taxonomyEditorMode === 'create-folder' && 'Create folder'}
+                  {taxonomyEditorMode === 'rename-folder' && 'Rename folder'}
+                  {taxonomyEditorMode === 'delete-folder' && 'Delete folder'}
+                </p>
+
+                {taxonomyEditorMode === 'delete-project' ? (
+                  <p className="text-sm text-muted-foreground">
+                    Delete selected project and its folders? This action affects{' '}
+                    {affectedProjectSourcesCount} source
+                    {affectedProjectSourcesCount === 1 ? '' : 's'} and cannot be undone.
+                  </p>
+                ) : null}
+                {taxonomyEditorMode === 'delete-folder' ? (
+                  <p className="text-sm text-muted-foreground">
+                    Delete selected folder? This action affects {affectedFolderSourcesCount} source
+                    {affectedFolderSourcesCount === 1 ? '' : 's'} and cannot be undone.
+                  </p>
+                ) : null}
+
+                {taxonomyEditorMode !== 'delete-project' &&
+                taxonomyEditorMode !== 'delete-folder' ? (
+                  <input
+                    className="h-10 w-full rounded-md border px-3 text-sm"
+                    placeholder="Name"
+                    value={taxonomyNameDraft}
+                    onChange={(event) => setTaxonomyNameDraft(event.target.value)}
+                  />
+                ) : null}
+
+                <div className="flex gap-2">
+                  <button
+                    className={buttonPrimaryClass}
+                    disabled={isSavingProject || isSavingFolder}
+                    onClick={() => void submitTaxonomyEditor()}
+                    type="button"
+                  >
+                    {isSavingProject || isSavingFolder ? 'Saving...' : 'Confirm'}
+                  </button>
+                  <button
+                    className={buttonSecondaryClass}
+                    disabled={isSavingProject || isSavingFolder}
+                    onClick={() => closeTaxonomyEditor()}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sources</CardTitle>
+            <CardDescription>
+              Browse, filter, and manage every uploaded source with bulk actions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <input
+                className="h-10 w-full rounded-md border px-3 text-sm md:max-w-sm"
+                placeholder="Search by name, project, or folder"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
               <div className="flex flex-wrap gap-2">
-                <button
-                  className={buttonPrimaryClass}
-                  disabled={isBulkProcessing}
-                  onClick={() => void submitBulkMove()}
-                  type="button"
+                <select
+                  className="h-10 rounded-md border px-3 text-sm"
+                  value={projectFilter}
+                  onChange={(event) => {
+                    const nextProjectFilter = event.target.value;
+                    setProjectFilter(nextProjectFilter);
+                    setFolderFilter('all');
+                  }}
                 >
-                  {isBulkProcessing ? 'Processing...' : 'Move selected'}
-                </button>
+                  <option value="all">All projects</option>
+                  {sourceProjectOptions.map((project) => (
+                    <option key={project} value={project}>
+                      {project}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 rounded-md border px-3 text-sm"
+                  value={folderFilter}
+                  onChange={(event) => setFolderFilter(event.target.value)}
+                >
+                  <option value="all">All folders</option>
+                  {sourceFolderOptions.map((folder) => (
+                    <option key={folder} value={folder}>
+                      {folder}
+                    </option>
+                  ))}
+                </select>
                 <button
                   className={buttonSecondaryClass}
-                  disabled={isBulkProcessing}
-                  onClick={() => openBulkDeleteModal()}
+                  onClick={() => void loadSources()}
                   type="button"
                 >
-                  Delete selected
-                </button>
-                <button
-                  className={buttonSecondaryClass}
-                  disabled={isBulkProcessing}
-                  onClick={() => setSelectedSourceIds([])}
-                  type="button"
-                >
-                  Clear selection
+                  Refresh
                 </button>
               </div>
             </div>
-          ) : null}
 
-          {sourceEditorMode && sourceEditorTarget ? (
-            <div className="mb-3 space-y-3 rounded-md border p-3">
-              <p className="text-sm font-medium">
-                {sourceEditorMode === 'rename' ? 'Rename source' : 'Move source'}:{' '}
-                {sourceEditorTarget.name}
-              </p>
-
-              {sourceEditorMode === 'rename' ? (
-                <input
-                  className="h-10 w-full rounded-md border px-3 text-sm"
-                  value={sourceNameDraft}
-                  onChange={(event) => setSourceNameDraft(event.target.value)}
-                  placeholder="Source name"
-                />
-              ) : (
+            {selectedSourceIds.length > 0 ? (
+              <div className="mb-3 space-y-3 rounded-md border p-3">
+                <p className="text-sm font-medium">
+                  {selectedSourceIds.length} source{selectedSourceIds.length === 1 ? '' : 's'}{' '}
+                  selected
+                </p>
                 <div className="grid gap-2 md:grid-cols-2">
                   <select
                     className="h-10 rounded-md border px-3 text-sm"
-                    value={sourceMoveProjectId}
-                    onChange={(event) => void handleSourceEditorProjectChange(event.target.value)}
+                    value={bulkMoveProjectId}
+                    onChange={(event) => void handleBulkMoveProjectChange(event.target.value)}
                   >
-                    <option value="">Select project</option>
+                    <option value="">Move to project...</option>
                     {projects.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.name}
@@ -1534,281 +1470,360 @@ export default function LibraryPage() {
                   </select>
                   <select
                     className="h-10 rounded-md border px-3 text-sm"
-                    value={sourceMoveFolderId}
-                    onChange={(event) => setSourceMoveFolderId(event.target.value)}
+                    value={bulkMoveFolderId}
+                    onChange={(event) => setBulkMoveFolderId(event.target.value)}
                   >
                     <option value="">
-                      {isSourceEditorLoadingFolders
+                      {isBulkMoveLoadingFolders
                         ? 'Loading folders...'
-                        : sourceMoveFolders.length
-                          ? 'Select folder'
+                        : bulkMoveFolders.length
+                          ? 'Move to folder...'
                           : 'No folders'}
                     </option>
-                    {sourceMoveFolders.map((item) => (
+                    {bulkMoveFolders.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.name}
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className={buttonPrimaryClass}
+                    disabled={isBulkProcessing}
+                    onClick={() => void submitBulkMove()}
+                    type="button"
+                  >
+                    {isBulkProcessing ? 'Processing...' : 'Move selected'}
+                  </button>
+                  <button
+                    className={buttonSecondaryClass}
+                    disabled={isBulkProcessing}
+                    onClick={() => openBulkDeleteModal()}
+                    type="button"
+                  >
+                    Delete selected
+                  </button>
+                  <button
+                    className={buttonSecondaryClass}
+                    disabled={isBulkProcessing}
+                    onClick={() => setSelectedSourceIds([])}
+                    type="button"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
-              <div className="flex gap-2">
-                <button
-                  className={buttonPrimaryClass}
-                  disabled={mutatingSourceId === sourceEditorTarget.id}
-                  onClick={() => void submitSourceEditor()}
-                  type="button"
-                >
-                  {mutatingSourceId === sourceEditorTarget.id ? 'Saving...' : 'Save'}
-                </button>
+            {sourceEditorMode && sourceEditorTarget ? (
+              <div className="mb-3 space-y-3 rounded-md border p-3">
+                <p className="text-sm font-medium">
+                  {sourceEditorMode === 'rename' ? 'Rename source' : 'Move source'}:{' '}
+                  {sourceEditorTarget.name}
+                </p>
+
+                {sourceEditorMode === 'rename' ? (
+                  <input
+                    className="h-10 w-full rounded-md border px-3 text-sm"
+                    value={sourceNameDraft}
+                    onChange={(event) => setSourceNameDraft(event.target.value)}
+                    placeholder="Source name"
+                  />
+                ) : (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <select
+                      className="h-10 rounded-md border px-3 text-sm"
+                      value={sourceMoveProjectId}
+                      onChange={(event) => void handleSourceEditorProjectChange(event.target.value)}
+                    >
+                      <option value="">Select project</option>
+                      {projects.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="h-10 rounded-md border px-3 text-sm"
+                      value={sourceMoveFolderId}
+                      onChange={(event) => setSourceMoveFolderId(event.target.value)}
+                    >
+                      <option value="">
+                        {isSourceEditorLoadingFolders
+                          ? 'Loading folders...'
+                          : sourceMoveFolders.length
+                            ? 'Select folder'
+                            : 'No folders'}
+                      </option>
+                      {sourceMoveFolders.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    className={buttonPrimaryClass}
+                    disabled={mutatingSourceId === sourceEditorTarget.id}
+                    onClick={() => void submitSourceEditor()}
+                    type="button"
+                  >
+                    {mutatingSourceId === sourceEditorTarget.id ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    className={buttonSecondaryClass}
+                    disabled={mutatingSourceId === sourceEditorTarget.id}
+                    onClick={() => closeSourceEditor()}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+                <p className="text-sm text-destructive">{error}</p>
                 <button
                   className={buttonSecondaryClass}
-                  disabled={mutatingSourceId === sourceEditorTarget.id}
-                  onClick={() => closeSourceEditor()}
+                  onClick={() => void loadSources()}
                   type="button"
                 >
-                  Cancel
+                  Retry
                 </button>
               </div>
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-              <p className="text-sm text-destructive">{error}</p>
-              <button
-                className={buttonSecondaryClass}
-                onClick={() => void loadSources()}
-                type="button"
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
-          {notice ? (
-            <p className="mb-3 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700">
-              {notice}
-            </p>
-          ) : null}
-          {pendingSourceDeleteJob ? (
-            <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3">
-              <p className="text-sm text-amber-800">
-                {pendingSourceDeleteJob.targets.length} source
-                {pendingSourceDeleteJob.targets.length === 1 ? '' : 's'} pending deletion.
+            ) : null}
+            {notice ? (
+              <p className="mb-3 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700">
+                {notice}
               </p>
-              <button
-                className={buttonSecondaryClass}
-                onClick={() => undoPendingSourceDelete()}
-                type="button"
-              >
-                Undo
-              </button>
-            </div>
-          ) : null}
-          {pendingTaxonomyDeleteJob ? (
-            <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3">
-              <p className="text-sm text-amber-800">
-                {pendingTaxonomyDeleteJob.mode === 'project' ? 'Project' : 'Folder'} "
-                {pendingTaxonomyDeleteJob.targetName}" pending deletion.
-              </p>
-              <button
-                className={buttonSecondaryClass}
-                onClick={() => undoPendingTaxonomyDelete()}
-                type="button"
-              >
-                Undo
-              </button>
-            </div>
-          ) : null}
-
-          {isLoading ? (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Loading library...</p>
-              <p className="text-xs text-muted-foreground">
-                Fetching files, filters, and metadata for this workspace.
-              </p>
-            </div>
-          ) : sources.length === 0 ? (
-            <div className="rounded-md border border-dashed p-4">
-              <p className="text-sm text-muted-foreground">
-                No files yet. Upload your first source above.
-              </p>
-            </div>
-          ) : filteredSources.length === 0 ? (
-            <div className="rounded-md border border-dashed p-4">
-              <p className="text-sm text-muted-foreground">
-                No files match your current search and filters.
-              </p>
-              <button
-                className={`${buttonSecondaryClass} mt-3`}
-                onClick={() => {
-                  setQuery('');
-                  setProjectFilter('all');
-                  setFolderFilter('all');
-                }}
-                type="button"
-              >
-                Clear filters
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <p>
-                  Showing {(currentPage - 1) * PAGE_SIZE + 1}-
-                  {Math.min(currentPage * PAGE_SIZE, sortedSources.length)} of{' '}
-                  {sortedSources.length} results
+            ) : null}
+            {pendingSourceDeleteJob ? (
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3">
+                <p className="text-sm text-amber-800">
+                  {pendingSourceDeleteJob.targets.length} source
+                  {pendingSourceDeleteJob.targets.length === 1 ? '' : 's'} pending deletion.
                 </p>
-                <p>
-                  Page {currentPage} of {totalPages}
+                <button
+                  className={buttonSecondaryClass}
+                  onClick={() => undoPendingSourceDelete()}
+                  type="button"
+                >
+                  Undo
+                </button>
+              </div>
+            ) : null}
+            {pendingTaxonomyDeleteJob ? (
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3">
+                <p className="text-sm text-amber-800">
+                  {pendingTaxonomyDeleteJob.mode === 'project' ? 'Project' : 'Folder'} "
+                  {pendingTaxonomyDeleteJob.targetName}" pending deletion.
+                </p>
+                <button
+                  className={buttonSecondaryClass}
+                  onClick={() => undoPendingTaxonomyDelete()}
+                  type="button"
+                >
+                  Undo
+                </button>
+              </div>
+            ) : null}
+
+            {isLoading ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Loading library...</p>
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full rounded-md" />
+                  <Skeleton className="h-10 w-full rounded-md" />
+                  <Skeleton className="h-10 w-full rounded-md" />
+                </div>
+              </div>
+            ) : sources.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4">
+                <p className="text-sm text-muted-foreground">
+                  No files yet. Upload your first source above.
                 </p>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <input
-                        aria-label="Select all sources on page"
-                        checked={allPageSelected}
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            setSelectedSourceIds((current) =>
-                              Array.from(new Set([...current, ...paginatedSourceIds])),
-                            );
-                            return;
-                          }
-
-                          setSelectedSourceIds((current) =>
-                            current.filter((id) => !paginatedSourceIds.includes(id)),
-                          );
-                        }}
-                        type="checkbox"
-                      />
-                    </TableHead>
-                    <TableHead>
-                      <button
-                        className="font-medium"
-                        onClick={() => applySort('name')}
-                        type="button"
-                      >
-                        Name
-                      </button>
-                    </TableHead>
-                    <TableHead>
-                      <button
-                        className="font-medium"
-                        onClick={() => applySort('project')}
-                        type="button"
-                      >
-                        Project
-                      </button>
-                    </TableHead>
-                    <TableHead>
-                      <button
-                        className="font-medium"
-                        onClick={() => applySort('folder')}
-                        type="button"
-                      >
-                        Folder
-                      </button>
-                    </TableHead>
-                    <TableHead>
-                      <button
-                        className="font-medium"
-                        onClick={() => applySort('size')}
-                        type="button"
-                      >
-                        Size
-                      </button>
-                    </TableHead>
-                    <TableHead>
-                      <button
-                        className="font-medium"
-                        onClick={() => applySort('updatedAt')}
-                        type="button"
-                      >
-                        Updated
-                      </button>
-                    </TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedSources.map((source) => (
-                    <TableRow key={source.id}>
-                      <TableCell>
+            ) : filteredSources.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4">
+                <p className="text-sm text-muted-foreground">
+                  No files match your current search and filters.
+                </p>
+                <button
+                  className={`${buttonSecondaryClass} mt-3`}
+                  onClick={() => {
+                    setQuery('');
+                    setProjectFilter('all');
+                    setFolderFilter('all');
+                  }}
+                  type="button"
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <p>
+                    Showing {(currentPage - 1) * PAGE_SIZE + 1}-
+                    {Math.min(currentPage * PAGE_SIZE, sortedSources.length)} of{' '}
+                    {sortedSources.length} results
+                  </p>
+                  <p>
+                    Page {currentPage} of {totalPages}
+                  </p>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
                         <input
-                          aria-label={`Select ${source.name}`}
-                          checked={selectedSourceIds.includes(source.id)}
-                          onChange={() => toggleSourceSelection(source.id)}
+                          aria-label="Select all sources on page"
+                          checked={allPageSelected}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              setSelectedSourceIds((current) =>
+                                Array.from(new Set([...current, ...paginatedSourceIds])),
+                              );
+                              return;
+                            }
+
+                            setSelectedSourceIds((current) =>
+                              current.filter((id) => !paginatedSourceIds.includes(id)),
+                            );
+                          }}
                           type="checkbox"
                         />
-                      </TableCell>
-                      <TableCell>{source.name}</TableCell>
-                      <TableCell>{source.project}</TableCell>
-                      <TableCell>{source.folder}</TableCell>
-                      <TableCell>{formatBytes(source.size)}</TableCell>
-                      <TableCell>
-                        {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Link className="text-sm underline" href={`/library/${source.id}`}>
-                            View
-                          </Link>
-                          <button
-                            className="text-sm underline"
-                            disabled={mutatingSourceId === source.id || isBulkProcessing}
-                            onClick={() => openRenameSourceEditor(source)}
-                            type="button"
-                          >
-                            Rename
-                          </button>
-                          <button
-                            className="text-sm underline"
-                            disabled={mutatingSourceId === source.id || isBulkProcessing}
-                            onClick={() => void openMoveSourceEditor(source)}
-                            type="button"
-                          >
-                            Move
-                          </button>
-                          <button
-                            className="text-sm text-destructive underline"
-                            disabled={mutatingSourceId === source.id || isBulkProcessing}
-                            onClick={() => void handleDeleteSource(source)}
-                            type="button"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          className="font-medium"
+                          onClick={() => applySort('name')}
+                          type="button"
+                        >
+                          Name
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          className="font-medium"
+                          onClick={() => applySort('project')}
+                          type="button"
+                        >
+                          Project
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          className="font-medium"
+                          onClick={() => applySort('folder')}
+                          type="button"
+                        >
+                          Folder
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          className="font-medium"
+                          onClick={() => applySort('size')}
+                          type="button"
+                        >
+                          Size
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          className="font-medium"
+                          onClick={() => applySort('updatedAt')}
+                          type="button"
+                        >
+                          Updated
+                        </button>
+                      </TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  className={buttonSecondaryClass}
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                  type="button"
-                >
-                  Previous
-                </button>
-                <button
-                  className={buttonSecondaryClass}
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                  type="button"
-                >
-                  Next
-                </button>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedSources.map((source) => (
+                      <TableRow className="transition-colors hover:bg-muted/40" key={source.id}>
+                        <TableCell>
+                          <input
+                            aria-label={`Select ${source.name}`}
+                            checked={selectedSourceIds.includes(source.id)}
+                            onChange={() => toggleSourceSelection(source.id)}
+                            type="checkbox"
+                          />
+                        </TableCell>
+                        <TableCell>{source.name}</TableCell>
+                        <TableCell>{source.project}</TableCell>
+                        <TableCell>{source.folder}</TableCell>
+                        <TableCell>{formatBytes(source.size)}</TableCell>
+                        <TableCell>
+                          {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            <Link className="text-sm underline" href={`/library/${source.id}`}>
+                              View
+                            </Link>
+                            <button
+                              className="text-sm underline"
+                              disabled={mutatingSourceId === source.id || isBulkProcessing}
+                              onClick={() => openRenameSourceEditor(source)}
+                              type="button"
+                            >
+                              Rename
+                            </button>
+                            <button
+                              className="text-sm underline"
+                              disabled={mutatingSourceId === source.id || isBulkProcessing}
+                              onClick={() => void openMoveSourceEditor(source)}
+                              type="button"
+                            >
+                              Move
+                            </button>
+                            <button
+                              className="text-sm text-destructive underline"
+                              disabled={mutatingSourceId === source.id || isBulkProcessing}
+                              onClick={() => void handleDeleteSource(source)}
+                              type="button"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    className={buttonSecondaryClass}
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    type="button"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    className={buttonSecondaryClass}
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    type="button"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       <AlertDialog
         open={Boolean(deleteModalMode)}

@@ -72,19 +72,27 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button asChild>
+            <Button asChild className="transition-transform hover:-translate-y-0.5">
               <Link href="/library">
                 Open Library
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="secondary">
+            <Button
+              asChild
+              className="transition-transform hover:-translate-y-0.5"
+              variant="secondary"
+            >
               <Link href="/chat">
                 Continue Chat
                 <MessageSquare className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              className="transition-transform hover:-translate-y-0.5"
+              variant="outline"
+            >
               <Link href="/research">
                 Open Research
                 <Sparkles className="h-4 w-4" />
@@ -95,10 +103,10 @@ export default async function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => (
-            <Card key={metric.label}>
+            <Card className="transition-colors hover:bg-muted/30" key={metric.label}>
               <CardHeader className="pb-2">
                 <CardDescription>{metric.label}</CardDescription>
-                <CardTitle className="text-2xl">{metric.value}</CardTitle>
+                <CardTitle className="text-3xl tracking-tight">{metric.value}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">{metric.helper}</p>

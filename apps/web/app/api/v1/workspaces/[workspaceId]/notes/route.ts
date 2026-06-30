@@ -55,7 +55,7 @@ export function createNotesRouteHandlers(deps: NotesRouteDependencies) {
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.notesWrite,

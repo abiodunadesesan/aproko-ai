@@ -21,7 +21,7 @@ export function createWorkspaceSearchRouteHandlers(deps: WorkspaceSearchRouteDep
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.searchRead,

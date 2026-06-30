@@ -55,7 +55,7 @@ export function createQuizAttemptsRouteHandlers(deps: QuizAttemptsRouteDependenc
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.quizAttemptsWrite,

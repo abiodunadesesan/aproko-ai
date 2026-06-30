@@ -39,7 +39,7 @@ export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependenc
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.chatSessionsRead,
@@ -61,7 +61,7 @@ export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependenc
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.chatSessionsWrite,

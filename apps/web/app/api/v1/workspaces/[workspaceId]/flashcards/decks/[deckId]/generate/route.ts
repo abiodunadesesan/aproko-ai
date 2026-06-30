@@ -49,7 +49,7 @@ export function createFlashcardGenerateRouteHandlers(deps: FlashcardGenerateRout
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.flashcardsGenerate,

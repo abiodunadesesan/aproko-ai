@@ -54,7 +54,7 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.notesWrite,
@@ -88,7 +88,7 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.notesWrite,

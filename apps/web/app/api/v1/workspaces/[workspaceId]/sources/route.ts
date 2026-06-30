@@ -39,7 +39,7 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
       if (!userId) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const rateLimitResponse = enforceRateLimit({
+      const rateLimitResponse = await enforceRateLimit({
         request,
         userId,
         policy: rateLimitPolicies.sourcesWrite,

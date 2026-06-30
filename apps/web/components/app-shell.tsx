@@ -213,13 +213,14 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                 variant="outline"
               >
                 <Search className="h-4 w-4" />
-                Search
+                <span className="hidden sm:inline">Search</span>
               </Button>
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline">
-                    Account
+                    <span className="hidden sm:inline">Account</span>
+                    <span className="sm:hidden">Menu</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -242,7 +243,9 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                 {shouldRenderUserButton ? (
                   <UserButton afterSignOutUrl="/" />
                 ) : (
-                  <Badge variant="secondary">Guest</Badge>
+                  <Badge className="hidden sm:inline-flex" variant="secondary">
+                    Guest
+                  </Badge>
                 )}
               </div>
             </div>
