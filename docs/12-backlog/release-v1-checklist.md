@@ -67,6 +67,7 @@
 
 - Local release quality suite re-run and passing (`lint`, `typecheck`, `unit`, `e2e`, `build`).
 - Supabase remote migration list confirms local/remote parity through `202606300003`.
-- Last CI failure root cause: missing Clerk build env in GitHub Actions build step (`Missing publishableKey`).
+- Last CI failure root cause: build required Clerk provider with an invalid placeholder key in CI.
+- Mitigation added: layout now only mounts `ClerkProvider` when a valid publishable key is present.
 - Last Vercel deploy failure root cause: missing `VERCEL_TOKEN` secret caused CLI `--token` empty error.
 - Workflow fixes are committed locally; CI/CD gate will update on next push-triggered run.

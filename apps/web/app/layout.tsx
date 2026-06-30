@@ -14,18 +14,32 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+  const shouldEnableClerkProvider =
+    publishableKey.startsWith('pk_') && !publishableKey.includes('ci_placeholder');
+
+  const appContent = (
+    <>
+      <Suspense fallback={null}>
+        <ObservabilityProvider />
+      </Suspense>
+      {children}
+    </>
+  );
+
   return (
     <html lang="en">
       <body>
-        <ClerkProvider
-          signInFallbackRedirectUrl="/dashboard"
-          signUpFallbackRedirectUrl="/dashboard"
-        >
-          <Suspense fallback={null}>
-            <ObservabilityProvider />
-          </Suspense>
-          {children}
-        </ClerkProvider>
+        {shouldEnableClerkProvider ? (
+          <ClerkProvider
+            signInFallbackRedirectUrl="/dashboard"
+            signUpFallbackRedirectUrl="/dashboard"
+          >
+            {appContent}
+          </ClerkProvider>
+        ) : (
+          appContent
+        )}
       </body>
     </html>
   );
