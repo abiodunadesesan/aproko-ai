@@ -62,6 +62,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const shouldRenderUserButton = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -173,7 +174,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                 </button>
                 <ThemeToggle />
                 <div className={cardClass}>
-                  <UserButton afterSignOutUrl="/" />
+                  {shouldRenderUserButton ? <UserButton afterSignOutUrl="/" /> : <span>Guest</span>}
                 </div>
               </div>
             </div>
