@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { buttonPrimaryClass, cardClass, inputClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 type MeProfile = {
   clerk_user_id: string;
@@ -116,86 +118,111 @@ export default function SettingsPage() {
 
   return (
     <AppShell subtitle="Manage your profile and default AI preferences." title="Settings">
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className={`${cardClass} space-y-3`}>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">Profile</p>
-            <p className="text-xs text-muted-foreground">
-              Update your display name used across Aproko AI.
-            </p>
-          </div>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Profile</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">
+                Update your display name used across Aproko AI.
+              </p>
+            </div>
 
-          {isLoading ? <p className="text-sm text-muted-foreground">Loading profile...</p> : null}
+            {isLoading ? <p className="text-sm text-muted-foreground">Loading profile...</p> : null}
 
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Email</span>
-            <input className={inputClass} disabled value={emailText} />
-          </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Email</span>
+              <Input disabled value={emailText} />
+            </label>
 
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Full Name</span>
-            <input
-              className={inputClass}
-              onChange={(event) => setFullNameDraft(event.target.value)}
-              placeholder="Your full name"
-              value={fullNameDraft}
-            />
-          </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Full Name</span>
+              <Input
+                onChange={(event) => setFullNameDraft(event.target.value)}
+                placeholder="Your full name"
+                value={fullNameDraft}
+              />
+            </label>
 
-          <button
-            className={buttonPrimaryClass}
-            disabled={isLoading || isSavingProfile}
-            onClick={() => void saveProfile()}
-            type="button"
-          >
-            {isSavingProfile ? 'Saving...' : 'Save Profile'}
-          </button>
-        </article>
-
-        <article className={`${cardClass} space-y-3`}>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">AI Preferences</p>
-            <p className="text-xs text-muted-foreground">
-              Baseline preferences stored in this browser for current workspace.
-            </p>
-          </div>
-
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Default Chat Model</span>
-            <select
-              className={inputClass}
-              onChange={(event) =>
-                setDefaultChatModel(event.target.value as 'gpt-4.1-mini' | 'claude-3.5-sonnet')
-              }
-              value={defaultChatModel}
+            <Button
+              className="transition-transform hover:-translate-y-0.5"
+              disabled={isLoading || isSavingProfile}
+              onClick={() => void saveProfile()}
+              type="button"
             >
-              <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-              <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-            </select>
-          </label>
+              {isSavingProfile ? 'Saving...' : 'Save Profile'}
+            </Button>
+          </CardContent>
+        </Card>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              checked={autoMemoryCapture}
-              onChange={(event) => setAutoMemoryCapture(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Auto-capture memory signals from chats</span>
-          </label>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">AI Preferences</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">
+                Baseline preferences stored in this browser for current workspace.
+              </p>
+            </div>
 
-          <button
-            className={buttonPrimaryClass}
-            disabled={isSavingPrefs}
-            onClick={savePreferences}
-            type="button"
-          >
-            {isSavingPrefs ? 'Saving...' : 'Save AI Preferences'}
-          </button>
-        </article>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground" id="default-model-label">
+                Default Chat Model
+              </span>
+              <select
+                aria-labelledby="default-model-label"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                onChange={(event) =>
+                  setDefaultChatModel(event.target.value as 'gpt-4.1-mini' | 'claude-3.5-sonnet')
+                }
+                value={defaultChatModel}
+              >
+                <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+              </select>
+            </label>
+
+            <label className="flex items-center gap-2 text-sm" htmlFor="auto-memory-capture">
+              <input
+                id="auto-memory-capture"
+                checked={autoMemoryCapture}
+                onChange={(event) => setAutoMemoryCapture(event.target.checked)}
+                type="checkbox"
+              />
+              <span>Auto-capture memory signals from chats</span>
+            </label>
+
+            <Button
+              className="transition-transform hover:-translate-y-0.5"
+              disabled={isSavingPrefs}
+              onClick={savePreferences}
+              type="button"
+            >
+              {isSavingPrefs ? 'Saving...' : 'Save AI Preferences'}
+            </Button>
+          </CardContent>
+        </Card>
       </section>
 
-      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
-      {notice ? <p className="mt-4 text-sm text-emerald-700">{notice}</p> : null}
+      {error ? (
+        <div
+          className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          {error}
+        </div>
+      ) : null}
+      {notice ? (
+        <div
+          className="mt-4 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+          role="status"
+        >
+          {notice}
+        </div>
+      ) : null}
     </AppShell>
   );
 }

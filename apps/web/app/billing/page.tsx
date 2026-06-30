@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { buttonPrimaryClass, buttonSecondaryClass, cardClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type BillingSubscription = {
   workspaceId: string;
@@ -64,71 +65,91 @@ export default function BillingPage() {
 
   return (
     <AppShell subtitle="Review your plan, billing period, and subscription status." title="Billing">
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className={`${cardClass} space-y-3`}>
-          <p className="text-sm font-semibold">Subscription</p>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading subscription...</p>
-          ) : (
-            <>
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Plan:</span>{' '}
-                  {subscription?.planCode ?? 'free'}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Status:</span>{' '}
-                  {subscription?.status ?? 'active'}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Provider:</span>{' '}
-                  {subscription?.provider ?? 'not configured'}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Billing period:</span> {periodLabel}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Cancel at period end:</span>{' '}
-                  {subscription?.cancelAtPeriodEnd ? 'Yes' : 'No'}
-                </p>
-              </div>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Subscription</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                Loading subscription...
+              </p>
+            ) : (
+              <>
+                <div className="space-y-1 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">Plan:</span>{' '}
+                    {subscription?.planCode ?? 'free'}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Status:</span>{' '}
+                    {subscription?.status ?? 'active'}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Provider:</span>{' '}
+                    {subscription?.provider ?? 'not configured'}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Billing period:</span> {periodLabel}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Cancel at period end:</span>{' '}
+                    {subscription?.cancelAtPeriodEnd ? 'Yes' : 'No'}
+                  </p>
+                </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  className={buttonPrimaryClass}
-                  onClick={openCheckoutPlaceholder}
-                  type="button"
-                >
-                  Upgrade / Manage Plan
-                </button>
-                <button
-                  className={buttonSecondaryClass}
-                  onClick={() => void loadSubscription()}
-                  type="button"
-                >
-                  Refresh
-                </button>
-              </div>
-            </>
-          )}
-        </article>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    className="transition-transform hover:-translate-y-0.5"
+                    onClick={openCheckoutPlaceholder}
+                    type="button"
+                  >
+                    Upgrade / Manage Plan
+                  </Button>
+                  <Button onClick={() => void loadSubscription()} type="button" variant="outline">
+                    Refresh
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-        <article className={`${cardClass} space-y-3`}>
-          <p className="text-sm font-semibold">Usage Snapshot</p>
-          <p className="text-sm text-muted-foreground">
-            Billing usage meters (tokens, uploads, and workspace limits) are part of the next
-            billing increment.
-          </p>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Current workspace: {subscription?.workspaceId ?? WORKSPACE_ID}</li>
-            <li>Model usage counters: pending integration</li>
-            <li>Storage usage counters: pending integration</li>
-          </ul>
-        </article>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Usage Snapshot</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Billing usage meters (tokens, uploads, and workspace limits) are part of the next
+              billing increment.
+            </p>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              <li>Current workspace: {subscription?.workspaceId ?? WORKSPACE_ID}</li>
+              <li>Model usage counters: pending integration</li>
+              <li>Storage usage counters: pending integration</li>
+            </ul>
+          </CardContent>
+        </Card>
       </section>
 
-      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
-      {notice ? <p className="mt-4 text-sm text-emerald-700">{notice}</p> : null}
+      {error ? (
+        <div
+          className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          {error}
+        </div>
+      ) : null}
+      {notice ? (
+        <div
+          className="mt-4 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+          role="status"
+        >
+          {notice}
+        </div>
+      ) : null}
     </AppShell>
   );
 }

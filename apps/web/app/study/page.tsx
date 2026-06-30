@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { buttonPrimaryClass, buttonSecondaryClass, cardClass, inputClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const WORKSPACE_ID = 'default-workspace';
 
@@ -813,389 +816,399 @@ export default function StudyPage() {
       title="Study"
     >
       <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <aside className={`${cardClass} space-y-3`}>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">Notes</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Notes</CardTitle>
             <p className="text-xs text-muted-foreground">NOTE-001 baseline</p>
-          </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              aria-label="Search notes"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search notes..."
+              value={query}
+            />
 
-          <input
-            className={inputClass}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search notes..."
-            value={query}
-          />
+            <Button disabled={isSaving} onClick={() => void createNote()} type="button">
+              {isSaving ? 'Working...' : 'New Note'}
+            </Button>
 
-          <button
-            className={buttonPrimaryClass}
-            disabled={isSaving}
-            onClick={() => void createNote()}
-            type="button"
-          >
-            {isSaving ? 'Working...' : 'New Note'}
-          </button>
-
-          <div className="space-y-2">
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading notes...</p>
-            ) : filteredNotes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No notes found.</p>
-            ) : (
-              filteredNotes.map((note) => (
-                <button
-                  className={`w-full rounded-md border px-3 py-2 text-left ${
-                    activeNoteId === note.id ? 'bg-muted' : 'hover:bg-muted'
-                  }`}
-                  key={note.id}
-                  onClick={() => setActiveNoteId(note.id)}
-                  type="button"
-                >
-                  <p className="truncate text-sm font-medium">{note.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {note.content || 'Empty note'}
-                  </p>
-                </button>
-              ))
-            )}
-          </div>
-        </aside>
+            <div className="space-y-2">
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading notes...</p>
+              ) : filteredNotes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No notes found.</p>
+              ) : (
+                filteredNotes.map((note) => (
+                  <button
+                    aria-pressed={activeNoteId === note.id}
+                    className={`w-full rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      activeNoteId === note.id ? 'bg-muted' : 'hover:bg-muted/70'
+                    }`}
+                    key={note.id}
+                    onClick={() => setActiveNoteId(note.id)}
+                    type="button"
+                  >
+                    <p className="truncate text-sm font-medium">{note.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {note.content || 'Empty note'}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="space-y-4">
-          <div className={`${cardClass} space-y-3`}>
-            {!activeNote ? (
-              <p className="text-sm text-muted-foreground">
-                Select a note or create one to start writing.
-              </p>
-            ) : (
-              <>
-                <input
-                  className={inputClass}
-                  onChange={(event) => setTitleDraft(event.target.value)}
-                  placeholder="Note title"
-                  value={titleDraft}
-                />
-                <textarea
-                  className="min-h-[240px] w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onChange={(event) => setContentDraft(event.target.value)}
-                  placeholder="Write your note..."
-                  value={contentDraft}
-                />
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
-                {notice ? <p className="text-sm text-emerald-700">{notice}</p> : null}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={buttonPrimaryClass}
-                    disabled={isSaving || isDeleting}
-                    onClick={() => void saveActiveNote()}
-                    type="button"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Note'}
-                  </button>
-                  <button
-                    className={buttonSecondaryClass}
-                    disabled={isSaving || isDeleting}
-                    onClick={() => void deleteActiveNote()}
-                    type="button"
-                  >
-                    {isDeleting ? 'Deleting...' : 'Delete Note'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <Card>
+            <CardContent className="space-y-3 pt-6">
+              {!activeNote ? (
+                <p className="text-sm text-muted-foreground">
+                  Select a note or create one to start writing.
+                </p>
+              ) : (
+                <>
+                  <Input
+                    onChange={(event) => setTitleDraft(event.target.value)}
+                    placeholder="Note title"
+                    value={titleDraft}
+                  />
+                  <Textarea
+                    className="min-h-[240px]"
+                    onChange={(event) => setContentDraft(event.target.value)}
+                    placeholder="Write your note..."
+                    value={contentDraft}
+                  />
+                  {error ? (
+                    <div
+                      className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+                      role="alert"
+                    >
+                      {error}
+                    </div>
+                  ) : null}
+                  {notice ? (
+                    <div
+                      className="rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+                      role="status"
+                    >
+                      {notice}
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      disabled={isSaving || isDeleting}
+                      onClick={() => void saveActiveNote()}
+                      type="button"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Note'}
+                    </Button>
+                    <Button
+                      disabled={isSaving || isDeleting}
+                      onClick={() => void deleteActiveNote()}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete Note'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-          <div className={`${cardClass} space-y-3`}>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold">Flashcards</p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Flashcards</CardTitle>
               <p className="text-xs text-muted-foreground">FLASH-001 baseline</p>
-            </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                <Input
+                  onChange={(event) => setDeckTitleDraft(event.target.value)}
+                  placeholder="Deck title"
+                  value={deckTitleDraft}
+                />
+                <Button disabled={isSavingDeck} onClick={() => void createDeck()} type="button">
+                  {isSavingDeck ? 'Creating...' : 'New Deck'}
+                </Button>
+              </div>
 
-            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-              <input
-                className={inputClass}
-                onChange={(event) => setDeckTitleDraft(event.target.value)}
-                placeholder="Deck title"
-                value={deckTitleDraft}
+              <Input
+                aria-label="Search flashcard decks"
+                onChange={(event) => setDeckQuery(event.target.value)}
+                placeholder="Search decks..."
+                value={deckQuery}
               />
-              <button
-                className={buttonPrimaryClass}
-                disabled={isSavingDeck}
-                onClick={() => void createDeck()}
-                type="button"
-              >
-                {isSavingDeck ? 'Creating...' : 'New Deck'}
-              </button>
-            </div>
 
-            <input
-              className={inputClass}
-              onChange={(event) => setDeckQuery(event.target.value)}
-              placeholder="Search decks..."
-              value={deckQuery}
-            />
-
-            {isLoadingDecks ? (
-              <p className="text-sm text-muted-foreground">Loading decks...</p>
-            ) : filteredDecks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No flashcard decks yet.</p>
-            ) : (
-              <div className="grid gap-2 md:grid-cols-2">
-                {filteredDecks.map((deck) => (
-                  <button
-                    className={`rounded-md border px-3 py-2 text-left ${
-                      activeDeckId === deck.id ? 'bg-muted' : 'hover:bg-muted'
-                    }`}
-                    key={deck.id}
-                    onClick={() => setActiveDeckId(deck.id)}
-                    type="button"
-                  >
-                    <p className="text-sm font-medium">{deck.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {deck.sourceNoteId ? `Note: ${deck.sourceNoteId}` : 'No note link'}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {activeDeck ? (
-              <div className="space-y-2 rounded-md border p-3">
-                <p className="text-sm font-medium">Deck: {activeDeck.title}</p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={buttonPrimaryClass}
-                    disabled={isGeneratingCards || !activeNote}
-                    onClick={() => void generateCardsFromNote()}
-                    type="button"
-                  >
-                    {isGeneratingCards ? 'Generating...' : 'Generate from Active Note'}
-                  </button>
-                  <button
-                    className={buttonSecondaryClass}
-                    disabled={isDeletingDeck}
-                    onClick={() => void deleteDeck()}
-                    type="button"
-                  >
-                    {isDeletingDeck ? 'Deleting...' : 'Delete Deck'}
-                  </button>
-                </div>
-
-                <div className="grid gap-2">
-                  <input
-                    className={inputClass}
-                    onChange={(event) => setCardQuestionDraft(event.target.value)}
-                    placeholder="Question"
-                    value={cardQuestionDraft}
-                  />
-                  <textarea
-                    className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onChange={(event) => setCardAnswerDraft(event.target.value)}
-                    placeholder="Answer"
-                    value={cardAnswerDraft}
-                  />
-                  <button
-                    className={buttonSecondaryClass}
-                    disabled={isSavingCard}
-                    onClick={() => void addCardToDeck()}
-                    type="button"
-                  >
-                    {isSavingCard ? 'Adding...' : 'Add Card'}
-                  </button>
-                </div>
-
-                {cards.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No flashcards in this deck yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {cards.map((card) => (
-                      <article className="rounded-md border px-3 py-2" key={card.id}>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Q</p>
-                        <p className="text-sm">{card.question}</p>
-                        <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
-                          A
-                        </p>
-                        <p className="text-sm">{card.answer}</p>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          <div className={`${cardClass} space-y-3`}>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold">Quiz</p>
-              <p className="text-xs text-muted-foreground">QUIZ-001 baseline</p>
-            </div>
-
-            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-              <input
-                className={inputClass}
-                onChange={(event) => setQuizTitleDraft(event.target.value)}
-                placeholder="Quiz title"
-                value={quizTitleDraft}
-              />
-              <button
-                className={buttonPrimaryClass}
-                disabled={isSavingQuiz}
-                onClick={() => void createQuiz()}
-                type="button"
-              >
-                {isSavingQuiz ? 'Creating...' : 'New Quiz'}
-              </button>
-            </div>
-
-            <input
-              className={inputClass}
-              onChange={(event) => setQuizQuery(event.target.value)}
-              placeholder="Search quizzes..."
-              value={quizQuery}
-            />
-
-            {isLoadingQuizzes ? (
-              <p className="text-sm text-muted-foreground">Loading quizzes...</p>
-            ) : filteredQuizzes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No quizzes yet.</p>
-            ) : (
-              <div className="grid gap-2 md:grid-cols-2">
-                {filteredQuizzes.map((quiz) => (
-                  <button
-                    className={`rounded-md border px-3 py-2 text-left ${
-                      activeQuizId === quiz.id ? 'bg-muted' : 'hover:bg-muted'
-                    }`}
-                    key={quiz.id}
-                    onClick={() => setActiveQuizId(quiz.id)}
-                    type="button"
-                  >
-                    <p className="text-sm font-medium">{quiz.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {quiz.sourceNoteId ? `Note: ${quiz.sourceNoteId}` : 'No note link'}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {activeQuiz ? (
-              <div className="space-y-3 rounded-md border p-3">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={buttonPrimaryClass}
-                    disabled={isGeneratingQuiz || !activeNote}
-                    onClick={() => void generateQuizFromNote()}
-                    type="button"
-                  >
-                    {isGeneratingQuiz ? 'Generating...' : 'Generate from Active Note'}
-                  </button>
-                  <button
-                    className={buttonSecondaryClass}
-                    disabled={isSubmittingQuiz || quizQuestions.length === 0}
-                    onClick={() => void submitQuizAttempt()}
-                    type="button"
-                  >
-                    {isSubmittingQuiz ? 'Submitting...' : 'Submit Attempt'}
-                  </button>
-                </div>
-
-                {quizQuestions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No quiz questions yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {quizQuestions.map((question, index) => (
-                      <article className="rounded-md border px-3 py-2" key={question.id}>
-                        <p className="text-sm font-medium">
-                          {index + 1}. {question.prompt}
-                        </p>
-                        <div className="mt-2 space-y-1">
-                          {question.options.map((option, optionIndex) => (
-                            <label
-                              className="flex items-center gap-2 text-sm text-muted-foreground"
-                              key={`${question.id}-${optionIndex}`}
-                            >
-                              <input
-                                checked={quizAnswerDrafts[question.id] === optionIndex}
-                                name={`quiz-${question.id}`}
-                                onChange={() => setQuizAnswer(question.id, optionIndex)}
-                                type="radio"
-                                value={optionIndex}
-                              />
-                              <span>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-
-                {quizAttempts.length > 0 ? (
-                  <div className="space-y-1 rounded-md border p-2">
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Recent attempts
-                    </p>
-                    {quizAttempts.slice(0, 3).map((attempt) => (
-                      <p className="text-sm" key={attempt.id}>
-                        {attempt.score}/{attempt.totalQuestions} -{' '}
-                        {new Date(attempt.createdAt).toLocaleString()}
+              {isLoadingDecks ? (
+                <p className="text-sm text-muted-foreground">Loading decks...</p>
+              ) : filteredDecks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No flashcard decks yet.</p>
+              ) : (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {filteredDecks.map((deck) => (
+                    <button
+                      aria-pressed={activeDeckId === deck.id}
+                      className={`rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        activeDeckId === deck.id ? 'bg-muted' : 'hover:bg-muted/70'
+                      }`}
+                      key={deck.id}
+                      onClick={() => setActiveDeckId(deck.id)}
+                      type="button"
+                    >
+                      <p className="text-sm font-medium">{deck.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {deck.sourceNoteId ? `Note: ${deck.sourceNoteId}` : 'No note link'}
                       </p>
-                    ))}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {activeDeck ? (
+                <div className="space-y-2 rounded-md border p-3 transition-colors hover:bg-muted/20">
+                  <p className="text-sm font-medium">Deck: {activeDeck.title}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      disabled={isGeneratingCards || !activeNote}
+                      onClick={() => void generateCardsFromNote()}
+                      type="button"
+                    >
+                      {isGeneratingCards ? 'Generating...' : 'Generate from Active Note'}
+                    </Button>
+                    <Button
+                      disabled={isDeletingDeck}
+                      onClick={() => void deleteDeck()}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isDeletingDeck ? 'Deleting...' : 'Delete Deck'}
+                    </Button>
                   </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
 
-          <div className={`${cardClass} space-y-3`}>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold">AI Study Summaries</p>
+                  <div className="grid gap-2">
+                    <Input
+                      onChange={(event) => setCardQuestionDraft(event.target.value)}
+                      placeholder="Question"
+                      value={cardQuestionDraft}
+                    />
+                    <Textarea
+                      className="min-h-20"
+                      onChange={(event) => setCardAnswerDraft(event.target.value)}
+                      placeholder="Answer"
+                      value={cardAnswerDraft}
+                    />
+                    <Button
+                      disabled={isSavingCard}
+                      onClick={() => void addCardToDeck()}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isSavingCard ? 'Adding...' : 'Add Card'}
+                    </Button>
+                  </div>
+
+                  {cards.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No flashcards in this deck yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {cards.map((card) => (
+                        <article
+                          className="rounded-md border px-3 py-2 transition-colors hover:bg-muted/40"
+                          key={card.id}
+                        >
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Q</p>
+                          <p className="text-sm">{card.question}</p>
+                          <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
+                            A
+                          </p>
+                          <p className="text-sm">{card.answer}</p>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quiz</CardTitle>
+              <p className="text-xs text-muted-foreground">QUIZ-001 baseline</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                <Input
+                  onChange={(event) => setQuizTitleDraft(event.target.value)}
+                  placeholder="Quiz title"
+                  value={quizTitleDraft}
+                />
+                <Button disabled={isSavingQuiz} onClick={() => void createQuiz()} type="button">
+                  {isSavingQuiz ? 'Creating...' : 'New Quiz'}
+                </Button>
+              </div>
+
+              <Input
+                aria-label="Search quizzes"
+                onChange={(event) => setQuizQuery(event.target.value)}
+                placeholder="Search quizzes..."
+                value={quizQuery}
+              />
+
+              {isLoadingQuizzes ? (
+                <p className="text-sm text-muted-foreground">Loading quizzes...</p>
+              ) : filteredQuizzes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No quizzes yet.</p>
+              ) : (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {filteredQuizzes.map((quiz) => (
+                    <button
+                      aria-pressed={activeQuizId === quiz.id}
+                      className={`rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        activeQuizId === quiz.id ? 'bg-muted' : 'hover:bg-muted/70'
+                      }`}
+                      key={quiz.id}
+                      onClick={() => setActiveQuizId(quiz.id)}
+                      type="button"
+                    >
+                      <p className="text-sm font-medium">{quiz.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {quiz.sourceNoteId ? `Note: ${quiz.sourceNoteId}` : 'No note link'}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {activeQuiz ? (
+                <div className="space-y-3 rounded-md border p-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      disabled={isGeneratingQuiz || !activeNote}
+                      onClick={() => void generateQuizFromNote()}
+                      type="button"
+                    >
+                      {isGeneratingQuiz ? 'Generating...' : 'Generate from Active Note'}
+                    </Button>
+                    <Button
+                      disabled={isSubmittingQuiz || quizQuestions.length === 0}
+                      onClick={() => void submitQuizAttempt()}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isSubmittingQuiz ? 'Submitting...' : 'Submit Attempt'}
+                    </Button>
+                  </div>
+
+                  {quizQuestions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No quiz questions yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {quizQuestions.map((question, index) => (
+                        <article
+                          className="rounded-md border px-3 py-2 transition-colors hover:bg-muted/40"
+                          key={question.id}
+                        >
+                          <p className="text-sm font-medium">
+                            {index + 1}. {question.prompt}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {question.options.map((option, optionIndex) => (
+                              <label
+                                className="flex items-center gap-2 text-sm text-muted-foreground"
+                                key={`${question.id}-${optionIndex}`}
+                              >
+                                <input
+                                  aria-label={`Select answer ${option}`}
+                                  checked={quizAnswerDrafts[question.id] === optionIndex}
+                                  name={`quiz-${question.id}`}
+                                  onChange={() => setQuizAnswer(question.id, optionIndex)}
+                                  type="radio"
+                                  value={optionIndex}
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+
+                  {quizAttempts.length > 0 ? (
+                    <div className="space-y-1 rounded-md border p-2">
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Recent attempts
+                      </p>
+                      {quizAttempts.slice(0, 3).map((attempt) => (
+                        <p className="text-sm" key={attempt.id}>
+                          {attempt.score}/{attempt.totalQuestions} -{' '}
+                          {new Date(attempt.createdAt).toLocaleString()}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">AI Study Summaries</CardTitle>
               <p className="text-xs text-muted-foreground">STUDY-001 baseline</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                className={buttonPrimaryClass}
-                disabled={isGeneratingSummary}
-                onClick={() => void generateStudySummary()}
-                type="button"
-              >
-                {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
-              </button>
-              <p className="text-xs text-muted-foreground">
-                Uses active note when selected, otherwise builds from workspace notes.
-              </p>
-            </div>
-
-            <input
-              className={inputClass}
-              onChange={(event) => setSummaryQuery(event.target.value)}
-              placeholder="Search summaries..."
-              value={summaryQuery}
-            />
-
-            {isLoadingSummaries ? (
-              <p className="text-sm text-muted-foreground">Loading summaries...</p>
-            ) : filteredSummaries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No study summaries yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {filteredSummaries.map((summary) => (
-                  <article className="rounded-md border px-3 py-2" key={summary.id}>
-                    <p className="text-sm font-medium">{summary.title}</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
-                      {summary.content}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {summary.sourceNoteId
-                        ? `Source note: ${summary.sourceNoteId}`
-                        : 'Source: workspace context'}{' '}
-                      - {new Date(summary.createdAt).toLocaleString()}
-                    </p>
-                  </article>
-                ))}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={isGeneratingSummary}
+                  onClick={() => void generateStudySummary()}
+                  type="button"
+                >
+                  {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Uses active note when selected, otherwise builds from workspace notes.
+                </p>
               </div>
-            )}
-          </div>
+
+              <Input
+                aria-label="Search generated study summaries"
+                onChange={(event) => setSummaryQuery(event.target.value)}
+                placeholder="Search summaries..."
+                value={summaryQuery}
+              />
+
+              {isLoadingSummaries ? (
+                <p className="text-sm text-muted-foreground">Loading summaries...</p>
+              ) : filteredSummaries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No study summaries yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {filteredSummaries.map((summary) => (
+                    <article
+                      className="rounded-md border px-3 py-2 transition-colors hover:bg-muted/40"
+                      key={summary.id}
+                    >
+                      <p className="text-sm font-medium">{summary.title}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                        {summary.content}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {summary.sourceNoteId
+                          ? `Source note: ${summary.sourceNoteId}`
+                          : 'Source: workspace context'}{' '}
+                        - {new Date(summary.createdAt).toLocaleString()}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </section>
     </AppShell>

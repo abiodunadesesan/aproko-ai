@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
-import { cardClass } from '@aproko/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getLibrarySignedUrl, getLibrarySource } from '@/lib/storage/library';
 
 const WORKSPACE_ID = 'default-workspace';
@@ -40,34 +40,47 @@ export default async function LibrarySourcePage({
   return (
     <main className="space-y-6 p-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">{source.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{source.name}</h1>
         <p className="text-sm text-muted-foreground">
           Project: {source.project} | Folder: {source.folder}
         </p>
-        <Link className="text-sm underline" href="/library">
+        <Link className="text-sm underline underline-offset-4" href="/library">
           Back to library
         </Link>
       </header>
 
-      <section className={cardClass}>
-        {signedUrl ? (
-          isImage ? (
-            <img
-              alt={source.name}
-              className="max-h-[560px] w-auto rounded-md border"
-              src={signedUrl}
-            />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Preview</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {signedUrl ? (
+            isImage ? (
+              <img
+                alt={source.name}
+                className="max-h-[560px] w-auto rounded-md border"
+                src={signedUrl}
+              />
+            ) : (
+              <a
+                aria-label={`Open ${source.name} in a new tab`}
+                className="text-sm underline underline-offset-4 transition-colors hover:text-foreground/80"
+                href={signedUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Open file
+              </a>
+            )
           ) : (
-            <a className="underline" href={signedUrl} rel="noreferrer" target="_blank">
-              Open file
-            </a>
-          )
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            File preview unavailable. Check storage configuration.
-          </p>
-        )}
-      </section>
+            <div className="rounded-md border border-dashed bg-muted/20 p-4">
+              <p className="text-sm text-muted-foreground">
+                File preview unavailable. Check storage configuration.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { cardClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type AdminUsageSummary = {
   totalUsers: number;
@@ -89,63 +90,98 @@ export default function AdminPage() {
       subtitle="Platform-level operational view for users, workspace footprint, and usage."
       title="Admin"
     >
-      <section className="space-y-4">
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <section className="space-y-6">
+        {error ? (
+          <div
+            className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
 
-        <div className={cardClass}>
-          <p className="text-sm font-medium">Usage summary</p>
-          {isLoading ? (
-            <p className="mt-2 text-sm text-muted-foreground">Loading metrics...</p>
-          ) : usage ? (
-            <div className="mt-3 grid gap-2 text-sm md:grid-cols-4">
-              <p>Users: {usage.totalUsers}</p>
-              <p>Workspaces: {usage.totalWorkspaces}</p>
-              <p>Sources: {usage.totalSources}</p>
-              <p>Messages: {usage.totalMessages}</p>
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">No usage data available.</p>
-          )}
-        </div>
-
-        <div className={cardClass}>
-          <p className="text-sm font-medium">Users</p>
-          {isLoading ? (
-            <p className="mt-2 text-sm text-muted-foreground">Loading users...</p>
-          ) : users.length === 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">No users found.</p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {users.map((user) => (
-                <div className="rounded-md border p-3 text-sm" key={user.clerkUserId}>
-                  <p>{user.fullName ?? 'Unknown user'}</p>
-                  <p className="text-muted-foreground">{user.email ?? user.clerkUserId}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Usage summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-2" role="status">
+                <p className="sr-only">Loading admin usage data</p>
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : usage ? (
+              <div className="grid gap-2 text-sm md:grid-cols-4">
+                <div className="rounded-md border bg-muted/20 p-3">Users: {usage.totalUsers}</div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  Workspaces: {usage.totalWorkspaces}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className={cardClass}>
-          <p className="text-sm font-medium">Workspace footprint</p>
-          {isLoading ? (
-            <p className="mt-2 text-sm text-muted-foreground">Loading workspaces...</p>
-          ) : workspaces.length === 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">No workspace footprint yet.</p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {workspaces.map((workspace) => (
-                <div className="rounded-md border p-3 text-sm" key={workspace.workspaceId}>
-                  <p className="font-medium">{workspace.workspaceId}</p>
-                  <p className="text-muted-foreground">
-                    {workspace.projects} projects · {workspace.sources} sources ·{' '}
-                    {workspace.conversations} conversations
-                  </p>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  Sources: {usage.totalSources}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  Messages: {usage.totalMessages}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No usage data available.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading users...</p>
+            ) : users.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No users found.</p>
+            ) : (
+              <div className="space-y-2">
+                {users.map((user) => (
+                  <div
+                    className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
+                    key={user.clerkUserId}
+                  >
+                    <p>{user.fullName ?? 'Unknown user'}</p>
+                    <p className="text-muted-foreground">{user.email ?? user.clerkUserId}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Workspace footprint</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading workspaces...</p>
+            ) : workspaces.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No workspace footprint yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {workspaces.map((workspace) => (
+                  <div
+                    className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
+                    key={workspace.workspaceId}
+                  >
+                    <p className="font-medium">{workspace.workspaceId}</p>
+                    <p className="text-muted-foreground">
+                      {workspace.projects} projects · {workspace.sources} sources ·{' '}
+                      {workspace.conversations} conversations
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </AppShell>
   );

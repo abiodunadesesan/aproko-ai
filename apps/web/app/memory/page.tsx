@@ -1,8 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { buttonPrimaryClass, cardClass, inputClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 
 const WORKSPACE_ID = 'default-workspace';
 const memoryTypes = [
@@ -14,7 +25,7 @@ const memoryTypes = [
   'timeline_event',
 ] as const;
 type MemoryType = (typeof memoryTypes)[number];
-const labelClass = 'text-sm font-medium';
+const labelClass = 'text-sm font-medium text-muted-foreground';
 
 type MemoryItem = {
   id: string;
@@ -191,209 +202,238 @@ export default function MemoryPage() {
       subtitle="Memory timeline baseline for Sprint 4. Capture workspace memory items before embeddings and retrieval layers."
       title="Memory"
     >
-      <section className="grid gap-4 lg:grid-cols-[340px_1fr]">
-        <form className={`${cardClass} space-y-3`} onSubmit={onSubmit}>
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold">Capture Memory</h2>
+      <section className="grid gap-6 lg:grid-cols-[340px_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Capture Memory</CardTitle>
             <p className="text-xs text-muted-foreground">MEM-001 baseline contract</p>
-          </div>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-3" onSubmit={onSubmit}>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="memory-type">
+                  Memory Type
+                </label>
+                <Select
+                  onValueChange={(value) => setMemoryType(value as MemoryType)}
+                  value={memoryType}
+                >
+                  <SelectTrigger id="memory-type">
+                    <SelectValue placeholder="Select memory type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {memoryTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="memory-type">
-              Memory Type
-            </label>
-            <select
-              className={`${inputClass} h-10`}
-              id="memory-type"
-              onChange={(event) => setMemoryType(event.target.value as MemoryType)}
-              value={memoryType}
-            >
-              {memoryTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="memory-summary">
+                  Summary
+                </label>
+                <Textarea
+                  className="min-h-24"
+                  id="memory-summary"
+                  onChange={(event) => setSummary(event.target.value)}
+                  placeholder="Captured memory statement..."
+                  value={summary}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="memory-summary">
-              Summary
-            </label>
-            <textarea
-              className={`${inputClass} min-h-24`}
-              id="memory-summary"
-              onChange={(event) => setSummary(event.target.value)}
-              placeholder="Captured memory statement..."
-              value={summary}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="memory-state">
+                  State
+                </label>
+                <Select
+                  onValueChange={(value) => setState(value as MemoryItem['state'])}
+                  value={state}
+                >
+                  <SelectTrigger id="memory-state">
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">active</SelectItem>
+                    <SelectItem value="archived">archived</SelectItem>
+                    <SelectItem value="invalidated">invalidated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="memory-state">
-              State
-            </label>
-            <select
-              className={`${inputClass} h-10`}
-              id="memory-state"
-              onChange={(event) => setState(event.target.value as MemoryItem['state'])}
-              value={state}
-            >
-              <option value="active">active</option>
-              <option value="archived">archived</option>
-              <option value="invalidated">invalidated</option>
-            </select>
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="importance-score">
+                  Importance Score (0-1)
+                </label>
+                <Input
+                  aria-label="Importance score between zero and one"
+                  id="importance-score"
+                  inputMode="decimal"
+                  onChange={(event) => setImportanceScore(event.target.value)}
+                  value={importanceScore}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="importance-score">
-              Importance Score (0-1)
-            </label>
-            <input
-              className={inputClass}
-              id="importance-score"
-              inputMode="decimal"
-              onChange={(event) => setImportanceScore(event.target.value)}
-              value={importanceScore}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="confidence-score">
+                  Confidence Score (0-1)
+                </label>
+                <Input
+                  aria-label="Confidence score between zero and one"
+                  id="confidence-score"
+                  inputMode="decimal"
+                  onChange={(event) => setConfidenceScore(event.target.value)}
+                  value={confidenceScore}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="confidence-score">
-              Confidence Score (0-1)
-            </label>
-            <input
-              className={inputClass}
-              id="confidence-score"
-              inputMode="decimal"
-              onChange={(event) => setConfidenceScore(event.target.value)}
-              value={confidenceScore}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="source-ids">
+                  Source IDs (comma-separated)
+                </label>
+                <Input
+                  id="source-ids"
+                  onChange={(event) => setSourceIdsRaw(event.target.value)}
+                  placeholder="src-1, src-2"
+                  value={sourceIdsRaw}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="source-ids">
-              Source IDs (comma-separated)
-            </label>
-            <input
-              className={inputClass}
-              id="source-ids"
-              onChange={(event) => setSourceIdsRaw(event.target.value)}
-              placeholder="src-1, src-2"
-              value={sourceIdsRaw}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="message-ids">
+                  Message IDs (comma-separated)
+                </label>
+                <Input
+                  id="message-ids"
+                  onChange={(event) => setMessageIdsRaw(event.target.value)}
+                  placeholder="msg-1, msg-2"
+                  value={messageIdsRaw}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="message-ids">
-              Message IDs (comma-separated)
-            </label>
-            <input
-              className={inputClass}
-              id="message-ids"
-              onChange={(event) => setMessageIdsRaw(event.target.value)}
-              placeholder="msg-1, msg-2"
-              value={messageIdsRaw}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className={labelClass} htmlFor="related-memory-ids">
+                  Related Memory IDs (comma-separated)
+                </label>
+                <Input
+                  id="related-memory-ids"
+                  onChange={(event) => setRelatedMemoryIdsRaw(event.target.value)}
+                  placeholder="mem-3, mem-9"
+                  value={relatedMemoryIdsRaw}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className={labelClass} htmlFor="related-memory-ids">
-              Related Memory IDs (comma-separated)
-            </label>
-            <input
-              className={inputClass}
-              id="related-memory-ids"
-              onChange={(event) => setRelatedMemoryIdsRaw(event.target.value)}
-              placeholder="mem-3, mem-9"
-              value={relatedMemoryIdsRaw}
-            />
-          </div>
+              {error ? (
+                <div
+                  className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+                  role="alert"
+                >
+                  {error}
+                </div>
+              ) : null}
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <Button
+                className="transition-transform hover:-translate-y-0.5"
+                disabled={isSubmitting}
+                type="submit"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Memory'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          <button className={buttonPrimaryClass} disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Saving...' : 'Save Memory'}
-          </button>
-        </form>
-
-        <div className={`${cardClass} space-y-3`}>
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold">Memory Timeline</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Memory Timeline</CardTitle>
             <p className="text-xs text-muted-foreground">
               Ranked by recency, importance, and activity signals
             </p>
-          </div>
-
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading memory...</p>
-          ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No memory items yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {items.map((item) => (
-                <article className="rounded-md border px-3 py-2" key={item.id}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {item.memoryType}
-                    </p>
-                    <span className="rounded border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Embedding: {item.embeddingJob?.status ?? 'not_started'}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm">{item.summary}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Rank: {item.rankScore?.toFixed(2) ?? 'n/a'} | Importance:{' '}
-                    {item.importanceScore ?? 'n/a'} | Confidence: {item.confidenceScore ?? 'n/a'} |
-                    State: {item.state} | {new Date(item.createdAt).toLocaleString()}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Last referenced:{' '}
-                    {item.lastReferencedAt
-                      ? new Date(item.lastReferencedAt).toLocaleString()
-                      : 'not yet'}
-                  </p>
-                  {item.references ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Refs - sources: {item.references.sourceIds.length}, messages:{' '}
-                      {item.references.messageIds.length}, linked memories:{' '}
-                      {item.references.relatedMemoryIds.length}
-                    </p>
-                  ) : null}
-                  {item.relatedItems?.length ? (
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Related
+          </CardHeader>
+          <CardContent aria-live="polite" className="space-y-3">
+            {isLoading ? (
+              <div className="space-y-2" role="status">
+                <p className="sr-only">Loading memory timeline</p>
+                <Skeleton className="h-16 w-full rounded-md" />
+                <Skeleton className="h-16 w-full rounded-md" />
+                <Skeleton className="h-16 w-full rounded-md" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="rounded-md border border-dashed bg-muted/20 p-4">
+                <p className="text-sm text-muted-foreground">No memory items yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {items.map((item) => (
+                  <article
+                    className="rounded-md border px-3 py-2 transition-colors hover:bg-muted/40"
+                    key={item.id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {item.memoryType}
                       </p>
-                      {item.relatedItems.map((related) => (
-                        <p
-                          className="text-xs text-muted-foreground"
-                          key={`${item.id}-${related.memoryItemId}`}
-                        >
-                          {related.memoryItemId} ({related.score.toFixed(2)}) - {related.reason}
-                        </p>
-                      ))}
+                      <span className="rounded border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Embedding: {item.embeddingJob?.status ?? 'not_started'}
+                      </span>
                     </div>
-                  ) : null}
-                  <div className="mt-3">
-                    <button
-                      className={buttonPrimaryClass}
-                      disabled={
-                        queueingItemId === item.id || item.embeddingJob?.status === 'queued'
-                      }
-                      onClick={() => {
-                        void queueEmbedding(item.id);
-                      }}
-                      type="button"
-                    >
-                      {queueingItemId === item.id ? 'Queueing...' : 'Queue Embedding'}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
+                    <p className="mt-1 text-sm">{item.summary}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Rank: {item.rankScore?.toFixed(2) ?? 'n/a'} | Importance:{' '}
+                      {item.importanceScore ?? 'n/a'} | Confidence: {item.confidenceScore ?? 'n/a'}{' '}
+                      | State: {item.state} | {new Date(item.createdAt).toLocaleString()}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Last referenced:{' '}
+                      {item.lastReferencedAt
+                        ? new Date(item.lastReferencedAt).toLocaleString()
+                        : 'not yet'}
+                    </p>
+                    {item.references ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Refs - sources: {item.references.sourceIds.length}, messages:{' '}
+                        {item.references.messageIds.length}, linked memories:{' '}
+                        {item.references.relatedMemoryIds.length}
+                      </p>
+                    ) : null}
+                    {item.relatedItems?.length ? (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Related
+                        </p>
+                        {item.relatedItems.map((related) => (
+                          <p
+                            className="text-xs text-muted-foreground"
+                            key={`${item.id}-${related.memoryItemId}`}
+                          >
+                            {related.memoryItemId} ({related.score.toFixed(2)}) - {related.reason}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="mt-3">
+                      <Button
+                        aria-label={`Queue embedding for memory item ${item.id}`}
+                        className="transition-transform hover:-translate-y-0.5"
+                        disabled={
+                          queueingItemId === item.id || item.embeddingJob?.status === 'queued'
+                        }
+                        onClick={() => {
+                          void queueEmbedding(item.id);
+                        }}
+                        type="button"
+                      >
+                        {queueingItemId === item.id ? 'Queueing...' : 'Queue Embedding'}
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </AppShell>
   );
