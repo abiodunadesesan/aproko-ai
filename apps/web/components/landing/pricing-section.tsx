@@ -16,14 +16,8 @@ type PricingSectionProps = {
   showHeader?: boolean;
 };
 
-function badgeClassName(badge: string | undefined) {
-  if (badge === 'Free') {
-    return 'w-fit border-zinc-600 bg-zinc-800 text-zinc-200';
-  }
-  if (badge === 'Teams') {
-    return 'w-fit border-zinc-600 bg-zinc-800 text-zinc-300';
-  }
-  return 'w-fit border-zinc-500 bg-zinc-800 text-zinc-100';
+function badgeClassName() {
+  return 'w-fit border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200';
 }
 
 export function PricingSection({
@@ -76,29 +70,35 @@ export function PricingSection({
             >
               <CardHeader className="space-y-3 p-4 sm:p-5">
                 {plan.badge ? (
-                  <Badge className={badgeClassName(plan.badge)} variant="secondary">
+                  <Badge className={badgeClassName()} variant="secondary">
                     {plan.badge}
                   </Badge>
                 ) : null}
-                <CardTitle className="text-xs tracking-wider sm:text-sm">{plan.title}</CardTitle>
+                <CardTitle className="text-xs tracking-wider text-zinc-800 dark:text-zinc-100 sm:text-sm">
+                  {plan.title}
+                </CardTitle>
                 <div className="flex items-end gap-1">
-                  <p className="text-2xl font-semibold sm:text-3xl">{plan.price}</p>
-                  <p className="pb-0.5 text-xs text-zinc-400 sm:pb-1 sm:text-sm">{plan.period}</p>
+                  <p className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+                    {plan.price}
+                  </p>
+                  <p className="pb-0.5 text-xs text-zinc-600 dark:text-zinc-400 sm:pb-1 sm:text-sm">
+                    {plan.period}
+                  </p>
                 </div>
                 {plan.subPrice ? (
-                  <p className="text-[11px] leading-snug text-zinc-500 sm:text-xs">
+                  <p className="text-[11px] leading-snug text-zinc-600 dark:text-zinc-500 sm:text-xs">
                     {plan.subPrice}
                   </p>
                 ) : null}
-                <p className="text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-sm">
                   {plan.description}
                 </p>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col p-4 pt-0 sm:p-5 sm:pt-0">
-                <ul className="flex-1 space-y-2 text-xs text-zinc-300 sm:text-sm">
+                <ul className="flex-1 space-y-2 text-xs text-zinc-700 dark:text-zinc-300 sm:text-sm">
                   {plan.features.map((feature) => (
                     <li className="flex items-start gap-2" key={feature}>
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-300 sm:h-4 sm:w-4" />
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-300 sm:h-4 sm:w-4" />
                       {feature}
                     </li>
                   ))}
@@ -108,8 +108,8 @@ export function PricingSection({
                     asChild
                     className={`mt-5 w-full rounded-full sm:mt-6 ${
                       plan.highlighted || plan.code === 'free'
-                        ? 'bg-zinc-100 text-zinc-950 hover:bg-white'
-                        : 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
+                        ? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white'
+                        : 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-950 dark:hover:bg-white'
                     }`}
                   >
                     <Link href="/sign-up">{plan.cta}</Link>
@@ -131,9 +131,11 @@ export function PricingSection({
       </div>
 
       {mode === 'landing' ? (
-        <p className="mt-4 text-center text-xs text-zinc-500">{t.pricing.footer}</p>
+        <p className="mt-4 text-center text-xs text-zinc-600 dark:text-zinc-500">
+          {t.pricing.footer}
+        </p>
       ) : (
-        <p className="mt-4 text-center text-xs text-zinc-500">
+        <p className="mt-4 text-center text-xs text-zinc-600 dark:text-zinc-500">
           Checkout integration is next. Plan selection confirms billing visibility and state.
         </p>
       )}
