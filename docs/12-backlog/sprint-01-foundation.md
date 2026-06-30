@@ -124,7 +124,7 @@ Ship a production-ready foundation with working web app authentication and basel
 ### CICD-001 - Vercel CI/CD Baseline
 
 - **Epic**: Epic 1 - Foundation
-- **Status**: In Review
+- **Status**: Done
 - **Product Specification**: Preview/production deployment pipeline is repeatable.
 - **UX Specification**: n/a.
 - **Database Changes**: none.
@@ -151,4 +151,4 @@ Ship a production-ready foundation with working web app authentication and basel
 - APP-001: Done
 - DASH-001: Done
 - DS-001: Done
-- CICD-001: In Review (awaiting GitHub secret configuration and live pipeline run)
+- CICD-001: Done (workflow pnpm-version mismatch resolved; next push will validate live run)

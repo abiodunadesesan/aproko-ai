@@ -32,6 +32,6 @@
 
 - Admin users/workspaces/usage operational visibility and governance baseline.
 
-## Current active implementation: Sprint 11 complete
+## Current active implementation: Sprint program complete; V1 release checklist active
 
-Next ticket target: `TBD - Sprint 12 planning`
+Next ticket target: `Release V1 go-live gates`

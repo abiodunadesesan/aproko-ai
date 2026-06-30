@@ -5,6 +5,7 @@ import {
   listMemoryItems,
   type MemoryItem,
   type MemoryReferences,
+  type MemoryState,
   type MemoryType,
 } from '@/lib/storage/memory';
 
@@ -27,6 +28,7 @@ const memoryTypes: MemoryType[] = [
   'task',
   'timeline_event',
 ];
+const memoryStates: MemoryState[] = ['active', 'archived', 'invalidated'];
 
 function toMemoryItemPayload(
   item: MemoryItem,
@@ -38,6 +40,9 @@ function toMemoryItemPayload(
     workspaceId: item.workspaceId,
     memoryType: item.memoryType,
     summary: item.summary,
+    state: item.state,
+    confidenceScore: item.confidenceScore,
+    lastReferencedAt: item.lastReferencedAt,
     importanceScore: item.importanceScore,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -50,6 +55,10 @@ function toMemoryItemPayload(
 
 function isMemoryType(value: string): value is MemoryType {
   return memoryTypes.includes(value as MemoryType);
+}
+
+function isMemoryState(value: string): value is MemoryState {
+  return memoryStates.includes(value as MemoryState);
 }
 
 function parseSortMode(url: string): MemorySortMode {
@@ -179,11 +188,20 @@ function embeddingSignal(status: string): number {
 
 function computeRankScore(item: MemoryItem, nowMs: number): number {
   const importance = item.importanceScore ?? 0.5;
+  const confidence = item.confidenceScore ?? 0.5;
   const createdRecency = recencyScore(item.createdAt, nowMs);
   const activityRecency = recencyScore(item.updatedAt, nowMs);
+  const referenceRecency = recencyScore(item.lastReferencedAt ?? item.updatedAt, nowMs);
   const statusSignal = embeddingSignal(item.embeddingJob?.status ?? 'not_started');
+  const statePenalty = item.state === 'active' ? 0 : item.state === 'archived' ? -0.2 : -0.5;
   const raw =
-    0.45 * importance + 0.3 * createdRecency + 0.2 * activityRecency + 0.05 * statusSignal;
+    0.3 * importance +
+    0.2 * confidence +
+    0.2 * createdRecency +
+    0.15 * activityRecency +
+    0.1 * referenceRecency +
+    0.05 * statusSignal +
+    statePenalty;
   return Math.max(0, Math.min(1, Number(raw.toFixed(4))));
 }
 
@@ -235,6 +253,8 @@ export function createMemoryItemsRouteHandlers(deps: MemoryItemsRouteDependencie
         memoryType?: string;
         summary?: string;
         importanceScore?: number | null;
+        confidenceScore?: number | null;
+        state?: string;
         sourceIds?: string[];
         messageIds?: string[];
         relatedMemoryIds?: string[];
@@ -243,6 +263,8 @@ export function createMemoryItemsRouteHandlers(deps: MemoryItemsRouteDependencie
       const memoryType = rawBody?.memoryType?.trim() ?? '';
       const summary = rawBody?.summary?.trim() ?? '';
       const importanceScore = rawBody?.importanceScore ?? null;
+      const confidenceScore = rawBody?.confidenceScore ?? null;
+      const stateRaw = rawBody?.state?.trim() ?? 'active';
       const references: MemoryReferences = {
         sourceIds: parseStringArray(rawBody?.sourceIds),
         messageIds: parseStringArray(rawBody?.messageIds),
@@ -263,12 +285,23 @@ export function createMemoryItemsRouteHandlers(deps: MemoryItemsRouteDependencie
           { status: 400 },
         );
       }
+      if (confidenceScore !== null && (confidenceScore < 0 || confidenceScore > 1)) {
+        return NextResponse.json(
+          { error: 'confidenceScore must be between 0 and 1' },
+          { status: 400 },
+        );
+      }
+      if (!isMemoryState(stateRaw)) {
+        return NextResponse.json({ error: 'Invalid state' }, { status: 400 });
+      }
 
       const item = await deps.createMemoryItem(
         workspaceId,
         memoryType,
         summary,
         importanceScore,
+        confidenceScore,
+        stateRaw,
         references,
       );
       if (!item) {

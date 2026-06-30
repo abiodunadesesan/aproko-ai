@@ -19,6 +19,9 @@ type ChatSession = {
   workspaceId: string;
   title: string;
   contextMode: 'workspace';
+  modelProvider: string | null;
+  modelName: string | null;
+  lastMessageAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -30,8 +33,13 @@ type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   createdAt: string;
+  responseTransport?: string;
+  modelProvider?: string | null;
+  modelName?: string | null;
+  status?: string;
+  metadata?: Record<string, unknown>;
   citations?: ChatCitation[];
-  model?: ChatModel;
+  model?: string;
   memoryContext?: ChatMemoryContext[];
 };
 
@@ -70,6 +78,31 @@ function isChatModel(value: string): value is ChatModel {
 
 function deriveSessionTitle(content: string): string {
   return content.trim().slice(0, 50) || 'New chat';
+}
+
+function splitModel(model: string): { provider: string | null; name: string | null } {
+  const [provider, ...rest] = model.split(':');
+  if (!provider || rest.length === 0) {
+    return { provider: null, name: null };
+  }
+  return { provider, name: rest.join(':') || null };
+}
+
+function formatModelDisplay(message: ChatMessage): string | null {
+  if (message.model) {
+    return message.model;
+  }
+  if (message.modelProvider && message.modelName) {
+    return `${message.modelProvider}:${message.modelName}`;
+  }
+  return null;
+}
+
+function formatSessionModel(session: ChatSession): string | null {
+  if (session.modelProvider && session.modelName) {
+    return `${session.modelProvider}:${session.modelName}`;
+  }
+  return null;
 }
 
 function parseSseEventsFromBuffer(buffer: string): { events: ParsedSseEvent[]; rest: string } {
@@ -125,6 +158,16 @@ export default function ChatPage() {
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [activeSessionId, sessions],
   );
+
+  useEffect(() => {
+    if (!activeSession) {
+      return;
+    }
+    const model = formatSessionModel(activeSession);
+    if (model && isChatModel(model)) {
+      setSelectedModel(model);
+    }
+  }, [activeSession]);
 
   const loadSessions = useCallback(async (nextSessionId?: string | null) => {
     setIsLoadingSessions(true);
@@ -190,6 +233,63 @@ export default function ChatPage() {
     return payload.data.id;
   }
 
+  async function renameSession(session: ChatSession) {
+    const nextTitle = window.prompt('Rename session', session.title)?.trim() ?? '';
+    if (!nextTitle || nextTitle === session.title) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${session.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ title: nextTitle }),
+        },
+      );
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to rename chat session');
+      }
+      await loadSessions(session.id);
+    } catch (renameError) {
+      setError(
+        renameError instanceof Error ? renameError.message : 'Failed to rename chat session',
+      );
+    }
+  }
+
+  async function removeSession(session: ChatSession) {
+    const confirmed = window.confirm(`Delete "${session.title}"? This cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${session.id}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to delete chat session');
+      }
+
+      const fallback = activeSessionId === session.id ? null : activeSessionId;
+      await loadSessions(fallback);
+      if (activeSessionId === session.id) {
+        setMessages([]);
+      }
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : 'Failed to delete chat session',
+      );
+    }
+  }
+
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || isSending) {
@@ -212,6 +312,12 @@ export default function ChatPage() {
         sessionId: targetSessionId,
         role: 'user',
         content: trimmed,
+        responseTransport: 'sse',
+        model: selectedModel,
+        modelProvider: splitModel(selectedModel).provider,
+        modelName: splitModel(selectedModel).name,
+        status: 'completed',
+        metadata: { source: 'user' },
         createdAt: new Date().toISOString(),
       };
 
@@ -225,6 +331,11 @@ export default function ChatPage() {
           sessionId: targetSessionId,
           role: 'assistant',
           model: selectedModel,
+          responseTransport: 'sse',
+          modelProvider: splitModel(selectedModel).provider,
+          modelName: splitModel(selectedModel).name,
+          status: 'streaming',
+          metadata: {},
           content: '',
           createdAt: new Date().toISOString(),
         },
@@ -304,6 +415,7 @@ export default function ChatPage() {
                         ...item,
                         ...(hasCitations ? { citations: event.payload.citations ?? [] } : {}),
                         ...(resolvedModel ? { model: resolvedModel } : {}),
+                        status: 'completed',
                         ...(hasMemoryContext
                           ? { memoryContext: event.payload.memoryContext ?? [] }
                           : {}),
@@ -399,19 +511,46 @@ export default function ChatPage() {
               <p className="text-sm text-muted-foreground">No chat sessions yet.</p>
             ) : (
               sessions.map((session) => (
-                <button
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm ${
+                <article
+                  className={`rounded-md border px-3 py-2 text-sm ${
                     activeSessionId === session.id ? 'bg-muted' : 'hover:bg-muted'
                   }`}
                   key={session.id}
-                  onClick={() => setActiveSessionId(session.id)}
-                  type="button"
                 >
-                  <p className="font-medium">{session.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(session.updatedAt).toLocaleString()}
-                  </p>
-                </button>
+                  <button
+                    className="w-full text-left"
+                    onClick={() => setActiveSessionId(session.id)}
+                    type="button"
+                  >
+                    <p className="font-medium">{session.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(session.lastMessageAt ?? session.updatedAt).toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatSessionModel(session) ?? 'model pending'}
+                    </p>
+                  </button>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      className="rounded border px-2 py-1 text-xs"
+                      onClick={() => {
+                        void renameSession(session);
+                      }}
+                      type="button"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="rounded border px-2 py-1 text-xs text-destructive"
+                      onClick={() => {
+                        void removeSession(session);
+                      }}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
               ))
             )}
           </div>
@@ -420,7 +559,10 @@ export default function ChatPage() {
         <div className={`${cardClass} flex min-h-[520px] flex-col`}>
           <div className="mb-3 border-b pb-3">
             <p className="text-sm font-semibold">{activeSession?.title ?? 'New Chat'}</p>
-            <p className="text-xs text-muted-foreground">Workspace-scoped assistant stream</p>
+            <p className="text-xs text-muted-foreground">
+              Workspace-scoped assistant stream | Session model:{' '}
+              {activeSession ? (formatSessionModel(activeSession) ?? 'not set') : 'not set'}
+            </p>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
@@ -439,9 +581,10 @@ export default function ChatPage() {
                   <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
                     {message.role}
                   </p>
-                  {message.role === 'assistant' && message.model ? (
-                    <p className="mb-2 text-xs text-muted-foreground">Model: {message.model}</p>
-                  ) : null}
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Model: {formatModelDisplay(message) ?? 'n/a'} | Transport:{' '}
+                    {message.responseTransport ?? 'n/a'} | Status: {message.status ?? 'n/a'}
+                  </p>
                   {message.role === 'assistant' && message.memoryContext?.length ? (
                     <div className="mb-2 rounded-md border bg-background px-2 py-1.5">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

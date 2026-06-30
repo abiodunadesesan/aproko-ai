@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type MemoryType = 'fact' | 'preference' | 'project' | 'decision' | 'task' | 'timeline_event';
 export type EmbeddingStatus = 'not_started' | 'queued' | 'processing' | 'completed' | 'failed';
+export type MemoryState = 'active' | 'archived' | 'invalidated';
 export type MemoryReferences = {
   sourceIds: string[];
   messageIds: string[];
@@ -19,6 +20,9 @@ export type MemoryItem = {
   workspaceId: string;
   memoryType: MemoryType;
   summary: string;
+  state: MemoryState;
+  confidenceScore: number | null;
+  lastReferencedAt: string | null;
   importanceScore: number | null;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +47,9 @@ type DbMemoryItemRow = {
       related_memory_ids?: string[];
     };
   } | null;
+  state: MemoryState | null;
+  confidence_score: number | null;
+  last_referenced_at: string | null;
   importance_score: number | null;
   created_at: string;
   updated_at: string;
@@ -85,6 +92,9 @@ function toMemoryItem(row: DbMemoryItemRow): MemoryItem {
     workspaceId: row.workspace_id,
     memoryType: row.memory_type,
     summary: row.content?.summary ?? 'Untitled memory',
+    state: row.state ?? 'active',
+    confidenceScore: row.confidence_score,
+    lastReferencedAt: row.last_referenced_at,
     importanceScore: row.importance_score,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -101,7 +111,9 @@ export async function listMemoryItems(workspaceId: string): Promise<MemoryItem[]
 
   const { data, error } = await supabase
     .from('memory_items')
-    .select('id, workspace_id, memory_type, content, importance_score, created_at, updated_at')
+    .select(
+      'id, workspace_id, memory_type, content, state, confidence_score, last_referenced_at, importance_score, created_at, updated_at',
+    )
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false })
     .limit(200);
@@ -119,6 +131,8 @@ export async function createMemoryItem(
   memoryType: MemoryType,
   summaryRaw: string,
   importanceScore: number | null,
+  confidenceScore: number | null,
+  state: MemoryState,
   referencesInput?: Partial<MemoryReferences> | null,
 ): Promise<MemoryItem | null> {
   const supabase = getSupabaseAdminClient();
@@ -138,6 +152,8 @@ export async function createMemoryItem(
     .insert({
       workspace_id: workspaceId,
       memory_type: memoryType,
+      state,
+      confidence_score: confidenceScore,
       content: {
         summary,
         references: {
@@ -147,8 +163,11 @@ export async function createMemoryItem(
         },
       },
       importance_score: importanceScore,
+      last_referenced_at: new Date().toISOString(),
     })
-    .select('id, workspace_id, memory_type, content, importance_score, created_at, updated_at')
+    .select(
+      'id, workspace_id, memory_type, content, state, confidence_score, last_referenced_at, importance_score, created_at, updated_at',
+    )
     .single();
 
   if (error || !data) {
@@ -170,7 +189,9 @@ export async function getMemoryItemById(
 
   const { data, error } = await supabase
     .from('memory_items')
-    .select('id, workspace_id, memory_type, content, importance_score, created_at, updated_at')
+    .select(
+      'id, workspace_id, memory_type, content, state, confidence_score, last_referenced_at, importance_score, created_at, updated_at',
+    )
     .eq('workspace_id', workspaceId)
     .eq('id', memoryItemId)
     .maybeSingle();
@@ -200,6 +221,9 @@ export async function queueMemoryItemEmbedding(
   const { data, error } = await supabase
     .from('memory_items')
     .update({
+      state: existing.state,
+      confidence_score: existing.confidenceScore,
+      last_referenced_at: new Date().toISOString(),
       content: {
         summary: existing.summary,
         references: {
@@ -216,7 +240,9 @@ export async function queueMemoryItemEmbedding(
     })
     .eq('workspace_id', workspaceId)
     .eq('id', memoryItemId)
-    .select('id, workspace_id, memory_type, content, importance_score, created_at, updated_at')
+    .select(
+      'id, workspace_id, memory_type, content, state, confidence_score, last_referenced_at, importance_score, created_at, updated_at',
+    )
     .maybeSingle();
 
   if (error || !data) {

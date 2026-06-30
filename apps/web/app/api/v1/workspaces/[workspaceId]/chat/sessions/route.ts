@@ -23,6 +23,9 @@ function toSessionPayload(session: ChatSession) {
     workspaceId: session.workspaceId,
     title: session.title,
     contextMode: session.contextMode,
+    modelProvider: session.modelProvider,
+    modelName: session.modelName,
+    lastMessageAt: session.lastMessageAt,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
   };

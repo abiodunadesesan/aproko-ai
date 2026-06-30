@@ -21,12 +21,12 @@ Ship the first usable AI core experience that turns the workspace into an intera
 - **UX Specification**: `docs/06-wireframes/01-ux-specification.md` (AI Chat, Library, Document Viewer)
 - **Database Changes**:
   - Ensure conversation/message persistence contracts are active (`conversations`, `messages`, citation linkage placeholder).
-  - `TODO`: finalize minimal V1 chat persistence fields for first release.
+  - Minimal V1 persistence fields finalized in Sprint 12 (`model_provider`, `model_name`, `response_transport`, `status`, `metadata`, `last_message_at`).
 - **API Contract**:
   - `POST /api/v1/workspaces/{workspaceId}/chat/sessions`
   - `GET /api/v1/workspaces/{workspaceId}/chat/sessions`
   - `POST /api/v1/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` (streaming)
-  - `TODO`: finalize streaming transport contract (SSE vs chunked response) for web app baseline.
+  - Streaming contract finalized as SSE with event ids + explicit transport header in Sprint 12.
 - **Acceptance Criteria**:
   1. User can open a chat workspace and send a message.
   2. Assistant response streams incrementally in the UI.

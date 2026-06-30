@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createChatSessionsRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/chat/sessions/route';
+import { createChatSessionByIdRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/chat/sessions/[sessionId]/route';
 import { createChatMessagesRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/chat/sessions/[sessionId]/messages/route';
 
 test('chat sessions GET returns 401 when unauthenticated', async () => {
@@ -28,6 +29,9 @@ test('chat sessions POST returns created session payload', async () => {
       clerkUserId: 'user-1',
       title: 'Research',
       contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
@@ -44,11 +48,21 @@ test('chat sessions POST returns created session payload', async () => {
 
   assert.equal(response.status, 201);
   const payload = (await response.json()) as {
-    data: { id: string; title: string; contextMode: string };
+    data: {
+      id: string;
+      title: string;
+      contextMode: string;
+      modelProvider: string | null;
+      modelName: string | null;
+      lastMessageAt: string | null;
+    };
   };
   assert.equal(payload.data.id, 'session-1');
   assert.equal(payload.data.title, 'Research');
   assert.equal(payload.data.contextMode, 'workspace');
+  assert.equal(payload.data.modelProvider, null);
+  assert.equal(payload.data.modelName, null);
+  assert.equal(payload.data.lastMessageAt, null);
 });
 
 test('chat messages POST streams assistant response', async () => {
@@ -60,6 +74,9 @@ test('chat messages POST streams assistant response', async () => {
       clerkUserId: 'user-1',
       title: 'Research',
       contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
@@ -71,6 +88,11 @@ test('chat messages POST streams assistant response', async () => {
       sessionId: 'session-1',
       role: 'assistant',
       content: 'ok',
+      responseTransport: 'sse',
+      modelProvider: 'anthropic',
+      modelName: 'claude-3-5-sonnet',
+      status: 'completed',
+      metadata: {},
       createdAt: '2026-01-01T00:00:00.000Z',
     }),
   });
@@ -85,7 +107,9 @@ test('chat messages POST streams assistant response', async () => {
   );
 
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-aproko-stream-transport'), 'sse');
   const body = await response.text();
+  assert.match(body, /id: 1/);
   assert.match(body, /event: start/);
   assert.match(body, /event: delta/);
   assert.match(body, /event: done/);
@@ -104,6 +128,9 @@ test('chat messages POST returns 400 when message is empty', async () => {
       clerkUserId: 'user-1',
       title: 'Research',
       contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
@@ -134,6 +161,9 @@ test('chat messages POST returns 400 when model is unsupported', async () => {
       clerkUserId: 'user-1',
       title: 'Research',
       contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
@@ -181,6 +211,9 @@ test('chat messages GET returns persisted history payload', async () => {
       clerkUserId: 'user-1',
       title: 'Research',
       contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
@@ -191,6 +224,11 @@ test('chat messages GET returns persisted history payload', async () => {
         sessionId: 'session-1',
         role: 'user',
         content: 'Hello',
+        responseTransport: 'sse',
+        modelProvider: 'anthropic',
+        modelName: 'claude-3-5-sonnet',
+        status: 'completed',
+        metadata: {},
         createdAt: '2026-01-01T00:00:00.000Z',
       },
       {
@@ -199,6 +237,11 @@ test('chat messages GET returns persisted history payload', async () => {
         sessionId: 'session-1',
         role: 'assistant',
         content: 'Hi there',
+        responseTransport: 'sse',
+        modelProvider: 'anthropic',
+        modelName: 'claude-3-5-sonnet',
+        status: 'completed',
+        metadata: {},
         createdAt: '2026-01-01T00:00:01.000Z',
       },
     ],
@@ -217,4 +260,75 @@ test('chat messages GET returns persisted history payload', async () => {
   assert.equal(payload.data.length, 2);
   assert.equal(payload.data[0]?.id, 'm-1');
   assert.equal(payload.data[1]?.role, 'assistant');
+});
+
+test('chat session PATCH updates title', async () => {
+  const handlers = createChatSessionByIdRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    getChatSessionById: async () => ({
+      id: 'session-1',
+      workspaceId: 'ws-1',
+      clerkUserId: 'user-1',
+      title: 'Old title',
+      contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }),
+    updateChatSessionTitle: async () => ({
+      id: 'session-1',
+      workspaceId: 'ws-1',
+      clerkUserId: 'user-1',
+      title: 'New title',
+      contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:05:00.000Z',
+    }),
+    deleteChatSession: async () => true,
+  });
+
+  const response = await handlers.PATCH(
+    new Request('http://localhost', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'New title' }),
+    }),
+    { params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }) },
+  );
+
+  assert.equal(response.status, 200);
+  const payload = (await response.json()) as { data: { title: string } };
+  assert.equal(payload.data.title, 'New title');
+});
+
+test('chat session DELETE removes session', async () => {
+  const handlers = createChatSessionByIdRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    getChatSessionById: async () => ({
+      id: 'session-1',
+      workspaceId: 'ws-1',
+      clerkUserId: 'user-1',
+      title: 'Old title',
+      contextMode: 'workspace',
+      modelProvider: null,
+      modelName: null,
+      lastMessageAt: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }),
+    updateChatSessionTitle: async () => null,
+    deleteChatSession: async () => true,
+  });
+
+  const response = await handlers.DELETE(new Request('http://localhost', { method: 'DELETE' }), {
+    params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true });
 });

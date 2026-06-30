@@ -21,6 +21,9 @@ type MemoryItem = {
   workspaceId: string;
   memoryType: MemoryType;
   summary: string;
+  state: 'active' | 'archived' | 'invalidated';
+  confidenceScore: number | null;
+  lastReferencedAt: string | null;
   importanceScore: number | null;
   rankScore?: number;
   createdAt: string;
@@ -52,6 +55,8 @@ export default function MemoryPage() {
   const [memoryType, setMemoryType] = useState<MemoryType>('fact');
   const [summary, setSummary] = useState('');
   const [importanceScore, setImportanceScore] = useState('0.60');
+  const [confidenceScore, setConfidenceScore] = useState('0.70');
+  const [state, setState] = useState<MemoryItem['state']>('active');
   const [sourceIdsRaw, setSourceIdsRaw] = useState('');
   const [messageIdsRaw, setMessageIdsRaw] = useState('');
   const [relatedMemoryIdsRaw, setRelatedMemoryIdsRaw] = useState('');
@@ -86,6 +91,7 @@ export default function MemoryPage() {
     }
 
     const parsedScore = Number(importanceScore);
+    const parsedConfidence = Number(confidenceScore);
     if (!summary.trim()) {
       setError('Summary is required');
       return;
@@ -93,6 +99,10 @@ export default function MemoryPage() {
 
     if (Number.isNaN(parsedScore) || parsedScore < 0 || parsedScore > 1) {
       setError('Importance score must be between 0 and 1');
+      return;
+    }
+    if (Number.isNaN(parsedConfidence) || parsedConfidence < 0 || parsedConfidence > 1) {
+      setError('Confidence score must be between 0 and 1');
       return;
     }
 
@@ -112,8 +122,10 @@ export default function MemoryPage() {
         },
         body: JSON.stringify({
           memoryType,
+          state,
           summary: summary.trim(),
           importanceScore: parsedScore,
+          confidenceScore: parsedConfidence,
           sourceIds: parseIds(sourceIdsRaw),
           messageIds: parseIds(messageIdsRaw),
           relatedMemoryIds: parseIds(relatedMemoryIdsRaw),
@@ -218,6 +230,22 @@ export default function MemoryPage() {
           </div>
 
           <div className="space-y-1.5">
+            <label className={labelClass} htmlFor="memory-state">
+              State
+            </label>
+            <select
+              className={`${inputClass} h-10`}
+              id="memory-state"
+              onChange={(event) => setState(event.target.value as MemoryItem['state'])}
+              value={state}
+            >
+              <option value="active">active</option>
+              <option value="archived">archived</option>
+              <option value="invalidated">invalidated</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
             <label className={labelClass} htmlFor="importance-score">
               Importance Score (0-1)
             </label>
@@ -227,6 +255,19 @@ export default function MemoryPage() {
               inputMode="decimal"
               onChange={(event) => setImportanceScore(event.target.value)}
               value={importanceScore}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelClass} htmlFor="confidence-score">
+              Confidence Score (0-1)
+            </label>
+            <input
+              className={inputClass}
+              id="confidence-score"
+              inputMode="decimal"
+              onChange={(event) => setConfidenceScore(event.target.value)}
+              value={confidenceScore}
             />
           </div>
 
@@ -303,7 +344,14 @@ export default function MemoryPage() {
                   <p className="mt-1 text-sm">{item.summary}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Rank: {item.rankScore?.toFixed(2) ?? 'n/a'} | Importance:{' '}
-                    {item.importanceScore ?? 'n/a'} | {new Date(item.createdAt).toLocaleString()}
+                    {item.importanceScore ?? 'n/a'} | Confidence: {item.confidenceScore ?? 'n/a'} |
+                    State: {item.state} | {new Date(item.createdAt).toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Last referenced:{' '}
+                    {item.lastReferencedAt
+                      ? new Date(item.lastReferencedAt).toLocaleString()
+                      : 'not yet'}
                   </p>
                   {item.references ? (
                     <p className="mt-2 text-xs text-muted-foreground">

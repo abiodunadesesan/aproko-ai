@@ -24,10 +24,11 @@ This backlog is the operational execution system for Aproko AI.
 - Sprint 5: Study
 - Sprint 6: Polish and Launch
 
-## Current Sprint
+## Program Status
 
-- Active: `Sprint 11 - Search Shortcuts`
-- Board: `./sprint-11-search-shortcuts.md`
+- State: `All planned sprints complete`
+- Closure board: `./sprint-18-program-closure.md`
+- Current execution board: `./release-v1-checklist.md`
 
 ## Sprint Boards
 
@@ -42,3 +43,11 @@ This backlog is the operational execution system for Aproko AI.
 - `./sprint-09-search.md`
 - `./sprint-10-search-quality.md`
 - `./sprint-11-search-shortcuts.md`
+- `./sprint-12-backlog-closure.md`
+- `./sprint-13-chat-persistence.md`
+- `./sprint-14-cicd-stability.md`
+- `./sprint-15-chat-ui-metadata.md`
+- `./sprint-16-chat-session-continuity.md`
+- `./sprint-17-chat-session-management.md`
+- `./sprint-18-program-closure.md`
+- `./release-v1-checklist.md`

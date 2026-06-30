@@ -19,7 +19,7 @@ Establish the first production-ready memory layer so workspace knowledge can be 
 - **Product Specification**: Workspace users can capture typed memory items and view recent memory timeline entries in the web app.
 - **Database Changes**:
   - Reuse `memory_items` contract (`workspace_id`, `memory_type`, `content`, `importance_score`, timestamps).
-  - `TODO`: finalize lifecycle columns (`state`, `confidence_score`, `last_referenced_at`) in migration phase.
+  - Lifecycle columns finalized in Sprint 12 (`state`, `confidence_score`, `last_referenced_at`).
 - **API Contract**:
   - `GET /api/v1/workspaces/{workspaceId}/memory/items`
   - `POST /api/v1/workspaces/{workspaceId}/memory/items`

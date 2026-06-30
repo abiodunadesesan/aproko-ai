@@ -48,12 +48,17 @@ function toMessagePayload(message: ChatMessage) {
     sessionId: message.sessionId,
     role: message.role,
     content: message.content,
+    responseTransport: message.responseTransport,
+    modelProvider: message.modelProvider,
+    modelName: message.modelName,
+    status: message.status,
+    metadata: message.metadata,
     createdAt: message.createdAt,
   };
 }
 
-function toSseBlock(event: SseEventName, payload: object): string {
-  return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
+function toSseBlock(eventId: number, event: SseEventName, payload: object): string {
+  return `id: ${eventId}\nevent: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
 
 function streamAssistantResponse(
@@ -71,8 +76,10 @@ function streamAssistantResponse(
 
   return new ReadableStream<Uint8Array>({
     start(controller) {
+      let eventId = 0;
       const enqueue = (event: SseEventName, payload: object) => {
-        controller.enqueue(encoder.encode(toSseBlock(event, payload)));
+        eventId += 1;
+        controller.enqueue(encoder.encode(toSseBlock(eventId, event, payload)));
       };
 
       const run = () => {
@@ -187,7 +194,14 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
         return NextResponse.json({ error: 'Unsupported model' }, { status: 400 });
       }
 
-      const userMessage = await deps.createChatMessage(workspaceId, sessionId, 'user', content);
+      const userMessage = await deps.createChatMessage(workspaceId, sessionId, 'user', content, {
+        responseTransport: 'sse',
+        model: modelRaw,
+        status: 'completed',
+        metadata: {
+          source: 'user',
+        },
+      });
       if (!userMessage) {
         return NextResponse.json({ error: 'Failed to save user message' }, { status: 500 });
       }
@@ -212,6 +226,15 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
         sessionId,
         'assistant',
         assistantTextWithMemory,
+        {
+          responseTransport: 'sse',
+          model: modelRaw,
+          status: 'completed',
+          metadata: {
+            citations,
+            memoryContext,
+          },
+        },
       );
       if (!assistantMessage) {
         return NextResponse.json({ error: 'Failed to save assistant message' }, { status: 500 });
@@ -224,6 +247,7 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache, no-transform',
             Connection: 'keep-alive',
+            'X-Aproko-Stream-Transport': 'sse',
           },
         },
       );
