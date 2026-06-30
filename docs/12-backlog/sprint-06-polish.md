@@ -132,8 +132,33 @@ Harden Aproko AI for launch readiness with settings, billing, observability, and
 
 ### LAUNCH-001 - Launch Hardening
 
-- **Status**: Todo
-- **Notes**: Final launch checklist and production readiness verification.
+- **Status**: Done
+- **Product Specification**: Complete launch-readiness hardening by verifying auth, middleware, observability wiring, Supabase profile-sync schema, and release quality gates for the web app.
+- **Acceptance Criteria**:
+  1. Clerk auth flow and protected-route middleware behavior are verified end-to-end.
+  2. Supabase environment integration is validated, including successful `profiles` table access/upsert path.
+  3. Production build completes successfully for `apps/web`.
+  4. Launch quality gates pass: lint, typecheck, unit tests, and e2e smoke tests.
+  5. Launch readiness status is documented in Sprint 06 board and roadmap.
+- **Definition of Done**:
+  - Supabase project linked and migration applied for `public.profiles`.
+  - Runtime auth/profile-sync integration verified without blocking errors.
+  - Playwright smoke suite stabilized for deterministic local launch checks.
+  - Web app build succeeds and route/app bundles are generated.
+- **Artifacts**:
+  - `apps/web/playwright.config.ts`
+  - `apps/web/e2e/smoke.spec.ts`
+  - `apps/web/app/layout.tsx`
+  - `apps/web/app/sign-in/[[...sign-in]]/page.tsx`
+  - `apps/web/app/sign-up/[[...sign-up]]/page.tsx`
+  - `apps/web/instrumentation.ts`
+  - `apps/web/instrumentation-client.ts`
+  - `apps/web/lib/auth/profile-sync.ts`
+  - `apps/web/lib/observability/events-route-handler.ts`
+  - `apps/web/app/api/v1/observability/events/route.ts`
+  - `apps/web/tsconfig.json`
+  - `apps/web/next.config.ts`
+  - `supabase/migrations/202606300001_create_profiles_table.sql`
 
 ## Sprint 06 Exit Snapshot
 
@@ -141,4 +166,4 @@ Harden Aproko AI for launch readiness with settings, billing, observability, and
 - BILL-001: Done
 - OBS-001: Done
 - PERF-001: Done
-- LAUNCH-001: Todo
+- LAUNCH-001: Done

@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useMemo, useState, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { UserButton } from '@clerk/nextjs';
 import { cardClass } from '@aproko/ui';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { shouldOpenSearchFromShortcut } from '@/lib/navigation/shortcuts';
 
 type AppShellProps = {
   title: string;
@@ -25,11 +26,13 @@ function toNavTestId(label: string): string {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', isEnabled: true },
+  { label: 'Search', href: '/search', isEnabled: true },
   { label: 'Library', href: '/library', isEnabled: true },
   { label: 'Chat', href: '/chat', isEnabled: true },
   { label: 'Memory', href: '/memory', isEnabled: true },
-  { label: 'Research', isEnabled: false },
+  { label: 'Research', href: '/research', isEnabled: true },
   { label: 'Study', href: '/study', isEnabled: true },
+  { label: 'Admin', href: '/admin', isEnabled: true },
   { label: 'Settings', href: '/settings', isEnabled: true },
   { label: 'Billing', href: '/billing', isEnabled: true },
 ];
@@ -57,7 +60,24 @@ function Breadcrumbs() {
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!shouldOpenSearchFromShortcut(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      router.push('/search');
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,11 +163,13 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
 
               <div className="flex items-center gap-2">
                 <button
-                  aria-label="Keyboard shortcuts placeholder"
+                  aria-label="Open search"
                   className="rounded-md border px-3 py-2 text-sm"
+                  data-testid="open-search-shortcut"
+                  onClick={() => router.push('/search')}
                   type="button"
                 >
-                  Shortcuts (Soon)
+                  Search (Cmd/Ctrl+K)
                 </button>
                 <ThemeToggle />
                 <div className={cardClass}>

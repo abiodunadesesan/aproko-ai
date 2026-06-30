@@ -26,8 +26,8 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Current Sprint
 
-- Active: `Sprint 6 - Polish and Launch`
-- Board: `./sprint-06-polish.md`
+- Active: `Sprint 11 - Search Shortcuts`
+- Board: `./sprint-11-search-shortcuts.md`
 
 ## Sprint Boards
 
@@ -37,3 +37,8 @@ This backlog is the operational execution system for Aproko AI.
 - `./sprint-04-memory.md`
 - `./sprint-05-study.md`
 - `./sprint-06-polish.md`
+- `./sprint-07-research.md`
+- `./sprint-08-admin.md`
+- `./sprint-09-search.md`
+- `./sprint-10-search-quality.md`
+- `./sprint-11-search-shortcuts.md`

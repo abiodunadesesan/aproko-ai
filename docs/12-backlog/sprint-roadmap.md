@@ -24,6 +24,14 @@
 
 - Billing, settings, analytics, error tracking, performance, launch.
 
-## Current active implementation: Sprint 06 (Polish)
+## Sprint 7 - Research Workspace
 
-Next ticket target: `LAUNCH-001 - Launch Hardening`
+- Research workspace baseline, then scoped workspaces, linked sources, and research-first context flow.
+
+## Sprint 8 - Admin Dashboard
+
+- Admin users/workspaces/usage operational visibility and governance baseline.
+
+## Current active implementation: Sprint 11 complete
+
+Next ticket target: `TBD - Sprint 12 planning`

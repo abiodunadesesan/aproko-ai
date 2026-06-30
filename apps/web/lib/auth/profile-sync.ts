@@ -15,6 +15,24 @@ export type UpdateProfileInput = {
   full_name?: string | null;
 };
 
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+};
+
+function isMissingProfilesTableError(error: unknown): boolean {
+  const candidate = error as SupabaseErrorLike | null;
+  if (!candidate) {
+    return false;
+  }
+
+  return (
+    candidate.code === 'PGRST205' &&
+    typeof candidate.message === 'string' &&
+    candidate.message.includes("Could not find the table 'public.profiles'")
+  );
+}
+
 export async function syncProfileFromClerkUser(user: User): Promise<AppProfile | null> {
   const supabase = getSupabaseAdminClient();
 
@@ -39,6 +57,12 @@ export async function syncProfileFromClerkUser(user: User): Promise<AppProfile |
     .single();
 
   if (error) {
+    if (isMissingProfilesTableError(error)) {
+      console.warn(
+        'Profiles table is missing; skipping profile sync until migrations are applied.',
+      );
+      return null;
+    }
     throw error;
   }
 

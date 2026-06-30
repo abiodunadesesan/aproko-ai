@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
+import { Suspense } from 'react';
 import { ObservabilityProvider } from '@/components/observability-provider';
 import './globals.css';
 
@@ -14,13 +15,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body>
-          <ObservabilityProvider />
+    <html lang="en">
+      <body>
+        <ClerkProvider
+          signInFallbackRedirectUrl="/dashboard"
+          signUpFallbackRedirectUrl="/dashboard"
+        >
+          <Suspense fallback={null}>
+            <ObservabilityProvider />
+          </Suspense>
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

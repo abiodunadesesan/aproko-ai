@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3100';
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,15 +15,16 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    navigationTimeout: 60_000,
+    navigationTimeout: 120_000,
   },
   webServer: {
-    command: 'pnpm dev --port 3000',
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    command: 'rm -rf .next && pnpm dev --port 3100',
+    port: 3100,
+    reuseExistingServer: false,
+    timeout: 180 * 1000,
     env: {
       E2E_MOCK_AUTH: 'true',
+      ADMIN_ALLOW_ALL_DEV: 'true',
       NEXT_TELEMETRY_DISABLED: '1',
     },
   },

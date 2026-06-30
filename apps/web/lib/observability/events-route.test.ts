@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createObservabilityEventsRouteHandlers } from '../../app/api/v1/observability/events/route';
+import { createObservabilityEventsRouteHandlers } from './events-route-handler';
 
 test('observability events POST validates required event', async () => {
   const handlers = createObservabilityEventsRouteHandlers({
