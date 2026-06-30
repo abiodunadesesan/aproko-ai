@@ -3,7 +3,7 @@
 ## Status
 
 - **Release target:** `Aproko AI Web V1`
-- **State:** In Progress (quality gates passing; deployment validation pending new main run)
+- **State:** In Progress (quality and CI/CD gates passing; production deployment validation pending)
 
 ## Go-Live Gates
 
@@ -31,28 +31,28 @@
 
 ### 4) CI/CD and Deployment
 
-- [ ] GitHub `CI` workflow green on main (workflow updated with build-time placeholder envs; awaiting rerun).
-- [ ] GitHub `Vercel Deploy` workflow green on main (workflow now skips deploy when `VERCEL_TOKEN` secret is unset; awaiting rerun).
-- [ ] Vercel production deployment healthy and accessible.
-- [ ] Rollback path documented (previous deployment promotion and revert steps).
+- [x] GitHub `CI` workflow green on main (latest run: `28455414852`).
+- [x] GitHub `Vercel Deploy` workflow green on main (latest run: `28455414496`, deploy path skipped because `VERCEL_TOKEN` is unset).
+- [x] Vercel production deployment healthy and accessible (`https://aprokoai.vercel.app`, deployment `dpl_EM3yqb9mCQbPCUYC6mQKtd3XveMZ`).
+- [x] Rollback path documented (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 5) Observability and Operations
 
 - [ ] Sentry receiving frontend/server errors in production.
 - [ ] PostHog events visible for critical flows.
 - [ ] Alerting/escalation owners identified for launch week.
-- [ ] Basic operational runbook available for incident response.
+- [x] Basic operational runbook available for incident response (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 6) Security and Compliance Baseline
 
 - [ ] Auth-protected routes and admin routes manually verified in production.
-- [ ] Secrets are not committed and are sourced from environment providers only.
+- [x] Secrets are not committed and are sourced from environment providers only (tracked file/pattern scan completed).
 - [ ] Public API endpoints reviewed for auth/validation/rate-limit posture.
-- [ ] Data retention and deletion behavior documented for user-facing support.
+- [x] Data retention and deletion behavior documented for user-facing support (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 7) Launch Execution
 
-- [ ] Final smoke test on production URL completed.
+- [x] Final smoke test on production URL completed (root and sign-in return `200`; auth-protected route is guarded for signed-out users).
 - [ ] Internal launch sign-off recorded (engineering + product).
 - [ ] Public launch checklist completed (changelog/release note/announcement).
 - [ ] Post-launch monitoring window scheduled (first 24-72h).
@@ -70,4 +70,9 @@
 - Last CI failure root cause: build required Clerk provider with an invalid placeholder key in CI.
 - Mitigation added: layout now only mounts `ClerkProvider` when a valid publishable key is present.
 - Last Vercel deploy failure root cause: missing `VERCEL_TOKEN` secret caused CLI `--token` empty error.
-- Workflow fixes are committed locally; CI/CD gate will update on next push-triggered run.
+- Latest push-triggered runs are green for both `CI` and `Vercel Deploy`.
+- Current deploy workflow status: passing in skip mode; production deploy remains blocked until `VERCEL_TOKEN` is configured.
+- Production deploy performed via Vercel CLI; initial runtime failure (`MIDDLEWARE_INVOCATION_FAILED`) traced to Clerk env propagation under Turbo.
+- Fixes applied: production Clerk keys synced, `turbo.json` `globalEnv` updated for Clerk/Supabase runtime variables, and production redeployed successfully.
+- Release operations runbook added with explicit smoke/rollback/incident/data-handling procedures.
+- Public API posture quick scan: auth and validation checks are broadly present in `app/api/v1`; explicit request rate limiting is not yet implemented and remains a release risk.

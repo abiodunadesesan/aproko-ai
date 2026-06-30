@@ -6,6 +6,7 @@ import {
   type FlashcardDeck,
 } from '@/lib/storage/flashcards';
 import { withPerformanceHeaders } from '@/lib/perf/http';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -57,6 +58,14 @@ export function createFlashcardDecksRouteHandlers(deps: FlashcardDecksRouteDepen
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.flashcardsWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId } = await context.params;

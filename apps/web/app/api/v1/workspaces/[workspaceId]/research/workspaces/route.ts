@@ -4,6 +4,7 @@ import {
   listResearchWorkspaces,
   type ResearchWorkspace,
 } from '@/lib/storage/research';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -35,6 +36,14 @@ export function createResearchWorkspacesRouteHandlers(deps: ResearchWorkspacesRo
       const { userId } = await deps.auth();
       if (!userId) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.researchWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const body = (await request.json()) as { title?: string; description?: string | null };

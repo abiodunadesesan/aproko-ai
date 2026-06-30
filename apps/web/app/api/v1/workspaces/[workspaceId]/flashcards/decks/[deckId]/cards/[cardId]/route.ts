@@ -6,6 +6,7 @@ import {
   updateFlashcard,
   type Flashcard,
 } from '@/lib/storage/flashcards';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -39,6 +40,14 @@ export function createFlashcardByIdRouteHandlers(deps: FlashcardByIdRouteDepende
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.flashcardsWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
 
       const { workspaceId, deckId, cardId } = await context.params;
       const deck = await deps.getFlashcardDeckById(workspaceId, deckId);
@@ -64,10 +73,18 @@ export function createFlashcardByIdRouteHandlers(deps: FlashcardByIdRouteDepende
       return NextResponse.json({ data: toCardPayload(updated) });
     },
 
-    DELETE: async (_request: Request, context: RouteContext) => {
+    DELETE: async (request: Request, context: RouteContext) => {
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.flashcardsWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, deckId, cardId } = await context.params;

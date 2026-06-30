@@ -7,6 +7,7 @@ import {
   type QuizAnswerInput,
   type QuizAttempt,
 } from '@/lib/storage/quizzes';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -53,6 +54,14 @@ export function createQuizAttemptsRouteHandlers(deps: QuizAttemptsRouteDependenc
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.quizAttemptsWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, quizId } = await context.params;

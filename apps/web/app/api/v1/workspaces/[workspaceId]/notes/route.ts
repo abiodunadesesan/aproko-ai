@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createWorkspaceNote, listWorkspaceNotes, type WorkspaceNote } from '@/lib/storage/notes';
 import { withPerformanceHeaders } from '@/lib/perf/http';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -53,6 +54,14 @@ export function createNotesRouteHandlers(deps: NotesRouteDependencies) {
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.notesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId } = await context.params;

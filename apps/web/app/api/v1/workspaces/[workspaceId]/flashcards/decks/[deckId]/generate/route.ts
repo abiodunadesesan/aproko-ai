@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createFlashcard, getFlashcardDeckById, type Flashcard } from '@/lib/storage/flashcards';
 import { getWorkspaceNoteById } from '@/lib/storage/notes';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -47,6 +48,14 @@ export function createFlashcardGenerateRouteHandlers(deps: FlashcardGenerateRout
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.flashcardsGenerate,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, deckId } = await context.params;

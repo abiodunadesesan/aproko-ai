@@ -6,6 +6,7 @@ import {
   updateLibrarySourceMetadata,
 } from '@/lib/storage/library';
 import { getWorkspaceFolderById, getWorkspaceProjectById } from '@/lib/storage/workspace-taxonomy';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -57,6 +58,14 @@ export function createSourceByIdRouteHandlers(deps: SourceByIdRouteDependencies)
       if (!userId) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.sourcesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
 
       const { workspaceId, sourceId } = await context.params;
       const body = (await request.json()) as {
@@ -96,7 +105,7 @@ export function createSourceByIdRouteHandlers(deps: SourceByIdRouteDependencies)
   };
 
   const DELETE = async (
-    _request: Request,
+    request: Request,
     context: { params: Promise<{ workspaceId: string; sourceId: string }> },
   ) => {
     try {
@@ -104,6 +113,14 @@ export function createSourceByIdRouteHandlers(deps: SourceByIdRouteDependencies)
 
       if (!userId) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.sourcesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, sourceId } = await context.params;

@@ -6,6 +6,7 @@ import {
   type ChatContextMode,
   type ChatSession,
 } from '@/lib/storage/chat';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -33,10 +34,18 @@ function toSessionPayload(session: ChatSession) {
 
 export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependencies) {
   return {
-    GET: async (_request: Request, context: RouteContext) => {
+    GET: async (request: Request, context: RouteContext) => {
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.chatSessionsRead,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId } = await context.params;
@@ -51,6 +60,14 @@ export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependenc
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.chatSessionsWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId } = await context.params;

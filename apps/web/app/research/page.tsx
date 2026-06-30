@@ -1,8 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { buttonPrimaryClass, buttonSecondaryClass, cardClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 type ResearchWorkspace = {
   id: string;
@@ -241,120 +251,151 @@ export default function ResearchPage() {
       title="Research"
     >
       <section className="space-y-4">
-        <div className={cardClass}>
-          <p className="text-sm font-medium">Create research workspace</p>
-          <div className="mt-3 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
-            <input
-              className="h-10 rounded-md border px-3 text-sm"
-              onChange={(event) => setTitleDraft(event.target.value)}
-              placeholder="Workspace title"
-              value={titleDraft}
-            />
-            <input
-              className="h-10 rounded-md border px-3 text-sm"
-              onChange={(event) => setDescriptionDraft(event.target.value)}
-              placeholder="Description (optional)"
-              value={descriptionDraft}
-            />
-            <button
-              className={buttonPrimaryClass}
-              disabled={isSaving}
-              onClick={() => void handleCreateWorkspace()}
-              type="button"
-            >
-              {isSaving ? 'Saving...' : 'Create'}
-            </button>
-          </div>
-        </div>
-
-        <div className={cardClass}>
-          <p className="text-sm font-medium">Workspace context</p>
-          <div className="mt-3 grid gap-2 md:grid-cols-[280px_1fr]">
-            <select
-              className="h-10 rounded-md border px-3 text-sm"
-              onChange={(event) => setActiveWorkspaceId(event.target.value)}
-              value={activeWorkspaceId}
-            >
-              <option value="">
-                {researchWorkspaces.length ? 'Select workspace' : 'No research workspace yet'}
-              </option>
-              {researchWorkspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.title}
-                </option>
-              ))}
-            </select>
-            <div className="rounded-md border p-3 text-sm text-muted-foreground">
-              {activeWorkspace
-                ? `${activeWorkspace.title} • ${activeWorkspace.description ?? 'No description'}`
-                : 'Choose a workspace to manage linked sources.'}
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Research Workspace</CardTitle>
+            <CardDescription>
+              Define a focused research context for selected sources.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-3 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
+              <Input
+                onChange={(event) => setTitleDraft(event.target.value)}
+                placeholder="Workspace title"
+                value={titleDraft}
+              />
+              <Textarea
+                className="min-h-10"
+                onChange={(event) => setDescriptionDraft(event.target.value)}
+                placeholder="Description (optional)"
+                value={descriptionDraft}
+              />
+              <Button
+                disabled={isSaving || !titleDraft.trim()}
+                onClick={() => void handleCreateWorkspace()}
+                type="button"
+              >
+                {isSaving ? 'Saving...' : 'Create'}
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className={cardClass}>
-          <p className="text-sm font-medium">Linked sources</p>
-          <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
-            <select
-              className="h-10 rounded-md border px-3 text-sm"
-              disabled={!activeWorkspaceId || !availableSources.length}
-              onChange={(event) => setSourceToLink(event.target.value)}
-              value={sourceToLink}
-            >
-              <option value="">
-                {availableSources.length ? 'Select source to link' : 'No available source'}
-              </option>
-              {availableSources.map((source) => (
-                <option key={source.id} value={source.id}>
-                  {source.name} ({source.project}/{source.folder})
-                </option>
-              ))}
-            </select>
-            <button
-              className={buttonSecondaryClass}
-              disabled={!activeWorkspaceId || !sourceToLink || isSaving}
-              onClick={() => void handleLinkSource()}
-              type="button"
-            >
-              Link source
-            </button>
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Workspace Context</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-3 grid gap-2 md:grid-cols-[280px_1fr]">
+              <Select
+                onValueChange={(value) => setActiveWorkspaceId(value)}
+                value={activeWorkspaceId}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      researchWorkspaces.length ? 'Select workspace' : 'No research workspace yet'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {researchWorkspaces.map((workspace) => (
+                    <SelectItem key={workspace.id} value={workspace.id}>
+                      {workspace.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="rounded-md border p-3 text-sm text-muted-foreground">
+                {activeWorkspace
+                  ? `${activeWorkspace.title} • ${activeWorkspace.description ?? 'No description'}`
+                  : 'Choose a workspace to manage linked sources.'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="mt-3 space-y-2">
-            {linkedSourceDetails.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {isLoading
-                  ? 'Loading linked sources...'
-                  : 'No source linked yet. Add one to scope research context.'}
-              </p>
-            ) : (
-              linkedSourceDetails.map((entry) => (
-                <div
-                  className="flex items-center justify-between rounded-md border p-3"
-                  key={entry.sourceId}
-                >
-                  <p className="text-sm">
-                    {entry.source?.name ?? entry.sourceId}
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      linked {new Date(entry.addedAt).toLocaleString()}
-                    </span>
-                  </p>
-                  <button
-                    className={buttonSecondaryClass}
-                    disabled={isSaving}
-                    onClick={() => void handleUnlinkSource(entry.sourceId)}
-                    type="button"
+        <Card>
+          <CardHeader>
+            <CardTitle>Linked Sources</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+              <Select
+                disabled={!activeWorkspaceId || !availableSources.length}
+                onValueChange={(value) => setSourceToLink(value)}
+                value={sourceToLink}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      availableSources.length ? 'Select source to link' : 'No available source'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSources.map((source) => (
+                    <SelectItem key={source.id} value={source.id}>
+                      {source.name} ({source.project}/{source.folder})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                disabled={!activeWorkspaceId || !sourceToLink || isSaving}
+                onClick={() => void handleLinkSource()}
+                type="button"
+                variant="outline"
+              >
+                Link source
+              </Button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {linkedSourceDetails.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {isLoading
+                    ? 'Loading linked sources...'
+                    : 'No source linked yet. Add one to scope research context.'}
+                </p>
+              ) : (
+                linkedSourceDetails.map((entry) => (
+                  <div
+                    className="flex items-center justify-between rounded-md border p-3"
+                    key={entry.sourceId}
                   >
-                    Remove
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                    <p className="text-sm">
+                      {entry.source?.name ?? entry.sourceId}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        linked {new Date(entry.addedAt).toLocaleString()}
+                      </span>
+                    </p>
+                    <Button
+                      disabled={isSaving}
+                      onClick={() => void handleUnlinkSource(entry.sourceId)}
+                      type="button"
+                      variant="outline"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {notice ? <p className="text-sm text-emerald-700">{notice}</p> : null}
+        {error ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
+        {notice ? (
+          <div className="rounded-md border border-emerald-300/50 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {notice}
+          </div>
+        ) : null}
       </section>
     </AppShell>
   );

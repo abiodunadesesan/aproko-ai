@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { removeSourceFromResearchWorkspace } from '@/lib/storage/research';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -15,11 +16,19 @@ type RouteContext = {
 export function createResearchWorkspaceSourceByIdRouteHandlers(
   deps: ResearchWorkspaceSourceByIdRouteDependencies,
 ) {
-  const DELETE = async (_request: Request, context: RouteContext) => {
+  const DELETE = async (request: Request, context: RouteContext) => {
     try {
       const { userId } = await deps.auth();
       if (!userId) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.researchWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, researchWorkspaceId, sourceId } = await context.params;

@@ -3,9 +3,59 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  BookOpen,
+  Brain,
+  CreditCard,
+  FolderOpen,
+  LayoutDashboard,
+  MessageSquare,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
-import { cardClass } from '@aproko/ui';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Badge } from '@/components/ui/badge';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from '@/components/ui/command';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
 import { shouldOpenSearchFromShortcut } from '@/lib/navigation/shortcuts';
 
 type AppShellProps = {
@@ -18,6 +68,7 @@ type NavItem = {
   label: string;
   href?: string;
   isEnabled: boolean;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 function toNavTestId(label: string): string {
@@ -25,16 +76,16 @@ function toNavTestId(label: string): string {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', isEnabled: true },
-  { label: 'Search', href: '/search', isEnabled: true },
-  { label: 'Library', href: '/library', isEnabled: true },
-  { label: 'Chat', href: '/chat', isEnabled: true },
-  { label: 'Memory', href: '/memory', isEnabled: true },
-  { label: 'Research', href: '/research', isEnabled: true },
-  { label: 'Study', href: '/study', isEnabled: true },
-  { label: 'Admin', href: '/admin', isEnabled: true },
-  { label: 'Settings', href: '/settings', isEnabled: true },
-  { label: 'Billing', href: '/billing', isEnabled: true },
+  { label: 'Dashboard', href: '/dashboard', isEnabled: true, icon: LayoutDashboard },
+  { label: 'Search', href: '/search', isEnabled: true, icon: Search },
+  { label: 'Library', href: '/library', isEnabled: true, icon: FolderOpen },
+  { label: 'Chat', href: '/chat', isEnabled: true, icon: MessageSquare },
+  { label: 'Memory', href: '/memory', isEnabled: true, icon: Brain },
+  { label: 'Research', href: '/research', isEnabled: true, icon: Sparkles },
+  { label: 'Study', href: '/study', isEnabled: true, icon: BookOpen },
+  { label: 'Admin', href: '/admin', isEnabled: true, icon: ShieldCheck },
+  { label: 'Settings', href: '/settings', isEnabled: true, icon: Settings },
+  { label: 'Billing', href: '/billing', isEnabled: true, icon: CreditCard },
 ];
 
 function Breadcrumbs() {
@@ -51,17 +102,39 @@ function Breadcrumbs() {
     );
   }, [pathname]);
 
+  const pathParts = pathname.split('/').filter(Boolean);
+
   return (
-    <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-      {crumbs.join(' / ')}
-    </nav>
+    <Breadcrumb>
+      <BreadcrumbList>
+        {crumbs.map((crumb, index) => {
+          const href = `/${pathParts.slice(0, index + 1).join('/')}`;
+          const isLast = index === crumbs.length - 1;
+
+          return (
+            <BreadcrumbItem key={`${crumb}-${href}`}>
+              {isLast ? (
+                <BreadcrumbPage>{crumb}</BreadcrumbPage>
+              ) : (
+                <>
+                  <BreadcrumbLink asChild>
+                    <Link href={href || '/dashboard'}>{crumb}</Link>
+                  </BreadcrumbLink>
+                  <BreadcrumbSeparator />
+                </>
+              )}
+            </BreadcrumbItem>
+          );
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const shouldRenderUserButton = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
   useEffect(() => {
@@ -71,123 +144,141 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
       }
 
       event.preventDefault();
-      router.push('/search');
+      setIsCommandOpen((open) => !open);
     }
 
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [router]);
+  }, []);
+
+  function navigateTo(href: string) {
+    setIsCommandOpen(false);
+    router.push(href);
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex min-h-screen">
-        <aside
-          aria-label="Primary"
-          data-testid="app-sidebar"
-          className={`fixed inset-y-0 left-0 z-30 w-72 border-r bg-background p-4 transition-transform md:static md:translate-x-0 ${
-            mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm font-semibold">Aproko AI</p>
-            <button
-              aria-label="Close menu"
-              className="rounded-md border px-2 py-1 text-xs md:hidden"
-              onClick={() => setMobileNavOpen(false)}
-              type="button"
-            >
-              Close
-            </button>
-          </div>
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              if (!item.isEnabled || !item.href) {
+    <SidebarProvider>
+      <Sidebar data-testid="app-sidebar" variant="inset">
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel className="font-semibold">Aproko AI</SidebarGroupLabel>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                if (!item.isEnabled || !item.href) {
+                  return null;
+                }
+
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const Icon = item.icon;
+
                 return (
-                  <button
-                    className="w-full rounded-md px-3 py-2 text-left text-sm text-muted-foreground"
-                    disabled
-                    key={item.label}
-                    type="button"
-                  >
-                    {item.label} (Soon)
-                  </button>
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton asChild isActive={isActive}>
+                      <Link data-testid={toNavTestId(item.label)} href={item.href}>
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 );
-              }
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
 
-              const active = pathname.startsWith(item.href);
-              return (
-                <Link
-                  aria-current={active ? 'page' : undefined}
-                  className={`block rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    active ? 'bg-foreground text-background' : 'hover:bg-muted'
-                  }`}
-                  data-testid={toNavTestId(item.label)}
-                  href={item.href}
-                  key={item.label}
-                  onClick={() => setMobileNavOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {mobileNavOpen ? (
-          <button
-            aria-label="Close navigation overlay"
-            className="fixed inset-0 z-20 bg-black/30 md:hidden"
-            onClick={() => setMobileNavOpen(false)}
-            type="button"
-          />
-        ) : null}
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-            <div className="flex items-center justify-between gap-3 p-4">
-              <div className="flex items-center gap-2">
-                <button
-                  aria-label="Open sidebar"
-                  className="rounded-md border px-3 py-2 text-sm md:hidden"
-                  onClick={() => setMobileNavOpen(true)}
-                  type="button"
-                >
-                  Menu
-                </button>
-                <div>
-                  <h1 className="text-lg font-semibold">{title}</h1>
+      <SidebarInset>
+        <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+          <div className="flex h-16 items-center justify-between gap-3 px-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <SidebarTrigger aria-label="Toggle sidebar" />
+              <Separator className="h-4" orientation="vertical" />
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-semibold">{title}</h1>
+                <div className="hidden md:block">
                   <Breadcrumbs />
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  aria-label="Open search"
-                  className="rounded-md border px-3 py-2 text-sm"
-                  data-testid="open-search-shortcut"
-                  onClick={() => router.push('/search')}
-                  type="button"
-                >
-                  Search (Cmd/Ctrl+K)
-                </button>
-                <ThemeToggle />
-                <div className={cardClass}>
-                  {shouldRenderUserButton ? <UserButton afterSignOutUrl="/" /> : <span>Guest</span>}
-                </div>
+            <div className="flex items-center gap-2">
+              <Button
+                aria-label="Open search"
+                data-testid="open-search-shortcut"
+                onClick={() => setIsCommandOpen(true)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <Search className="h-4 w-4" />
+                Search
+              </Button>
+              <ThemeToggle />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    Account
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => navigateTo('/dashboard')}>
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigateTo('/settings')}>
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigateTo('/billing')}>
+                    Billing
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => navigateTo('/search')}>
+                    Open Search
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <div>
+                {shouldRenderUserButton ? (
+                  <UserButton afterSignOutUrl="/" />
+                ) : (
+                  <Badge variant="secondary">Guest</Badge>
+                )}
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          <main className="flex-1 p-4 md:p-6">
-            <div className="mb-6">
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-            </div>
-            {children}
-          </main>
-        </div>
-      </div>
-    </div>
+        <main className="flex-1 p-4 md:p-6">
+          <div className="mb-6">
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+          {children}
+        </main>
+      </SidebarInset>
+
+      <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
+        <CommandInput placeholder="Jump to page..." />
+        <CommandList>
+          <CommandEmpty>No pages found.</CommandEmpty>
+          <CommandGroup heading="Navigation">
+            {navItems
+              .filter((item): item is NavItem & { href: string } =>
+                Boolean(item.href && item.isEnabled),
+              )
+              .map((item) => {
+                const Icon = item.icon;
+                return (
+                  <CommandItem key={item.href} onSelect={() => navigateTo(item.href)}>
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                    {item.label === 'Search' ? <CommandShortcut>Cmd/Ctrl+K</CommandShortcut> : null}
+                  </CommandItem>
+                );
+              })}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+    </SidebarProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { searchWorkspace } from '@/lib/storage/search';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -18,6 +19,15 @@ export function createWorkspaceSearchRouteHandlers(deps: WorkspaceSearchRouteDep
       const { userId } = await deps.auth();
       if (!userId) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.searchRead,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId } = await context.params;

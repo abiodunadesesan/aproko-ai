@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createQuiz, listQuizzes, type Quiz } from '@/lib/storage/quizzes';
 import { withPerformanceHeaders } from '@/lib/perf/http';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -52,6 +53,14 @@ export function createQuizzesRouteHandlers(deps: QuizzesRouteDependencies) {
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.quizzesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const rawBody = (await request.json().catch(() => null)) as {

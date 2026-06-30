@@ -7,6 +7,7 @@ import {
   type ChatMessage,
 } from '@/lib/storage/chat';
 import { listMemoryItems, type MemoryItem } from '@/lib/storage/memory';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -153,6 +154,14 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
+      const rateLimitResponse = enforceRateLimit({
+        request: _request,
+        userId,
+        policy: rateLimitPolicies.chatMessagesRead,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
 
       const { workspaceId, sessionId } = await context.params;
       const session = await deps.getChatSessionById(workspaceId, userId, sessionId);
@@ -171,6 +180,14 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.chatMessagesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, sessionId } = await context.params;

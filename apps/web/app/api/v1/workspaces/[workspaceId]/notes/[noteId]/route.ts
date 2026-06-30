@@ -6,6 +6,7 @@ import {
   updateWorkspaceNote,
   type WorkspaceNote,
 } from '@/lib/storage/notes';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -53,6 +54,14 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.notesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
 
       const { workspaceId, noteId } = await context.params;
       const rawBody = (await request.json().catch(() => null)) as {
@@ -74,10 +83,18 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       return NextResponse.json({ data: toNotePayload(updated) });
     },
 
-    DELETE: async (_request: Request, context: RouteContext) => {
+    DELETE: async (request: Request, context: RouteContext) => {
       const { userId } = await deps.auth();
       if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const rateLimitResponse = enforceRateLimit({
+        request,
+        userId,
+        policy: rateLimitPolicies.notesWrite,
+      });
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       const { workspaceId, noteId } = await context.params;

@@ -2,8 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { buttonPrimaryClass, buttonSecondaryClass, cardClass } from '@aproko/ui';
 import { AppShell } from '@/components/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 const WORKSPACE_ID = 'default-workspace';
 const LAST_SESSION_STORAGE_KEY = `aproko.chat.last-session.${WORKSPACE_ID}`;
@@ -490,19 +499,15 @@ export default function ChatPage() {
       title="AI Chat"
     >
       <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <aside className={`${cardClass} space-y-3`}>
+        <Card className="space-y-3 p-6">
           <div className="space-y-1">
             <p className="text-sm font-semibold">Sessions</p>
             <p className="text-xs text-muted-foreground">Context mode: workspace</p>
           </div>
 
-          <button
-            className={buttonSecondaryClass}
-            onClick={() => setActiveSessionId(null)}
-            type="button"
-          >
+          <Button onClick={() => setActiveSessionId(null)} type="button" variant="outline">
             New session
-          </button>
+          </Button>
 
           <div className="space-y-2">
             {isLoadingSessions ? (
@@ -531,152 +536,155 @@ export default function ChatPage() {
                     </p>
                   </button>
                   <div className="mt-2 flex gap-2">
-                    <button
-                      className="rounded border px-2 py-1 text-xs"
+                    <Button
                       onClick={() => {
                         void renameSession(session);
                       }}
+                      size="sm"
                       type="button"
+                      variant="outline"
                     >
                       Rename
-                    </button>
-                    <button
-                      className="rounded border px-2 py-1 text-xs text-destructive"
+                    </Button>
+                    <Button
                       onClick={() => {
                         void removeSession(session);
                       }}
+                      size="sm"
                       type="button"
+                      variant="destructive"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </article>
               ))
             )}
           </div>
-        </aside>
+        </Card>
 
-        <div className={`${cardClass} flex min-h-[520px] flex-col`}>
-          <div className="mb-3 border-b pb-3">
-            <p className="text-sm font-semibold">{activeSession?.title ?? 'New Chat'}</p>
+        <Card className="flex min-h-[520px] flex-col p-0">
+          <CardHeader className="mb-3 border-b pb-3">
+            <CardTitle className="text-sm font-semibold">
+              {activeSession?.title ?? 'New Chat'}
+            </CardTitle>
             <p className="text-xs text-muted-foreground">
               Workspace-scoped assistant stream | Session model:{' '}
               {activeSession ? (formatSessionModel(activeSession) ?? 'not set') : 'not set'}
             </p>
-          </div>
-
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-            {messages.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Start a conversation. Your first message creates a session automatically.
-              </p>
-            ) : (
-              messages.map((message) => (
-                <article
-                  className={`rounded-md border px-3 py-2 ${
-                    message.role === 'assistant' ? 'bg-muted/50' : 'bg-background'
-                  }`}
-                  key={message.id}
-                >
-                  <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
-                    {message.role}
-                  </p>
-                  <p className="mb-2 text-xs text-muted-foreground">
-                    Model: {formatModelDisplay(message) ?? 'n/a'} | Transport:{' '}
-                    {message.responseTransport ?? 'n/a'} | Status: {message.status ?? 'n/a'}
-                  </p>
-                  {message.role === 'assistant' && message.memoryContext?.length ? (
-                    <div className="mb-2 rounded-md border bg-background px-2 py-1.5">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Memory Context
-                      </p>
-                      {message.memoryContext.map((memory) => (
-                        <p
-                          className="mt-1 text-xs text-muted-foreground"
-                          key={`${message.id}-${memory.memoryItemId}`}
-                        >
-                          {memory.summary} ({memory.memoryType}, {memory.rankScore.toFixed(2)})
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col p-6 pt-0">
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {messages.length === 0 ? (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  Start a conversation. Your first message creates a session automatically.
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <article
+                    className={`rounded-md border px-3 py-2 ${
+                      message.role === 'assistant' ? 'bg-muted/50' : 'bg-background'
+                    }`}
+                    key={message.id}
+                  >
+                    <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
+                      {message.role}
+                    </p>
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Model: {formatModelDisplay(message) ?? 'n/a'} | Transport:{' '}
+                      {message.responseTransport ?? 'n/a'} | Status: {message.status ?? 'n/a'}
+                    </p>
+                    {message.role === 'assistant' && message.memoryContext?.length ? (
+                      <div className="mb-2 rounded-md border bg-background px-2 py-1.5">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Memory Context
                         </p>
-                      ))}
-                    </div>
-                  ) : null}
-                  <p className="whitespace-pre-wrap text-sm">
-                    {message.content || (isSending ? '...' : '')}
-                  </p>
-                  {message.role === 'assistant' && message.citations?.length ? (
-                    <div className="mt-3 space-y-2 border-t pt-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Citations
-                      </p>
-                      {message.citations.map((citation) => (
-                        <div
-                          className="rounded-md border bg-background px-2 py-1.5"
-                          key={citation.id}
-                        >
-                          <p className="text-xs font-medium">{citation.title}</p>
-                          <p className="text-xs text-muted-foreground">{citation.snippet}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
-              ))
-            )}
-          </div>
-
-          <form
-            className="mt-4 space-y-2 border-t pt-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void sendMessage();
-            }}
-          >
-            <textarea
-              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask a question about your workspace..."
-              value={input}
-            />
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground" htmlFor="chat-model-select">
-                  Model
-                </label>
-                <select
-                  className="rounded-md border bg-background px-2 py-1 text-xs"
-                  disabled={isSending}
-                  id="chat-model-select"
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    if (isChatModel(value)) {
-                      setSelectedModel(value);
-                    }
-                  }}
-                  value={selectedModel}
-                >
-                  {CHAT_MODELS.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">
-                  Streaming contract active (CHAT-005)
-                </p>
-                <button
-                  className={buttonPrimaryClass}
-                  disabled={isSending || !input.trim()}
-                  type="submit"
-                >
-                  {isSending ? 'Sending...' : 'Send'}
-                </button>
-              </div>
+                        {message.memoryContext.map((memory) => (
+                          <p
+                            className="mt-1 text-xs text-muted-foreground"
+                            key={`${message.id}-${memory.memoryItemId}`}
+                          >
+                            {memory.summary} ({memory.memoryType}, {memory.rankScore.toFixed(2)})
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
+                    <p className="whitespace-pre-wrap text-sm">
+                      {message.content || (isSending ? '...' : '')}
+                    </p>
+                    {message.role === 'assistant' && message.citations?.length ? (
+                      <div className="mt-3 space-y-2 border-t pt-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Citations
+                        </p>
+                        {message.citations.map((citation) => (
+                          <div
+                            className="rounded-md border bg-background px-2 py-1.5"
+                            key={citation.id}
+                          >
+                            <p className="text-xs font-medium">{citation.title}</p>
+                            <p className="text-xs text-muted-foreground">{citation.snippet}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </article>
+                ))
+              )}
             </div>
-          </form>
-        </div>
+
+            <form
+              className="mt-4 space-y-2 border-t pt-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void sendMessage();
+              }}
+            >
+              <Textarea
+                className="min-h-24"
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Ask a question about your workspace..."
+                value={input}
+              />
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground" htmlFor="chat-model-select">
+                    Model
+                  </label>
+                  <Select
+                    disabled={isSending}
+                    onValueChange={(value) => {
+                      if (isChatModel(value)) {
+                        setSelectedModel(value);
+                      }
+                    }}
+                    value={selectedModel}
+                  >
+                    <SelectTrigger className="h-8 w-[230px]" id="chat-model-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CHAT_MODELS.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Streaming contract active (CHAT-005)
+                  </p>
+                  <Button disabled={isSending || !input.trim()} type="submit">
+                    {isSending ? 'Sending...' : 'Send'}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </section>
     </AppShell>
   );
