@@ -2,36 +2,71 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import {
-  ArrowRight,
-  BookOpenCheck,
-  Brain,
-  CheckCircle2,
-  MessageSquareText,
-  Mic,
-  Shield,
-  Sparkles,
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ArrowRight, BookOpenCheck, Globe, Layers, Link2, Search, Shield } from 'lucide-react';
+import { ChatMockup } from '@/components/landing/chat-mockup';
+import { DashboardPreview } from '@/components/landing/dashboard-preview';
+import { DocumentDemo } from '@/components/landing/document-demo';
+import { FadeIn, StaggerContainer, StaggerItem } from '@/components/landing/fade-in';
+import { LandingNav } from '@/components/landing/landing-nav';
+import { PricingSection } from '@/components/landing/pricing-section';
+import { SocialProof } from '@/components/landing/social-proof';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
-const features = [
+const overlayShortcuts = [
   {
-    title: 'AI overlay, not tab switching',
-    copy: 'Keep context from the work already on your screen and ask in place.',
-    icon: MessageSquareText,
+    title: 'Quick capture',
+    copy: 'Upload documents and transcripts into one workspace — no scattered tabs.',
   },
   {
-    title: 'Live capture + memory',
-    copy: 'Transcripts, notes, and key facts are saved and reusable across sessions.',
-    icon: Mic,
+    title: 'Just ask',
+    copy: 'Press ⌘K to search or open chat. Ask in plain language with your library as context.',
   },
   {
-    title: 'Study outputs in one click',
-    copy: 'Generate summaries, flashcards, and quizzes from your own materials.',
-    icon: BookOpenCheck,
+    title: 'Instant answer',
+    copy: 'Get grounded responses with citations in seconds, not copy-paste cycles.',
+  },
+];
+
+const memorySteps = [
+  {
+    num: '01',
+    title: 'Automatic capture',
+    copy: 'Documents, chats, and study outputs get indexed while you work — no manual filing.',
+    icon: Link2,
+  },
+  {
+    num: '02',
+    title: 'Ask in plain English',
+    copy: 'Ask a question like you would to a colleague. Get a short answer with the source.',
+    icon: Search,
+  },
+  {
+    num: '03',
+    title: 'Private by default',
+    copy: 'Your data stays yours. Workspace isolation, no public feed, no shared index.',
+    icon: Shield,
+  },
+];
+
+const featureStack = [
+  {
+    title: 'Upload & understand documents',
+    copy: 'PDF, DOCX, PPT, and images are parsed, chunked, and searchable with OCR support.',
+  },
+  {
+    title: 'Structured notes with citations',
+    copy: 'Every AI answer links back to the source chunk so you can verify and reuse confidently.',
+  },
+  {
+    title: 'Multi-model intelligence',
+    copy: 'Route queries across OpenAI, Anthropic, Gemini, and more from one workspace.',
+  },
+  {
+    title: 'Full web ecosystem',
+    copy: 'One account across chat, library, memory, research, and study — all synced in the cloud.',
   },
 ];
 
@@ -39,182 +74,326 @@ const faqs = [
   {
     question: 'What is Aproko AI?',
     answer:
-      'Aproko AI is a knowledge operating system that helps you capture, search, and reuse your learning and work context.',
+      'Aproko AI is the AI knowledge operating system for students and teams. It helps you upload documents, chat with citations, build long-term memory, and generate study outputs — all in one web workspace.',
   },
   {
-    question: 'Is Aproko AI free to start?',
-    answer: 'Yes. You can start free, organize your workspace, and upgrade as your usage grows.',
-  },
-  {
-    question: 'What makes it different from a regular chat app?',
+    question: 'How is Aproko AI different from ChatGPT or other AI tools?',
     answer:
-      'Aproko AI combines chat with memory, document context, and study workflows so answers stay grounded in your own data.',
+      'Generic chat apps require you to copy context into a browser tab. Aproko AI is built around your library, memory timeline, and retrieval pipeline — so answers stay grounded in your own materials with source citations.',
   },
-];
-
-const stats = [
-  { label: 'Knowledge sources indexed', value: '10k+' },
-  { label: 'Memory events captured', value: '250k+' },
-  { label: 'Learners and teams onboarded', value: '1,200+' },
+  {
+    question: 'Is Aproko AI free?',
+    answer:
+      'Yes. You can start free with core workspace features and limited AI queries — no credit card required. Pro plans unlock unlimited usage and advanced workflows.',
+  },
+  {
+    question: 'What file types does Aproko AI support?',
+    answer:
+      'PDF, DOCX, PPT, images, and meeting transcripts. Files are parsed, chunked, embedded, and searchable across your workspace library and chat.',
+  },
+  {
+    question: 'Does Aproko AI store my data privately?',
+    answer:
+      'Yes. Your workspace data is isolated by account. Aproko does not publish a public feed or shared index of your knowledge.',
+  },
+  {
+    question: 'How do I get started?',
+    answer:
+      'Create a free account, upload your first documents to the library, then open chat or search to ask questions grounded in your materials.',
+  },
 ];
 
 export default function LandingPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.purple.500/20),transparent_40%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[radial-gradient(circle_at_bottom,theme(colors.violet.500/20),transparent_55%)]" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-4 sm:px-6 sm:pb-12 sm:pt-8">
-        <header className="sticky top-3 z-20 sm:top-4">
-          <nav className="mx-auto flex max-w-5xl items-center justify-between gap-2 rounded-full border border-zinc-800 bg-black/70 px-3 py-2 backdrop-blur-xl sm:gap-3 sm:px-4">
-            <Link
-              className="shrink-0 text-sm font-semibold tracking-tight text-zinc-100 sm:text-base"
-              href="/"
-            >
-              Aproko AI
-            </Link>
-            <div className="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
-              <Link className="transition-colors hover:text-zinc-100" href="/billing">
-                Pricing
-              </Link>
-              <Link className="transition-colors hover:text-zinc-100" href="/dashboard">
-                Dashboard
-              </Link>
-              <Link className="transition-colors hover:text-zinc-100" href="/library">
-                Library
-              </Link>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-              <Button
-                asChild
-                className="rounded-full px-2.5 text-zinc-200 hover:bg-zinc-900 hover:text-zinc-100 sm:px-3"
-                size="sm"
-                variant="ghost"
-              >
-                <Link href="/sign-in">Sign in</Link>
-              </Button>
-              <Button
-                asChild
-                className="rounded-full bg-emerald-500 px-2.5 text-black hover:bg-emerald-400 sm:px-3"
-                size="sm"
-              >
-                <Link href="/sign-up">
-                  <span className="sm:hidden">Start</span>
-                  <span className="hidden sm:inline">Start free</span>
-                  <ArrowRight className="ml-1 hidden h-4 w-4 sm:inline" />
-                </Link>
-              </Button>
-            </div>
-          </nav>
-        </header>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[radial-gradient(circle_at_bottom,theme(colors.zinc.800/20),transparent_55%)]" />
 
-        <section className="pt-10 text-center sm:pt-16 md:pt-20">
+      <LandingNav />
+
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-20 sm:px-6 sm:pb-12 sm:pt-24">
+        {/* Hero + chat demo */}
+        <section className="pt-4 text-center sm:pt-8">
           <motion.div
             animate={{ opacity: 1, y: 0 }}
             initial={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <Badge
-              className="max-w-[92vw] whitespace-normal border-zinc-700 bg-zinc-900 px-3 py-1 text-[11px] text-zinc-200 sm:max-w-none sm:text-xs"
-              variant="secondary"
-            >
-              AI Knowledge Operating System
-            </Badge>
-            <h1 className="mx-auto mt-5 max-w-4xl text-[2.35rem] font-semibold leading-[1.08] tracking-tight text-zinc-100 sm:mt-6 sm:text-5xl sm:leading-[1.05] md:text-7xl">
-              AI that sees, hears,
-              <br />
+            <h1 className="mx-auto max-w-4xl text-[1.65rem] font-semibold leading-[1.12] tracking-tight text-zinc-100 sm:text-4xl md:text-5xl lg:text-6xl">
+              Aproko AI — AI that sees, hears,
+              <br className="hidden sm:block" />
+              <span className="sm:hidden"> </span>
               and remembers everything.
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl px-1 text-sm leading-relaxed text-zinc-400 sm:mt-5 sm:px-0 sm:text-base md:text-lg">
-              Aproko AI captures your workspace context, stores memory over time, and helps you turn
-              knowledge into reliable outputs.
-            </p>
-            <div className="mt-7 flex w-full flex-col items-stretch justify-center gap-3 sm:mt-8 sm:w-auto sm:flex-row sm:items-center">
-              <Button
-                asChild
-                className="w-full rounded-full bg-zinc-100 px-6 text-black hover:bg-zinc-200 sm:w-auto"
-                size="lg"
-              >
-                <Link href="/sign-up">
-                  <span className="sm:hidden">Start free</span>
-                  <span className="hidden sm:inline">Download — start free</span>
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                className="w-full rounded-full border-zinc-700 text-zinc-100 hover:bg-zinc-900 sm:w-auto"
-                size="lg"
-                variant="outline"
-              >
-                <Link href="/sign-in">Open existing workspace</Link>
-              </Button>
+            <div className="mt-8 sm:mt-10">
+              <ChatMockup variant="hero" />
             </div>
           </motion.div>
         </section>
 
-        <section className="mt-10 sm:mt-12">
-          <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80 sm:rounded-2xl"
-            initial={{ opacity: 0, y: 14 }}
-            transition={{ duration: 0.45, ease: 'easeOut', delay: 0.05 }}
-          >
-            <div className="border-b border-zinc-800 px-3 py-2.5 sm:px-4 sm:py-3">
-              <p className="text-sm font-medium text-zinc-100">Overlay assistant demo</p>
-              <p className="text-xs leading-relaxed text-zinc-400">
-                Ask about anything on screen — context updates automatically.
+        {/* Dashboard preview */}
+        <section className="mt-16 scroll-mt-28 sm:mt-20" id="dashboard-preview">
+          <FadeIn className="text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">
+              Your workspace
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-zinc-100 sm:text-3xl md:text-4xl">
+              A dashboard built for knowledge work
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
+              Metrics, recent activity, and quick actions — the same view you get after sign-in.
+            </p>
+          </FadeIn>
+          <div className="mt-8 sm:mt-10">
+            <DashboardPreview />
+          </div>
+        </section>
+
+        {/* Knowledge layer */}
+        <section className="mt-16 sm:mt-20">
+          <FadeIn className="text-center">
+            <h2 className="mx-auto max-w-3xl text-2xl font-semibold leading-tight text-zinc-300 sm:text-3xl md:text-4xl">
+              AI knowledge layer on every workflow,{' '}
+              <span className="text-zinc-100">helping you stay in flow</span>
+            </h2>
+          </FadeIn>
+          <StaggerContainer className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-3 sm:gap-4">
+            {overlayShortcuts.map((item) => (
+              <StaggerItem key={item.title}>
+                <Card className="h-full border-zinc-800 bg-zinc-900/60 transition-colors hover:border-zinc-700">
+                  <CardHeader className="p-4 pb-1 sm:p-5">
+                    <CardTitle className="text-sm sm:text-base">{item.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 text-sm leading-relaxed text-zinc-400 sm:p-5 sm:pt-0">
+                    {item.copy}
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        </section>
+
+        {/* Perfect memory */}
+        <section className="mt-16 grid gap-8 sm:mt-20 lg:grid-cols-2 lg:items-center lg:gap-12">
+          <FadeIn>
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">
+              Perfect memory
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold leading-tight text-zinc-100 sm:text-3xl md:text-4xl">
+              Intelligence that follows you everywhere
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
+              Aproko remembers your documents, chats, and study outputs — so you can ask questions
+              later and get answers with sources.
+            </p>
+            <div className="mt-8 space-y-6">
+              {memorySteps.map((step, idx) => (
+                <motion.div
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex gap-4"
+                  initial={{ opacity: 0, x: -12 }}
+                  key={step.num}
+                  transition={{ duration: 0.4, delay: idx * 0.08 }}
+                  viewport={{ once: true }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xs font-medium text-zinc-500">{step.num}</span>
+                    <step.icon className="h-4 w-4 text-zinc-300" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-zinc-100">{step.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-zinc-400">{step.copy}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.1}>
+            <ChatMockup variant="memory" />
+          </FadeIn>
+        </section>
+
+        {/* Document intelligence */}
+        <section className="mt-16 sm:mt-20">
+          <FadeIn>
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-semibold leading-tight text-zinc-100 sm:text-3xl md:text-4xl">
+                Understand every document, remember everything.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                Upload PDFs, slides, and transcripts. Search them, summarize them, or turn them into
+                notes, flashcards, and quizzes — all in one click.
               </p>
             </div>
-            <div className="grid gap-3 p-3 sm:gap-4 sm:p-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <Card className="border-zinc-800 bg-zinc-900/70">
-                <CardHeader className="space-y-0 p-4 pb-2 sm:p-6">
-                  <CardTitle className="text-base text-zinc-100">Context panel</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 p-4 pt-0 text-sm text-zinc-400 sm:p-6 sm:pt-0">
-                  <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
-                    Automatic capture
-                  </p>
-                  <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
-                    Ask in plain English
-                  </p>
-                  <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
-                    Private by default
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-zinc-800 bg-zinc-900/70">
-                <CardHeader className="space-y-0 p-4 pb-2 sm:p-6">
-                  <CardTitle className="text-base text-zinc-100">Aproko Chat</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 p-4 pt-0 text-sm text-zinc-400 sm:p-6 sm:pt-0">
-                  <p className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2">
-                    “Summarize what’s on my screen and save it to memory.”
-                  </p>
-                  <p className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-emerald-300">
-                    Saved to memory. Ready to reuse later.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
+          </FadeIn>
+          <FadeIn className="mt-8" delay={0.08}>
+            <DocumentDemo />
+          </FadeIn>
+          <StaggerContainer className="mt-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
+            {[
+              {
+                title: 'Live indexing',
+                copy: 'See documents become searchable as processing completes.',
+              },
+              {
+                title: 'Summaries & notes',
+                copy: 'Generate summaries or action items from any source in one click.',
+              },
+              {
+                title: 'Completely private',
+                copy: 'Your files stay in your workspace. Tenant isolation by design.',
+              },
+            ].map((item) => (
+              <StaggerItem key={item.title}>
+                <Card className="border-zinc-800 bg-zinc-900/50">
+                  <CardHeader className="p-4 pb-1">
+                    <CardTitle className="text-sm">{item.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 text-sm text-zinc-400">{item.copy}</CardContent>
+                </Card>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
         </section>
 
-        <section className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 sm:grid-cols-3">
-          {features.map((feature, idx) => (
+        {/* Natural language ask */}
+        <section className="mt-16 sm:mt-20">
+          <FadeIn>
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">Ask</p>
+            <h2 className="mt-2 max-w-xl text-2xl font-semibold leading-tight text-zinc-100 sm:text-3xl">
+              Ask in natural language. Stay in flow while you work.
+            </h2>
+            <Card className="mt-6 border-zinc-800 bg-zinc-900/60 sm:mt-8">
+              <CardContent className="space-y-4 p-4 sm:p-6">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-zinc-300" />
+                  <span className="text-zinc-300">Ready</span>
+                  <span className="text-zinc-500">via chat or ⌘K search</span>
+                </div>
+                <p className="rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm italic text-zinc-400">
+                  &ldquo;Can you walk me through this using what&apos;s in my research
+                  workspace?&rdquo;
+                </p>
+                <p className="text-sm leading-relaxed text-zinc-300">
+                  <span className="font-medium text-zinc-100">Aproko:</span> Based on your uploaded
+                  sources, here&apos;s a step-by-step breakdown with citations from your library.
+                </p>
+              </CardContent>
+            </Card>
+          </FadeIn>
+        </section>
+
+        {/* Comparison */}
+        <section className="mt-16 sm:mt-20">
+          <FadeIn>
+            <h2 className="text-2xl font-semibold leading-tight text-zinc-100 sm:text-3xl md:text-4xl">
+              Generic chat can&apos;t see your knowledge base
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
+              Aproko sits inside your workspace and uses your library, memory, and research context
+              automatically.
+            </p>
+          </FadeIn>
+          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+            <FadeIn delay={0.05}>
+              <Card className="h-full border-zinc-800 bg-zinc-900/50">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm text-zinc-400">Standard workflow</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 p-4 pt-0 text-sm text-zinc-500">
+                  {[
+                    'Open a chat tab',
+                    'Copy text from your document',
+                    'Paste context manually',
+                    'Wait for a response',
+                    'Switch back and figure out how to apply it',
+                  ].map((step) => (
+                    <p
+                      className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2"
+                      key={step}
+                    >
+                      {step}
+                    </p>
+                  ))}
+                </CardContent>
+              </Card>
+            </FadeIn>
+            <FadeIn delay={0.1}>
+              <Card className="h-full border-zinc-500/30 bg-zinc-900/80">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm text-zinc-100">Aproko AI — 2 steps</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 p-4 pt-0 text-sm text-zinc-300">
+                  <p className="rounded-md border border-zinc-600 bg-zinc-800/60 px-3 py-2">
+                    1. Ask in chat or search
+                  </p>
+                  <p className="rounded-md border border-zinc-600 bg-zinc-800/60 px-3 py-2">
+                    2. Get an answer grounded in your library with citations
+                  </p>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* Feature stack */}
+        <section className="mt-16 sm:mt-20">
+          <StaggerContainer className="space-y-3">
+            {featureStack.map((feature, idx) => (
+              <StaggerItem key={feature.title}>
+                <Card
+                  className={`border-zinc-800 transition-colors hover:border-zinc-700 ${
+                    idx === 2 ? 'border-zinc-600 bg-zinc-900/80' : 'bg-zinc-900/50'
+                  }`}
+                >
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-base sm:text-lg">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 text-sm leading-relaxed text-zinc-400 sm:p-6 sm:pt-0">
+                    {feature.copy}
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        </section>
+
+        {/* Study outputs */}
+        <section className="mt-12 grid gap-3 sm:grid-cols-3 sm:gap-4">
+          {[
+            {
+              title: 'Study outputs in one click',
+              copy: 'Generate summaries, flashcards, and quizzes from your own materials.',
+              icon: BookOpenCheck,
+            },
+            {
+              title: 'Memory timeline',
+              copy: 'Track what you learned and when — context that compounds over time.',
+              icon: Layers,
+            },
+            {
+              title: 'Research workspace',
+              copy: 'Collect sources, notes, and AI synthesis in one focused flow.',
+              icon: Globe,
+            },
+          ].map((feature, idx) => (
             <motion.div
               animate={{ opacity: 1, y: 0 }}
               initial={{ opacity: 0, y: 8 }}
               key={feature.title}
-              transition={{ duration: 0.3, delay: idx * 0.05 }}
+              transition={{ duration: 0.35, delay: idx * 0.06 }}
+              viewport={{ once: true }}
+              whileInView={{ opacity: 1, y: 0 }}
             >
-              <Card className="h-full border-zinc-800 bg-zinc-900/60 text-zinc-100">
+              <Card className="h-full border-zinc-800 bg-zinc-900/60 transition-colors hover:border-zinc-700">
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="flex items-start gap-2 text-sm leading-snug sm:items-center sm:text-base">
-                    <feature.icon className="h-4 w-4 text-emerald-400" />
+                  <CardTitle className="flex items-start gap-2 text-sm sm:items-center sm:text-base">
+                    <feature.icon className="h-4 w-4 shrink-0 text-zinc-300" />
                     {feature.title}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 pt-0 text-sm leading-relaxed text-zinc-400 sm:p-6 sm:pt-0">
+                <CardContent className="p-4 pt-0 text-sm text-zinc-400 sm:p-6 sm:pt-0">
                   {feature.copy}
                 </CardContent>
               </Card>
@@ -222,107 +401,132 @@ export default function LandingPage() {
           ))}
         </section>
 
-        <section className="mt-8 grid gap-2.5 sm:mt-10 sm:grid-cols-3 sm:gap-3">
-          {stats.map((stat, idx) => (
-            <motion.div
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3.5 py-2.5 sm:px-4 sm:py-3"
-              initial={{ opacity: 0, y: 8 }}
-              key={stat.label}
-              transition={{ duration: 0.3, delay: 0.1 + idx * 0.04 }}
-            >
-              <p className="text-2xl font-semibold tracking-tight text-zinc-100 sm:text-3xl">
-                {stat.value}
-              </p>
-              <p className="text-[11px] leading-snug text-zinc-400 sm:text-xs">{stat.label}</p>
-            </motion.div>
-          ))}
+        <SocialProof />
+
+        <section className="mt-16 sm:mt-20">
+          <FadeIn>
+            <PricingSection mode="landing" />
+          </FadeIn>
         </section>
 
-        <section className="mt-10 grid gap-3 sm:mt-12 sm:gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl">Built for focused knowledge work</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2.5 p-4 pt-0 text-sm text-zinc-300 sm:gap-3 sm:p-6 sm:pt-0 sm:grid-cols-2">
-              {[
-                { text: 'Capture and structure notes in one workspace', icon: CheckCircle2 },
-                { text: 'Search across documents, memory, and chats', icon: Sparkles },
-                { text: 'Track context with timeline-aware memory', icon: Brain },
-                { text: 'Private-by-default architecture', icon: Shield },
-              ].map((item) => (
-                <p className="flex items-start gap-2" key={item.text}>
-                  <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                  <span>{item.text}</span>
+        {/* CTA banner */}
+        <section className="mt-16 sm:mt-20">
+          <FadeIn>
+            <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 px-6 py-12 text-center sm:px-10 sm:py-16">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.zinc.700/20),transparent_65%)]" />
+              <div className="relative">
+                <h2 className="text-2xl font-semibold uppercase tracking-tight text-zinc-100 sm:text-3xl md:text-4xl">
+                  Stop switching tabs.
+                  <br />
+                  Start finishing faster.
+                </h2>
+                <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-400 sm:text-base">
+                  One workspace for AI answers, document understanding, memory, and study tools.
+                  Start free — no card required.
                 </p>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl">Simple pricing, no surprises</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <p className="text-sm text-zinc-400">
-                Start free. Upgrade when you want higher limits and advanced workflows.
-              </p>
-              <Separator className="my-4 bg-zinc-800" />
-              <div className="space-y-2 text-sm text-zinc-300">
-                <p>Free — core workspace and memory baseline</p>
-                <p>Pro — unlimited queries and advanced study tools</p>
-                <p>Teams — shared knowledge workspaces</p>
-              </div>
-              <div className="mt-4 flex flex-col gap-2">
-                <Button asChild className="rounded-full bg-zinc-100 text-black hover:bg-zinc-200">
-                  <Link href="/sign-up">Create free account</Link>
-                </Button>
                 <Button
                   asChild
-                  className="rounded-full border-zinc-700 text-zinc-100 hover:bg-zinc-900"
-                  variant="outline"
+                  className="mt-6 rounded-full bg-zinc-100 px-8 text-zinc-950 hover:bg-white"
+                  size="lg"
                 >
-                  <Link href="/billing">View pricing</Link>
+                  <Link href="/sign-up">
+                    Start free
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </FadeIn>
         </section>
 
-        <section className="mt-10 sm:mt-12">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-100 sm:text-2xl md:text-3xl">
-            Frequently asked questions
-          </h2>
-          <div className="mt-5 space-y-3 sm:mt-6 sm:space-y-4">
-            {faqs.map((faq) => (
-              <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100" key={faq.question}>
-                <CardHeader className="space-y-0 p-4 pb-2 sm:p-6">
-                  <CardTitle className="text-sm leading-snug sm:text-base">
-                    {faq.question}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 text-sm leading-relaxed text-zinc-400 sm:p-6 sm:pt-0">
+        {/* FAQ */}
+        <section className="mt-16 sm:mt-20">
+          <FadeIn className="text-center">
+            <h2 className="text-2xl font-semibold text-zinc-100 sm:text-3xl">
+              Frequently asked questions about Aproko AI
+            </h2>
+          </FadeIn>
+          <div className="mx-auto mt-10 max-w-3xl space-y-8">
+            {faqs.map((faq, idx) => (
+              <FadeIn delay={idx * 0.04} key={faq.question}>
+                <h3 className="text-base font-semibold text-zinc-100 sm:text-lg">{faq.question}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400 sm:text-base">
                   {faq.answer}
-                </CardContent>
-              </Card>
+                </p>
+              </FadeIn>
             ))}
           </div>
         </section>
 
-        <footer className="mt-10 border-t border-zinc-800 py-5 text-center text-xs text-zinc-500 sm:mt-12 sm:text-left">
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row sm:gap-2">
-            <p className="max-w-xs leading-relaxed sm:max-w-none">
-              Aproko AI — intelligence that follows your work everywhere.
-            </p>
-            <div className="flex items-center gap-3">
-              <Link className="transition-colors hover:text-zinc-200" href="/sign-in">
-                Sign in
-              </Link>
-              <Link className="transition-colors hover:text-zinc-200" href="/sign-up">
-                Start free
-              </Link>
+        {/* Footer */}
+        <footer className="mt-16 border-t border-zinc-800 pt-10 sm:mt-20">
+          <FadeIn>
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <p className="text-sm font-semibold text-zinc-100">Aproko AI</p>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                  AI knowledge operating system — chat, memory, library, and study tools in one web
+                  workspace.
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+                  Company
+                </p>
+                <div className="mt-3 flex flex-col gap-2 text-sm text-zinc-400">
+                  <Link className="transition-colors hover:text-zinc-200" href="/sign-up">
+                    About Aproko AI
+                  </Link>
+                  <Link className="transition-colors hover:text-zinc-200" href="#pricing">
+                    Pricing
+                  </Link>
+                  <Link className="transition-colors hover:text-zinc-200" href="/sign-in">
+                    Sign in
+                  </Link>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+                  Stay updated
+                </p>
+                <p className="mt-2 text-sm text-zinc-500">
+                  Product updates and tips, straight to your inbox.
+                </p>
+                <form
+                  className="mt-3 flex gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                  }}
+                >
+                  <Input
+                    aria-label="Email address"
+                    className="border-zinc-800 bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
+                    placeholder="you@email.com"
+                    type="email"
+                  />
+                  <Button
+                    aria-label="Subscribe to updates"
+                    className="shrink-0 rounded-full bg-zinc-100 text-zinc-950 hover:bg-white"
+                    type="submit"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
             </div>
-          </div>
+            <Separator className="my-8 bg-zinc-800" />
+            <div className="flex flex-col items-center justify-between gap-3 text-xs text-zinc-500 sm:flex-row">
+              <p>Aproko AI — intelligence that follows your work everywhere.</p>
+              <div className="flex items-center gap-3">
+                <Link className="transition-colors hover:text-zinc-200" href="/sign-in">
+                  Sign in
+                </Link>
+                <Link className="transition-colors hover:text-zinc-200" href="/sign-up">
+                  Start free
+                </Link>
+              </div>
+            </div>
+          </FadeIn>
         </footer>
       </div>
     </main>
