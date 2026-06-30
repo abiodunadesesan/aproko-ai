@@ -121,8 +121,7 @@ export default function LandingPage() {
             </Badge>
             <h1 className="mx-auto mt-5 max-w-4xl text-[2.35rem] font-semibold leading-[1.08] tracking-tight text-zinc-100 sm:mt-6 sm:text-5xl sm:leading-[1.05] md:text-7xl">
               AI that sees, hears,
-              <br className="hidden xs:block" />
-              <span className="sm:hidden"> </span>
+              <br />
               and remembers everything.
             </h1>
             <p className="mx-auto mt-4 max-w-2xl px-1 text-sm leading-relaxed text-zinc-400 sm:mt-5 sm:px-0 sm:text-base md:text-lg">

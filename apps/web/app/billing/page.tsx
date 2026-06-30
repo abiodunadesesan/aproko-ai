@@ -206,7 +206,7 @@ export default function BillingPage() {
                       Manage subscription
                     </Button>
                     <Button
-                      className="rounded-full"
+                      className="w-full rounded-full sm:w-auto"
                       onClick={() => void loadSubscription()}
                       type="button"
                       variant="outline"
@@ -220,10 +220,10 @@ export default function BillingPage() {
           </Card>
 
           <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
-            <CardHeader>
-              <CardTitle className="text-base">Usage snapshot</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-sm sm:text-base">Usage snapshot</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
               <p className="text-sm text-zinc-400">
                 Billing usage meters (tokens, uploads, and workspace limits) are part of the next
                 billing increment.
