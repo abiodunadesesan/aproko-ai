@@ -4,11 +4,7 @@ import { SignIn } from '@clerk/nextjs';
 
 export default function SignInPage() {
   return (
-    <AuthShell
-      mode="sign-in"
-      subtitle="Sign in to continue building your memory graph, chats, and study outputs."
-      title="Welcome back"
-    >
+    <AuthShell mode="sign-in">
       <SignIn
         appearance={clerkDarkAppearance}
         fallbackRedirectUrl="/dashboard"

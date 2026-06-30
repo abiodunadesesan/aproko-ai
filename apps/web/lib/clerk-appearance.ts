@@ -15,7 +15,8 @@ export const clerkDarkAppearance = {
     headerSubtitle: 'text-zinc-400',
     socialButtonsBlockButton: 'border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800',
     formButtonPrimary: 'bg-zinc-100 text-zinc-950 hover:bg-white',
-    footerActionLink: 'text-zinc-100 hover:text-zinc-300',
+    footerActionLink:
+      'text-zinc-900 font-semibold hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300',
     formFieldInput: 'border-zinc-800 bg-zinc-900 text-zinc-100',
     dividerLine: 'bg-zinc-800',
     dividerText: 'text-zinc-500',

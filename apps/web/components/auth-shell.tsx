@@ -5,25 +5,29 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardPreview } from '@/components/landing/dashboard-preview';
 import { LandingNav } from '@/components/landing/landing-nav';
+import { LocaleProvider, useLandingLocale } from '@/components/landing/locale-provider';
 
 type AuthShellProps = {
   mode: 'sign-in' | 'sign-up';
-  title: string;
-  subtitle: string;
   children: ReactNode;
 };
 
-const points = [
-  'Organize knowledge with projects and folders',
-  'Chat with citations and memory context',
-  'Generate notes, flashcards, and quizzes',
-];
-
-export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
+export function AuthShell(props: AuthShellProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-[radial-gradient(circle_at_bottom,theme(colors.zinc.800/20),transparent_55%)]" />
+    <LocaleProvider>
+      <AuthShellContent {...props} />
+    </LocaleProvider>
+  );
+}
+
+function AuthShellContent({ mode, children }: AuthShellProps) {
+  const { t } = useLandingLocale();
+  const copy = mode === 'sign-in' ? t.auth.signIn : t.auth.signUp;
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.amber.400/10),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-[radial-gradient(circle_at_bottom,theme(colors.orange.400/8),transparent_55%)] dark:bg-[radial-gradient(circle_at_bottom,theme(colors.zinc.800/20),transparent_55%)]" />
 
       <LandingNav />
 
@@ -35,14 +39,14 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
               initial={{ opacity: 0, y: 14 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">
-                Welcome
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-amber-800 dark:text-amber-300">
+                {t.auth.welcome}
               </p>
-              <h1 className="mt-2 text-2xl font-semibold leading-tight text-zinc-100 sm:text-3xl lg:text-4xl">
-                {title}
+              <h1 className="mt-2 text-2xl font-semibold leading-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl lg:text-4xl">
+                {copy.title}
               </h1>
-              <p className="mt-3 max-w-lg text-sm leading-relaxed text-zinc-400 sm:text-base">
-                {subtitle}
+              <p className="mt-3 max-w-lg text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 sm:text-base">
+                {copy.subtitle}
               </p>
             </motion.div>
 
@@ -55,9 +59,9 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
                 visible: { transition: { staggerChildren: 0.07 } },
               }}
             >
-              {points.map((point) => (
+              {t.auth.points.map((point) => (
                 <motion.li
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-300"
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300"
                   key={point}
                   variants={{
                     hidden: { opacity: 0, x: -10 },
@@ -70,8 +74,8 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
             </motion.ul>
 
             <div className="hidden lg:block">
-              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
-                Preview your workspace
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400">
+                {t.auth.previewWorkspace}
               </p>
               <DashboardPreview compact showAnimation />
             </div>
@@ -83,7 +87,7 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
             initial={{ opacity: 0, y: 18 }}
             transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="w-full max-w-md min-w-0 overflow-x-hidden rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 sm:p-4">
+            <div className="w-full max-w-md min-w-0 overflow-x-hidden rounded-xl border border-zinc-200 bg-white/90 p-2 dark:border-zinc-800 dark:bg-zinc-950/80 sm:p-4">
               {children}
             </div>
           </motion.div>
@@ -91,16 +95,16 @@ export function AuthShell({ mode, title, subtitle, children }: AuthShellProps) {
 
         <motion.p
           animate={{ opacity: 1 }}
-          className="text-center text-xs leading-relaxed text-zinc-400"
+          className="text-center text-xs leading-relaxed text-zinc-600 dark:text-zinc-400"
           initial={{ opacity: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          {mode === 'sign-in' ? 'New to Aproko AI? ' : 'Already have an account? '}
+          {copy.footerPrompt}
           <Link
-            className="font-medium text-zinc-100 underline underline-offset-4 transition-colors hover:text-zinc-300"
+            className="font-semibold text-zinc-900 underline underline-offset-4 transition-colors hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
             href={mode === 'sign-in' ? '/sign-up' : '/sign-in'}
           >
-            {mode === 'sign-in' ? 'Create account' : 'Sign in'}
+            {copy.footerLink}
           </Link>
         </motion.p>
       </div>

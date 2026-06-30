@@ -5,6 +5,8 @@ import { Check, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useOptionalLandingLocale } from '@/components/landing/locale-provider';
+import { getLandingCopy, getLocalizedPricingPlans } from '@/lib/landing-i18n';
 import { type PlanCode, pricingPlans } from '@/lib/pricing-plans';
 
 type PricingSectionProps = {
@@ -30,6 +32,11 @@ export function PricingSection({
   onSelectPlan,
   showHeader = true,
 }: PricingSectionProps) {
+  const localeContext = useOptionalLandingLocale();
+  const locale = localeContext?.locale ?? 'en';
+  const t = localeContext?.t ?? getLandingCopy('en');
+  const plans = mode === 'landing' ? getLocalizedPricingPlans(locale) : pricingPlans;
+
   return (
     <section
       className={mode === 'landing' ? 'scroll-mt-24' : undefined}
@@ -37,32 +44,33 @@ export function PricingSection({
     >
       {showHeader ? (
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-zinc-100 sm:text-3xl md:text-4xl">
-            Simple pricing, no surprises.
+          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 sm:text-3xl md:text-4xl">
+            {t.pricing.title}
           </h2>
-          <Badge className="mt-4 border-zinc-600 bg-zinc-800 text-zinc-200" variant="outline">
+          <Badge
+            className="mt-4 border-amber-300 bg-amber-50 text-amber-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+            variant="outline"
+          >
             <Sparkles className="mr-1 h-3 w-3" />
-            Start free, no credit card required
+            {t.pricing.badge}
           </Badge>
-          <p className="mt-3 text-sm text-zinc-400">
-            Upgrade anytime. You only pay if you choose Pro or Teams.
-          </p>
+          <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">{t.pricing.subtitle}</p>
         </div>
       ) : null}
 
       <div className={`grid gap-4 sm:grid-cols-2 ${showHeader ? 'mt-8' : ''} xl:grid-cols-4`}>
-        {pricingPlans.map((plan) => {
+        {plans.map((plan) => {
           const isCurrent = mode === 'billing' && plan.code === currentPlanCode;
           const isHighlighted = plan.highlighted || isCurrent;
 
           return (
             <Card
-              className={`relative flex flex-col border text-zinc-100 transition-colors ${
+              className={`relative flex flex-col border text-zinc-900 dark:text-zinc-100 transition-colors ${
                 isCurrent
-                  ? 'border-zinc-400/50 bg-zinc-800/40'
+                  ? 'border-amber-400/50 bg-amber-50/80 dark:border-zinc-400/50 dark:bg-zinc-800/40'
                   : isHighlighted
-                    ? 'border-zinc-500/50 bg-zinc-900/80'
-                    : 'border-zinc-800 bg-zinc-900/60'
+                    ? 'border-zinc-300 bg-white dark:border-zinc-500/50 dark:bg-zinc-900/80'
+                    : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
               }`}
               key={plan.code}
             >
@@ -113,7 +121,7 @@ export function PricingSection({
                     type="button"
                     variant={isCurrent ? 'outline' : plan.highlighted ? 'default' : 'secondary'}
                   >
-                    {isCurrent ? 'Current plan' : plan.cta}
+                    {isCurrent ? t.pricing.currentPlan : plan.cta}
                   </Button>
                 )}
               </CardContent>
@@ -123,9 +131,7 @@ export function PricingSection({
       </div>
 
       {mode === 'landing' ? (
-        <p className="mt-4 text-center text-xs text-zinc-500">
-          Create your account to start free. Upgrade to Pro or Teams anytime from billing.
-        </p>
+        <p className="mt-4 text-center text-xs text-zinc-500">{t.pricing.footer}</p>
       ) : (
         <p className="mt-4 text-center text-xs text-zinc-500">
           Checkout integration is next. Plan selection confirms billing visibility and state.
