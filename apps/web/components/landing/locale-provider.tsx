@@ -42,7 +42,10 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     (next: LandingLocale) => {
       setLocaleState(next);
       persistLocale(next);
-      router.refresh();
+      // Defer refresh so React finishes the current render before Next revalidates.
+      window.setTimeout(() => {
+        router.refresh();
+      }, 0);
     },
     [router],
   );

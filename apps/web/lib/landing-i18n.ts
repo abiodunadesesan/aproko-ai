@@ -14,8 +14,10 @@ export const landingLocales: { code: LandingLocale; label: string }[] = [
 
 export type LandingCopy = {
   nav: {
+    home: string;
     product: string;
     pricing: string;
+    blog: string;
     dashboard: string;
     signIn: string;
     startFree: string;
@@ -79,7 +81,26 @@ export type LandingCopy = {
     footer: string;
     currentPlan: string;
   };
+  blog: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    pageTitle: string;
+    pageSubtitle: string;
+    viewAll: string;
+    allArticles: string;
+    allCategories: string;
+    articlesLabel: string;
+    categories: {
+      company: string;
+      guides: string;
+      productivity: string;
+      study: string;
+      writing: string;
+    };
+  };
   cta: {
+    eyebrow: string;
     titleLine1: string;
     titleLine2: string;
     subtitle: string;
@@ -93,6 +114,7 @@ export type LandingCopy = {
     tagline: string;
     company: string;
     about: string;
+    blog: string;
     pricing: string;
     signIn: string;
     stayUpdated: string;
@@ -122,8 +144,10 @@ export type LandingCopy = {
 
 const en: LandingCopy = {
   nav: {
+    home: 'Home',
     product: 'Product',
     pricing: 'Pricing',
+    blog: 'Blog',
     dashboard: 'Dashboard',
     signIn: 'Sign in',
     startFree: 'Start free',
@@ -304,7 +328,28 @@ const en: LandingCopy = {
     footer: 'Create your account to start free. Upgrade to Pro or Teams anytime from billing.',
     currentPlan: 'Current plan',
   },
+  blog: {
+    eyebrow: 'From the blog',
+    title: 'Guides for knowledge work',
+    subtitle:
+      'Practical workflows for building memory, studying with citations, and getting more from your library.',
+    pageTitle: 'Aproko AI Blog',
+    pageSubtitle:
+      'Product updates, study workflows, and guides for building a personal knowledge base with grounded AI.',
+    viewAll: 'View all articles',
+    allArticles: 'All articles',
+    allCategories: 'All',
+    articlesLabel: 'articles',
+    categories: {
+      company: 'Company',
+      guides: 'Guides',
+      productivity: 'Productivity',
+      study: 'Study',
+      writing: 'Writing',
+    },
+  },
   cta: {
+    eyebrow: 'Get started',
     titleLine1: 'Stop switching tabs.',
     titleLine2: 'Start finishing faster.',
     subtitle:
@@ -351,6 +396,7 @@ const en: LandingCopy = {
       'AI knowledge operating system — chat, memory, library, and study tools in one web workspace.',
     company: 'Company',
     about: 'About Aproko AI',
+    blog: 'Blog',
     pricing: 'Pricing',
     signIn: 'Sign in',
     stayUpdated: 'Stay updated',
@@ -386,8 +432,10 @@ const en: LandingCopy = {
 const fr: LandingCopy = {
   ...en,
   nav: {
+    home: 'Accueil',
     product: 'Produit',
     pricing: 'Tarifs',
+    blog: 'Blog',
     dashboard: 'Tableau de bord',
     signIn: 'Connexion',
     startFree: 'Commencer gratuitement',
@@ -572,6 +620,7 @@ const fr: LandingCopy = {
     currentPlan: 'Forfait actuel',
   },
   cta: {
+    eyebrow: 'Commencer',
     titleLine1: 'Arrêtez de changer d\u2019onglets.',
     titleLine2: 'Terminez plus vite.',
     subtitle:
@@ -658,8 +707,10 @@ const fr: LandingCopy = {
 const es: LandingCopy = {
   ...en,
   nav: {
+    home: 'Inicio',
     product: 'Producto',
     pricing: 'Precios',
+    blog: 'Blog',
     dashboard: 'Panel',
     signIn: 'Iniciar sesión',
     startFree: 'Empezar gratis',
@@ -843,6 +894,7 @@ const es: LandingCopy = {
     currentPlan: 'Plan actual',
   },
   cta: {
+    eyebrow: 'Empezar',
     titleLine1: 'Deja de cambiar de pestañas.',
     titleLine2: 'Termina más rápido.',
     subtitle:
@@ -924,8 +976,10 @@ const es: LandingCopy = {
 const de: LandingCopy = {
   ...en,
   nav: {
+    home: 'Startseite',
     product: 'Produkt',
     pricing: 'Preise',
+    blog: 'Blog',
     dashboard: 'Dashboard',
     signIn: 'Anmelden',
     startFree: 'Kostenlos starten',
@@ -1109,6 +1163,7 @@ const de: LandingCopy = {
     currentPlan: 'Aktueller Plan',
   },
   cta: {
+    eyebrow: 'Loslegen',
     titleLine1: 'Schluss mit Tab-Wechseln.',
     titleLine2: 'Schneller fertig werden.',
     subtitle:
@@ -1191,8 +1246,10 @@ const de: LandingCopy = {
 const pt: LandingCopy = {
   ...en,
   nav: {
+    home: 'Início',
     product: 'Produto',
     pricing: 'Preços',
+    blog: 'Blog',
     dashboard: 'Painel',
     signIn: 'Entrar',
     startFree: 'Começar grátis',
@@ -1374,6 +1431,7 @@ const pt: LandingCopy = {
     currentPlan: 'Plano atual',
   },
   cta: {
+    eyebrow: 'Começar',
     titleLine1: 'Pare de trocar de abas.',
     titleLine2: 'Termine mais rápido.',
     subtitle:

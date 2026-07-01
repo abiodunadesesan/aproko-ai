@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, BookOpenCheck, Globe, Layers, Link2, Search, Shield } from 'lucide-react';
+import { BlogSection } from '@/components/landing/blog-section';
 import { ChatMockup } from '@/components/landing/chat-mockup';
 import { DashboardPreview } from '@/components/landing/dashboard-preview';
 import { DocumentDemo } from '@/components/landing/document-demo';
+import { AprokoLogo } from '@/components/brand/aproko-logo';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/landing/fade-in';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { LocaleProvider, useLandingLocale } from '@/components/landing/locale-provider';
@@ -318,29 +320,37 @@ function LandingPageContent() {
           </FadeIn>
         </section>
 
+        <BlogSection />
+
         {/* CTA banner */}
-        <section className="mt-16 sm:mt-20">
+        <section className="mt-16 sm:mt-20" id="get-started">
           <FadeIn>
-            <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white px-6 py-12 text-center dark:border-zinc-800 dark:bg-zinc-900/50 sm:px-10 sm:py-16">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.amber.400/10),transparent_65%)] dark:bg-[radial-gradient(circle_at_center,theme(colors.zinc.700/20),transparent_65%)]" />
-              <div className="relative">
-                <h2 className="text-2xl font-semibold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl md:text-4xl">
-                  {t.cta.titleLine1}
-                  <br />
-                  {t.cta.titleLine2}
-                </h2>
-                <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 sm:text-base">
-                  {t.cta.subtitle}
-                </p>
+            <div className="rounded-2xl border border-zinc-200 bg-white px-6 py-12 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:px-10 sm:py-14">
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">
+                {t.cta.eyebrow}
+              </p>
+              <h2 className="mx-auto mt-3 max-w-xl text-2xl font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+                {t.cta.titleLine1}{' '}
+                <span className="text-zinc-500 dark:text-zinc-400">{t.cta.titleLine2}</span>
+              </h2>
+              <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
+                {t.cta.subtitle}
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
                 <Button
                   asChild
-                  className="mt-6 rounded-full bg-zinc-900 px-8 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+                  className="h-10 rounded-full bg-zinc-900 px-6 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
                   size="lg"
                 >
-                  <Link href="/sign-up">
-                    {t.cta.button}
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
+                  <Link href="/sign-up">{t.cta.button}</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="h-10 rounded-full border border-zinc-300 bg-transparent px-6 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  size="lg"
+                  variant="outline"
+                >
+                  <Link href="#pricing">{t.nav.pricing}</Link>
                 </Button>
               </div>
             </div>
@@ -373,8 +383,8 @@ function LandingPageContent() {
           <FadeIn>
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Aproko AI</p>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-500">
+                <AprokoLogo size="sm" />
+                <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-500">
                   {t.footer.tagline}
                 </p>
               </div>
@@ -388,6 +398,12 @@ function LandingPageContent() {
                     href="/sign-up"
                   >
                     {t.footer.about}
+                  </Link>
+                  <Link
+                    className="transition-colors hover:text-zinc-950 dark:hover:text-zinc-100"
+                    href="/blog"
+                  >
+                    {t.footer.blog}
                   </Link>
                   <Link
                     className="transition-colors hover:text-zinc-950 dark:hover:text-zinc-100"

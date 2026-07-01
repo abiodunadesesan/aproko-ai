@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
 import { cookies, headers } from 'next/headers';
 import { Suspense } from 'react';
+import { ClerkProviderShell } from '@/components/auth/clerk-provider-shell';
 import { ObservabilityProvider } from '@/components/observability-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { getClerkLocalization } from '@/lib/clerk-localization';
+import { isClerkEnabled } from '@/lib/auth/post-auth-redirect';
 import { LANDING_LOCALE_STORAGE_KEY } from '@/lib/landing-i18n';
 import { resolveLandingLocale } from '@/lib/locale/server';
 import './globals.css';
@@ -19,10 +19,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-  const shouldEnableClerkProvider =
-    publishableKey.startsWith('pk_') && !publishableKey.includes('ci_placeholder');
-
   const cookieStore = await cookies();
   const headerStore = await headers();
   const locale = resolveLandingLocale({
@@ -50,16 +46,10 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        {shouldEnableClerkProvider ? (
-          <ClerkProvider
-            localization={getClerkLocalization(locale)}
-            signInFallbackRedirectUrl="/dashboard"
-            signInForceRedirectUrl="/dashboard"
-            signUpFallbackRedirectUrl="/dashboard"
-            signUpForceRedirectUrl="/dashboard"
-          >
-            {appContent}
-          </ClerkProvider>
+        {isClerkEnabled() ? (
+          <Suspense fallback={appContent}>
+            <ClerkProviderShell locale={locale}>{appContent}</ClerkProviderShell>
+          </Suspense>
         ) : (
           appContent
         )}
