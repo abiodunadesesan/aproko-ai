@@ -1,6 +1,7 @@
 import type Stripe from 'stripe';
 import { getStripeClient } from '@/lib/billing/stripe-client';
 import { getPlanCodeFromStripePriceId } from '@/lib/billing/stripe-plans';
+import { appendBillingEvent } from '@/lib/storage/billing-events';
 import {
   upsertBillingSubscription,
   type UpsertBillingSubscriptionInput,
@@ -62,6 +63,30 @@ async function syncStripeSubscription(
   return true;
 }
 
+async function recordBillingWebhookEvent(
+  event: Stripe.Event,
+  result: BillingWebhookResult,
+  workspaceId: string | null = null,
+) {
+  await appendBillingEvent({
+    workspaceId,
+    provider: 'stripe',
+    eventType: result.eventType ?? event.type,
+    status: result.status,
+    message: result.message,
+    externalEventId: event.id,
+  });
+}
+
+async function finalizeWebhookResult(
+  event: Stripe.Event,
+  result: BillingWebhookResult,
+  workspaceId: string | null = null,
+): Promise<BillingWebhookResult> {
+  await recordBillingWebhookEvent(event, result, workspaceId);
+  return result;
+}
+
 export async function handleBillingWebhook(request: Request): Promise<BillingWebhookResult> {
   const provider = process.env.BILLING_PROVIDER?.trim() || null;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
@@ -93,44 +118,58 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
         typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
 
       if (!subscriptionId) {
-        return {
-          received: true,
-          status: 'ignored',
-          eventType: event.type,
-          message: 'Checkout session completed without a subscription reference.',
-        };
+        return finalizeWebhookResult(
+          event,
+          {
+            received: true,
+            status: 'ignored',
+            eventType: event.type,
+            message: 'Checkout session completed without a subscription reference.',
+          },
+          session.client_reference_id ?? null,
+        );
       }
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const synced = await syncStripeSubscription(subscription, session.client_reference_id);
-      return {
-        received: true,
-        status: synced ? 'processed' : 'ignored',
-        eventType: event.type,
-        message: synced
-          ? 'Subscription synced from checkout session.'
-          : 'Checkout session could not be mapped to a workspace subscription.',
-      };
+      return finalizeWebhookResult(
+        event,
+        {
+          received: true,
+          status: synced ? 'processed' : 'ignored',
+          eventType: event.type,
+          message: synced
+            ? 'Subscription synced from checkout session.'
+            : 'Checkout session could not be mapped to a workspace subscription.',
+        },
+        subscriptionInputFromStripe(subscription, session.client_reference_id)?.workspaceId ??
+          session.client_reference_id ??
+          null,
+      );
     }
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
       const synced = await syncStripeSubscription(subscription);
-      return {
-        received: true,
-        status: synced ? 'processed' : 'ignored',
-        eventType: event.type,
-        message: synced
-          ? 'Subscription state synced from Stripe webhook.'
-          : 'Subscription webhook ignored because workspace/plan metadata was missing.',
-      };
+      return finalizeWebhookResult(
+        event,
+        {
+          received: true,
+          status: synced ? 'processed' : 'ignored',
+          eventType: event.type,
+          message: synced
+            ? 'Subscription state synced from Stripe webhook.'
+            : 'Subscription webhook ignored because workspace/plan metadata was missing.',
+        },
+        subscriptionInputFromStripe(subscription)?.workspaceId ?? null,
+      );
     }
     default:
-      return {
+      return finalizeWebhookResult(event, {
         received: true,
         status: 'ignored',
         eventType: event.type,
         message: 'Webhook received and ignored.',
-      };
+      });
   }
 }

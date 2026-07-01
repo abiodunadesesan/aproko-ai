@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -496,11 +496,7 @@ export default function ChatPage() {
   }, [activeSessionId]);
 
   return (
-    <AppShell
-      headerIcon={MessageSquare}
-      subtitle="Ask questions grounded in your library with citations and memory context."
-      title="AI Chat"
-    >
+    <AppPageShell meta={appPageMeta.chat}>
       <section className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <ChatSessionSidebar
           activeSessionId={activeSessionId}
@@ -647,6 +643,6 @@ export default function ChatPage() {
           </CardContent>
         </Card>
       </section>
-    </AppShell>
+    </AppPageShell>
   );
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { LayoutDashboard } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,11 +76,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <AppShell
-      headerIcon={LayoutDashboard}
-      subtitle="Capture context quickly, keep momentum, and jump back in with AI."
-      title="Dashboard"
-    >
+    <AppPageShell meta={appPageMeta.dashboard}>
       <section className="space-y-6">
         <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
           <CardHeader>
@@ -222,6 +218,6 @@ export default async function DashboardPage() {
           </TabsContent>
         </Tabs>
       </section>
-    </AppShell>
+    </AppPageShell>
   );
 }

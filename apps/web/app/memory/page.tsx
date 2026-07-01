@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Brain } from 'lucide-react';
 import Link from 'next/link';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { EmptyState } from '@/components/app/empty-state';
 import { ListRowsSkeleton } from '@/components/app/list-rows-skeleton';
 import { Button } from '@/components/ui/button';
@@ -201,11 +202,7 @@ export default function MemoryPage() {
   }, [loadItems]);
 
   return (
-    <AppShell
-      headerIcon={Brain}
-      subtitle="Items saved from chat and study — searchable across your workspace."
-      title="Memory"
-    >
+    <AppPageShell meta={appPageMeta.memory}>
       <section className="grid gap-6 lg:grid-cols-[340px_1fr]">
         <Card>
           <CardHeader>
@@ -442,6 +439,6 @@ export default function MemoryPage() {
           </CardContent>
         </Card>
       </section>
-    </AppShell>
+    </AppPageShell>
   );
 }

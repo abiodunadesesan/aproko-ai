@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
-import { FileText } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { getLibrarySignedUrl, getLibrarySource } from '@/lib/storage/library';
 
 const WORKSPACE_ID = 'default-workspace';
@@ -28,18 +28,18 @@ export default async function LibrarySourcePage({
 
   if (!source) {
     return (
-      <AppShell
+      <AppPageShell
         headerAction={
           <Button asChild size="sm" variant="outline">
             <Link href="/library">Back to library</Link>
           </Button>
         }
-        headerIcon={FileText}
+        meta={appPageMeta.librarySource}
         subtitle="This document could not be found."
         title="Source not found"
       >
         <p className="text-sm text-destructive">Source not found.</p>
-      </AppShell>
+      </AppPageShell>
     );
   }
 
@@ -47,13 +47,13 @@ export default async function LibrarySourcePage({
   const isImage = source.mimeType?.startsWith('image/') ?? false;
 
   return (
-    <AppShell
+    <AppPageShell
       headerAction={
         <Button asChild size="sm" variant="outline">
           <Link href="/library">Back to library</Link>
         </Button>
       }
-      headerIcon={FileText}
+      meta={appPageMeta.librarySource}
       subtitle={`Project: ${source.project} · Folder: ${source.folder}`}
       title={source.name}
     >
@@ -89,6 +89,6 @@ export default async function LibrarySourcePage({
           )}
         </CardContent>
       </Card>
-    </AppShell>
+    </AppPageShell>
   );
 }

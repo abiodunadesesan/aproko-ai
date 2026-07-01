@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
@@ -20,6 +21,16 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  const pathname = req.nextUrl.pathname;
+
+  if (pathname === '/sign-in' || pathname === '/sign-up') {
+    const { userId } = await auth();
+    if (userId) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+    return;
+  }
+
   if (isProtectedRoute(req)) {
     const isE2EMockAuthEnabled = process.env.E2E_MOCK_AUTH === 'true';
     const hasE2EMockAuthCookie = req.cookies.get('aproko_e2e_auth')?.value === '1';

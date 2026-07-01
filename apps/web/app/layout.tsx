@@ -54,7 +54,9 @@ export default async function RootLayout({
           <ClerkProvider
             localization={getClerkLocalization(locale)}
             signInFallbackRedirectUrl="/dashboard"
+            signInForceRedirectUrl="/dashboard"
             signUpFallbackRedirectUrl="/dashboard"
+            signUpForceRedirectUrl="/dashboard"
           >
             {appContent}
           </ClerkProvider>

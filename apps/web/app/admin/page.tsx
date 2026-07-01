@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -88,11 +89,7 @@ export default function AdminPage() {
   }, []);
 
   return (
-    <AppShell
-      headerIcon={ShieldCheck}
-      subtitle="Platform-level operational view for users, workspace footprint, and usage."
-      title="Admin"
-    >
+    <AppPageShell meta={appPageMeta.admin}>
       <section className="space-y-6">
         {error === 'Admin access required.' ? (
           <EmptyState
@@ -198,6 +195,6 @@ export default function AdminPage() {
           </>
         ) : null}
       </section>
-    </AppShell>
+    </AppPageShell>
   );
 }

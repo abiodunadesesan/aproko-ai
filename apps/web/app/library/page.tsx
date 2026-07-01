@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FileText } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
 import { buttonVariants } from '@/components/ui/button';
@@ -1237,7 +1238,7 @@ export default function LibraryPage() {
   }, []);
 
   return (
-    <AppShell headerIcon={FileText} subtitle="Upload and manage your documents." title="Library">
+    <AppPageShell meta={appPageMeta.library}>
       <section className="space-y-6">
         <Card>
           <CardHeader>
@@ -1888,6 +1889,6 @@ export default function LibraryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppShell>
+    </AppPageShell>
   );
 }

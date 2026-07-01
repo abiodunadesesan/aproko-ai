@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { GraduationCap, ScrollText, StickyNote } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -814,11 +815,7 @@ export default function StudyPage() {
   }, [activeQuizId]);
 
   return (
-    <AppShell
-      headerIcon={GraduationCap}
-      subtitle="Quizzes, flashcards, and notes generated from your materials."
-      title="Study"
-    >
+    <AppPageShell meta={appPageMeta.study}>
       <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <Card>
           <CardHeader>
@@ -1249,6 +1246,6 @@ export default function StudyPage() {
           </Card>
         </div>
       </section>
-    </AppShell>
+    </AppPageShell>
   );
 }

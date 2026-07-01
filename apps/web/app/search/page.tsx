@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { Search as SearchIcon } from 'lucide-react';
 import { useState } from 'react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -101,11 +102,7 @@ export default function SearchPage() {
   }
 
   return (
-    <AppShell
-      headerIcon={SearchIcon}
-      subtitle="Search across your workspace sources, notes, and memory items."
-      title="Search"
-    >
+    <AppPageShell meta={appPageMeta.search}>
       <section className="space-y-4">
         <Card>
           <CardHeader>
@@ -217,6 +214,6 @@ export default function SearchPage() {
           </CardContent>
         </Card>
       </section>
-    </AppShell>
+    </AppPageShell>
   );
 }

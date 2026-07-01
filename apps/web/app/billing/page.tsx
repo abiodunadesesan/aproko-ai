@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CreditCard } from 'lucide-react';
-import { AppShell } from '@/components/app-shell';
+import { AppPageShell } from '@/components/app/app-page-shell';
 import { PricingSection } from '@/components/landing/pricing-section';
+import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { normalizePlanCode, type PlanCode } from '@/lib/pricing-plans';
@@ -129,11 +129,7 @@ export default function BillingPage() {
   }, []);
 
   return (
-    <AppShell
-      headerIcon={CreditCard}
-      subtitle="Review your plan, billing period, and subscription status."
-      title="Billing"
-    >
+    <AppPageShell meta={appPageMeta.billing}>
       <section className="space-y-6 sm:space-y-8">
         <PricingSection
           currentPlanCode={normalizedCurrentPlan}
@@ -233,6 +229,6 @@ export default function BillingPage() {
           {notice}
         </div>
       ) : null}
-    </AppShell>
+    </AppPageShell>
   );
 }
