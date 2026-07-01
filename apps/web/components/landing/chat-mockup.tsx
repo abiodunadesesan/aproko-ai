@@ -288,6 +288,87 @@ function HeroChatMockup() {
 }
 
 function MemoryChatMockup() {
+  const prefersReducedMotion = useReducedMotion() === true;
+  const [started, setStarted] = useState(false);
+
+  const userMessage =
+    'Remember my assignment from the library — due Friday, APA format, and the grading rubric.';
+  const assistantMessage =
+    "Got it. I've saved the assignment details from your library — the due date, formatting requirements, and grading rubric. Ask me about any of this later and I'll pull it up instantly.";
+
+  type MemoryPhase = 'idle' | 'typing' | 'sent' | 'thinking' | 'answer' | 'done';
+  const [phase, setPhase] = useState<MemoryPhase>('idle');
+  const [typedQuestion, setTypedQuestion] = useState('');
+  const [visibleChars, setVisibleChars] = useState(0);
+
+  useEffect(() => {
+    setStarted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!started) {
+      return;
+    }
+
+    if (prefersReducedMotion) {
+      setPhase('done');
+      setTypedQuestion(userMessage);
+      setVisibleChars(assistantMessage.length);
+      return;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const run = async () => {
+      try {
+        while (!signal.aborted) {
+          setPhase('idle');
+          setTypedQuestion('');
+          setVisibleChars(0);
+          await sleep(800, signal);
+
+          setPhase('typing');
+          for (let index = 1; index <= userMessage.length; index += 1) {
+            setTypedQuestion(userMessage.slice(0, index));
+            await sleep(22, signal);
+          }
+
+          await sleep(350, signal);
+          setPhase('sent');
+          await sleep(500, signal);
+
+          setPhase('thinking');
+          await sleep(1100, signal);
+
+          setPhase('answer');
+          for (let index = 1; index <= assistantMessage.length; index += 8) {
+            setVisibleChars(Math.min(index, assistantMessage.length));
+            await sleep(18, signal);
+          }
+          setVisibleChars(assistantMessage.length);
+
+          setPhase('done');
+          await sleep(5000, signal);
+        }
+      } catch {
+        // Aborted — ignore.
+      }
+    };
+
+    void run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [assistantMessage, prefersReducedMotion, started, userMessage]);
+
+  const showTypingBubble = phase === 'typing' && typedQuestion.length > 0;
+  const showUserBubble =
+    phase === 'sent' || phase === 'thinking' || phase === 'answer' || phase === 'done';
+  const showThinking = phase === 'thinking';
+  const showAnswer = phase === 'answer' || phase === 'done';
+
   return (
     <div className="mx-auto w-full max-w-lg">
       <div className="mb-3 flex items-center justify-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/80 px-3 py-2 backdrop-blur">
@@ -316,28 +397,118 @@ function MemoryChatMockup() {
             <span className="font-medium text-zinc-200">Chat</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-md border border-zinc-700 px-2 py-0.5">Remember</span>
+            <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200">
+              Remember
+            </span>
             <span className="rounded-md border border-zinc-700 px-2 py-0.5">Smart Mode</span>
           </div>
         </div>
-        <div className="space-y-3 p-4 text-sm">
-          <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-2.5 leading-relaxed text-zinc-300">
-            Got it. I&apos;ve saved the assignment details from your library — the due date,
-            formatting requirements, and grading rubric. Ask me about any of this later and
-            I&apos;ll pull it up instantly.
-          </p>
-          <Badge className="border-zinc-600 bg-zinc-800 text-zinc-200" variant="outline">
-            ✓ Saved to memory
-          </Badge>
+
+        <div className="min-h-[220px] space-y-3 p-4 text-sm">
+          <AnimatePresence mode="popLayout">
+            {showTypingBubble ? (
+              <motion.p
+                animate={{ opacity: 1, y: 0 }}
+                className="ml-auto max-w-[92%] rounded-xl border border-zinc-700/80 bg-zinc-900 px-3 py-2.5 text-zinc-200"
+                exit={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 8 }}
+                key="memory-typing"
+              >
+                {typedQuestion}
+                <motion.span
+                  animate={{ opacity: [1, 0, 1] }}
+                  className="ml-0.5 inline-block h-4 w-0.5 translate-y-px bg-zinc-400"
+                  transition={{ duration: 0.75, repeat: Infinity }}
+                />
+              </motion.p>
+            ) : null}
+
+            {showUserBubble ? (
+              <motion.p
+                animate={{ opacity: 1, y: 0 }}
+                className="ml-auto max-w-[92%] rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-zinc-200"
+                exit={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 10 }}
+                key="memory-user"
+              >
+                {userMessage}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showThinking ? (
+              <motion.div
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, y: 6 }}
+                key="memory-thinking"
+              >
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 px-3">
+                  <TypingDots />
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showAnswer ? (
+              <motion.div
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, y: 8 }}
+                key="memory-answer"
+              >
+                <p className="rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-2.5 leading-relaxed text-zinc-300">
+                  {assistantMessage.slice(0, visibleChars)}
+                  {phase === 'answer' && visibleChars < assistantMessage.length ? (
+                    <motion.span
+                      animate={{ opacity: [1, 0, 1] }}
+                      className="ml-0.5 inline-block h-4 w-0.5 translate-y-px bg-zinc-500"
+                      transition={{ duration: 0.75, repeat: Infinity }}
+                    />
+                  ) : null}
+                </p>
+                {phase === 'done' ? (
+                  <motion.div
+                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Badge className="border-zinc-600 bg-zinc-800 text-zinc-200" variant="outline">
+                      ✓ Saved to memory
+                    </Badge>
+                  </motion.div>
+                ) : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {phase === 'idle' ? (
+            <p className="pt-4 text-center text-xs text-zinc-600">
+              Turn on Remember to save context…
+            </p>
+          ) : null}
         </div>
+
         <div className="flex items-center gap-2 border-t border-zinc-800 px-3 py-2.5">
           <Paperclip className="h-4 w-4 shrink-0 text-zinc-500" />
-          <div className="flex-1 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-500">
-            Type your message...
+          <div className="flex-1 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs">
+            {phase === 'typing' ? (
+              <span className="text-zinc-400">Sending…</span>
+            ) : (
+              <span className="text-zinc-500">Type your message...</span>
+            )}
           </div>
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-950">
+          <motion.span
+            animate={phase === 'typing' ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-950"
+            transition={{ duration: 0.3, repeat: phase === 'typing' ? Infinity : 0 }}
+          >
             <Send className="h-3.5 w-3.5" />
-          </span>
+          </motion.span>
         </div>
       </div>
     </div>

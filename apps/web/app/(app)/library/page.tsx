@@ -1249,11 +1249,13 @@ export default function LibraryPage() {
           <CardContent>
             <form
               className="grid gap-3 md:grid-cols-[1fr_200px_200px_auto]"
+              data-testid="library-upload-form"
               onSubmit={handleUpload}
             >
               <input
                 aria-label="Upload source file"
                 className="h-10 rounded-md border px-3 text-sm"
+                data-testid="library-upload-file"
                 type="file"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 required
@@ -1261,6 +1263,7 @@ export default function LibraryPage() {
               <select
                 aria-label="Select project for upload"
                 className="h-10 rounded-md border px-3 text-sm"
+                data-testid="library-upload-project"
                 value={projectId}
                 onChange={(event) => setProjectId(event.target.value)}
               >
@@ -1274,6 +1277,7 @@ export default function LibraryPage() {
               <select
                 aria-label="Select folder for upload"
                 className="h-10 rounded-md border px-3 text-sm"
+                data-testid="library-upload-folder"
                 value={folderId}
                 onChange={(event) => setFolderId(event.target.value)}
               >
@@ -1284,7 +1288,12 @@ export default function LibraryPage() {
                   </option>
                 ))}
               </select>
-              <button className={buttonPrimaryClass} disabled={isUploading} type="submit">
+              <button
+                className={buttonPrimaryClass}
+                data-testid="library-upload-submit"
+                disabled={isUploading}
+                type="submit"
+              >
                 {isUploading ? 'Uploading...' : 'Upload'}
               </button>
             </form>
@@ -1703,7 +1712,7 @@ export default function LibraryPage() {
                     Page {currentPage} of {totalPages}
                   </p>
                 </div>
-                <Table>
+                <Table data-testid="library-sources-table">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">

@@ -449,9 +449,30 @@ function LandingPageContent() {
               </div>
             </div>
             <Separator className="my-8 bg-zinc-200 dark:bg-zinc-800" />
-            <div className="flex flex-col items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 sm:flex-row">
+            <p className="text-center text-xs leading-relaxed text-zinc-500 dark:text-zinc-500 sm:text-left">
+              {t.footer.disclaimer}
+            </p>
+            <div className="mt-6 flex flex-col items-center justify-between gap-4 text-xs text-zinc-600 dark:text-zinc-400 sm:flex-row">
               <p>{t.footer.copyright}</p>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <Link
+                  className="transition-colors hover:text-zinc-950 dark:hover:text-zinc-100"
+                  href="/blog"
+                >
+                  {t.footer.blog}
+                </Link>
+                <Link
+                  className="transition-colors hover:text-zinc-950 dark:hover:text-zinc-100"
+                  href="/privacy"
+                >
+                  {t.footer.privacy}
+                </Link>
+                <Link
+                  className="transition-colors hover:text-zinc-950 dark:hover:text-zinc-100"
+                  href="/terms"
+                >
+                  {t.footer.terms}
+                </Link>
                 <Link
                   className="font-medium text-zinc-800 transition-colors hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white"
                   href="/sign-in"

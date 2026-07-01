@@ -12,20 +12,20 @@ const momentStyles = [
     ring: 'ring-amber-400/30',
   },
   {
-    accent: 'from-sky-400/35 via-cyan-500/15 to-zinc-900/70',
-    ring: 'ring-sky-400/30',
-  },
-  {
-    accent: 'from-rose-400/30 via-orange-400/15 to-zinc-900/70',
-    ring: 'ring-rose-400/30',
+    accent: 'from-zinc-400/25 via-zinc-600/20 to-zinc-900/70',
+    ring: 'ring-zinc-400/25',
   },
   {
     accent: 'from-orange-400/30 via-amber-500/20 to-zinc-900/70',
-    ring: 'ring-orange-400/30',
+    ring: 'ring-orange-400/25',
   },
   {
-    accent: 'from-teal-400/25 via-sky-500/15 to-zinc-900/70',
-    ring: 'ring-teal-400/30',
+    accent: 'from-amber-500/25 via-zinc-500/15 to-zinc-900/70',
+    ring: 'ring-amber-500/20',
+  },
+  {
+    accent: 'from-zinc-500/20 via-amber-400/15 to-zinc-900/70',
+    ring: 'ring-zinc-500/20',
   },
 ] as const;
 

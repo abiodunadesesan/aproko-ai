@@ -117,6 +117,7 @@ export function PricingSection({
                 ) : (
                   <Button
                     className="mt-5 w-full rounded-full transition-transform hover:-translate-y-0.5 sm:mt-6"
+                    data-testid={`pricing-select-${plan.code}`}
                     onClick={() => onSelectPlan?.(plan.code)}
                     type="button"
                     variant={isCurrent ? 'outline' : plan.highlighted ? 'default' : 'secondary'}

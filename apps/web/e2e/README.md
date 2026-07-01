@@ -1,17 +1,27 @@
 # Playwright E2E (Web App)
 
-This suite covers a small smoke set for `apps/web` only.
+This suite covers smoke checks and critical user journeys for `apps/web`.
 
 ## Scope
 
-- Landing page loads
-- Sign-in page loads
-- Signed-out users are redirected from `/dashboard`
+### Smoke (`smoke.spec.ts`)
+
+- Landing and sign-in pages load
+- Signed-out users are redirected from protected routes
 - App shell renders with e2e mock auth
 - Sidebar navigation links exist
-- Library page loads
+- Core app pages load (dashboard, library, search, research, admin, transcripts, memory, study)
 
-AI chat and file upload flows are intentionally excluded for now.
+### Journeys (`journeys.spec.ts`)
+
+- Auth → dashboard shell
+- Library file upload (mocked API) appears in sources table
+- Chat assistant response includes citations (mocked SSE)
+
+### Billing (`billing.spec.ts`)
+
+- Billing checkout from plan selection shows staging pending message (mocked checkout API)
+- Billing webhook POST returns structured payload when Stripe is not configured
 
 ## Run locally
 
@@ -41,9 +51,11 @@ Playwright starts Next.js with `E2E_MOCK_AUTH=true`.
 
 When this flag is enabled, middleware allows protected routes only if the
 `aproko_e2e_auth=1` cookie is present. Tests that need authenticated shell behavior set this
-cookie explicitly.
+cookie explicitly via `enableMockAuth()`.
 
 This keeps signed-out redirect coverage intact while enabling lightweight authenticated UI checks.
+
+Workspace and billing API calls are mocked in journey tests with Playwright `page.route()`.
 
 ## Environment and secrets
 

@@ -121,7 +121,13 @@ export type LandingCopy = {
     newsletter: string;
     emailPlaceholder: string;
     copyright: string;
+    disclaimer: string;
+    privacy: string;
+    terms: string;
     startFree: string;
+  };
+  legal: {
+    lastUpdated: string;
   };
   auth: {
     welcome: string;
@@ -402,8 +408,15 @@ const en: LandingCopy = {
     stayUpdated: 'Stay updated',
     newsletter: 'Product updates and tips, straight to your inbox.',
     emailPlaceholder: 'you@email.com',
-    copyright: 'Aproko AI — intelligence that follows your work everywhere.',
+    copyright: '© 2026 Aproko AI. All rights reserved.',
+    disclaimer:
+      'Built for knowledge work on the web — library, chat with citations, memory, and study tools in one workspace.',
+    privacy: 'Privacy',
+    terms: 'Terms',
     startFree: 'Start free',
+  },
+  legal: {
+    lastUpdated: 'Last updated',
   },
   auth: {
     welcome: 'Welcome',
@@ -672,13 +685,21 @@ const fr: LandingCopy = {
       'Système d\u2019exploitation de connaissance IA — chat, mémoire, bibliothèque et outils d\u2019étude dans un espace web.',
     company: 'Entreprise',
     about: 'À propos d\u2019Aproko AI',
+    blog: 'Blog',
     pricing: 'Tarifs',
     signIn: 'Connexion',
     stayUpdated: 'Restez informé',
     newsletter: 'Actualités produit et conseils, directement dans votre boîte mail.',
     emailPlaceholder: 'vous@email.com',
-    copyright: 'Aproko AI — une intelligence qui suit votre travail partout.',
+    copyright: '© 2026 Aproko AI. Tous droits réservés.',
+    disclaimer:
+      'Conçu pour le travail de connaissance sur le web — bibliothèque, chat avec citations, mémoire et outils d\u2019étude.',
+    privacy: 'Confidentialité',
+    terms: 'Conditions',
     startFree: 'Commencer gratuitement',
+  },
+  legal: {
+    lastUpdated: 'Dernière mise à jour',
   },
   auth: {
     welcome: 'Bienvenue',
@@ -941,13 +962,21 @@ const es: LandingCopy = {
       'Sistema operativo de conocimiento IA — chat, memoria, biblioteca y herramientas de estudio en un espacio web.',
     company: 'Empresa',
     about: 'Sobre Aproko AI',
+    blog: 'Blog',
     pricing: 'Precios',
     signIn: 'Iniciar sesión',
     stayUpdated: 'Mantente al día',
     newsletter: 'Actualizaciones y consejos del producto, directo a tu bandeja.',
     emailPlaceholder: 'tu@email.com',
-    copyright: 'Aproko AI — inteligencia que sigue tu trabajo a todas partes.',
+    copyright: '© 2026 Aproko AI. Todos los derechos reservados.',
+    disclaimer:
+      'Hecho para el trabajo de conocimiento en la web — biblioteca, chat con citas, memoria y herramientas de estudio.',
+    privacy: 'Privacidad',
+    terms: 'Términos',
     startFree: 'Empezar gratis',
+  },
+  legal: {
+    lastUpdated: 'Última actualización',
   },
   auth: {
     welcome: 'Bienvenido',
@@ -1210,13 +1239,21 @@ const de: LandingCopy = {
       'KI-Wissens-Betriebssystem — Chat, Gedächtnis, Bibliothek und Lern-Tools in einem Web-Arbeitsbereich.',
     company: 'Unternehmen',
     about: 'Über Aproko AI',
+    blog: 'Blog',
     pricing: 'Preise',
     signIn: 'Anmelden',
     stayUpdated: 'Bleiben Sie informiert',
     newsletter: 'Produktupdates und Tipps direkt in Ihr Postfach.',
     emailPlaceholder: 'sie@email.com',
-    copyright: 'Aproko AI — Intelligenz, die Ihrer Arbeit überall folgt.',
+    copyright: '© 2026 Aproko AI. Alle Rechte vorbehalten.',
+    disclaimer:
+      'Für Wissensarbeit im Web — Bibliothek, Chat mit Zitaten, Gedächtnis und Lern-Tools in einem Arbeitsbereich.',
+    privacy: 'Datenschutz',
+    terms: 'AGB',
     startFree: 'Kostenlos starten',
+  },
+  legal: {
+    lastUpdated: 'Zuletzt aktualisiert',
   },
   auth: {
     welcome: 'Willkommen',
@@ -1478,13 +1515,21 @@ const pt: LandingCopy = {
       'Sistema operacional de conhecimento IA — chat, memória, biblioteca e ferramentas de estudo em um espaço web.',
     company: 'Empresa',
     about: 'Sobre Aproko AI',
+    blog: 'Blog',
     pricing: 'Preços',
     signIn: 'Entrar',
     stayUpdated: 'Fique atualizado',
     newsletter: 'Atualizações e dicas do produto, direto na sua caixa de entrada.',
     emailPlaceholder: 'voce@email.com',
-    copyright: 'Aproko AI — inteligência que segue seu trabalho em todo lugar.',
+    copyright: '© 2026 Aproko AI. Todos os direitos reservados.',
+    disclaimer:
+      'Feito para trabalho de conhecimento na web — biblioteca, chat com citações, memória e ferramentas de estudo.',
+    privacy: 'Privacidade',
+    terms: 'Termos',
     startFree: 'Começar grátis',
+  },
+  legal: {
+    lastUpdated: 'Última atualização',
   },
   auth: {
     welcome: 'Bem-vindo',

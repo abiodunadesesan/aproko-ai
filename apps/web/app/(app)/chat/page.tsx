@@ -540,6 +540,9 @@ export default function ChatPage() {
                     className={`rounded-md border px-3 py-2 transition-colors ${
                       message.role === 'assistant' ? 'bg-muted/50' : 'bg-background'
                     }`}
+                    data-testid={
+                      message.role === 'assistant' ? 'chat-assistant-message' : 'chat-user-message'
+                    }
                     key={message.id}
                   >
                     <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
@@ -575,6 +578,7 @@ export default function ChatPage() {
                         {message.citations.map((citation) => (
                           <div
                             className="rounded-md border bg-background px-2 py-1.5"
+                            data-testid="chat-citation"
                             key={citation.id}
                           >
                             <p className="text-xs font-medium">{citation.title}</p>
@@ -597,6 +601,7 @@ export default function ChatPage() {
             >
               <Textarea
                 className="min-h-24"
+                data-testid="chat-input"
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask a question about your workspace..."
                 value={input}
@@ -631,6 +636,7 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between gap-2 sm:justify-end">
                   <Button
                     className="rounded-full"
+                    data-testid="chat-send"
                     disabled={isSending || !input.trim()}
                     type="submit"
                   >
