@@ -50,6 +50,7 @@ test('sidebar navigation links exist', async ({ page }) => {
   await expect(page.getByTestId('nav-link-dashboard')).toBeVisible();
   await expect(page.getByTestId('nav-link-search')).toBeVisible();
   await expect(page.getByTestId('nav-link-library')).toBeVisible();
+  await expect(page.getByTestId('nav-link-transcripts')).toBeVisible();
   await expect(page.getByTestId('nav-link-chat')).toBeVisible();
   await expect(page.getByTestId('nav-link-memory')).toBeVisible();
   await expect(page.getByTestId('nav-link-study')).toBeVisible();
@@ -91,4 +92,37 @@ test('search page loads', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/search/);
   await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
+});
+
+test('protected transcripts redirects when signed out', async ({ page }) => {
+  await page.goto('/transcripts', { waitUntil: 'domcontentloaded' });
+
+  await expect(page).toHaveURL(/\/sign-in/);
+});
+
+test('transcripts page loads', async ({ page }) => {
+  test.setTimeout(120_000);
+  await enableMockAuth(page);
+  await page.goto('/transcripts', { waitUntil: 'commit', timeout: 90_000 });
+
+  await expect(page).toHaveURL(/\/transcripts/);
+  await expect(page.getByRole('heading', { name: 'My Transcripts' })).toBeVisible();
+});
+
+test('memory page loads', async ({ page }) => {
+  test.setTimeout(120_000);
+  await enableMockAuth(page);
+  await page.goto('/memory', { waitUntil: 'commit', timeout: 90_000 });
+
+  await expect(page).toHaveURL(/\/memory/);
+  await expect(page.getByRole('heading', { name: 'Memory' })).toBeVisible();
+});
+
+test('study page loads', async ({ page }) => {
+  test.setTimeout(120_000);
+  await enableMockAuth(page);
+  await page.goto('/study', { waitUntil: 'commit', timeout: 90_000 });
+
+  await expect(page).toHaveURL(/\/study/);
+  await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
 });

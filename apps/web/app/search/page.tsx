@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { Search as SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,6 +41,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [activeFilter, setActiveFilter] = useState<SearchTypeFilter>('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSearch() {
@@ -63,6 +66,7 @@ export default function SearchPage() {
       }
 
       setResults((payload.data ?? []) as SearchResult[]);
+      setHasSearched(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search workspace');
     } finally {
@@ -98,6 +102,7 @@ export default function SearchPage() {
 
   return (
     <AppShell
+      headerIcon={SearchIcon}
       subtitle="Search across your workspace sources, notes, and memory items."
       title="Search"
     >
@@ -159,12 +164,20 @@ export default function SearchPage() {
               <p className="text-sm text-muted-foreground" role="status">
                 Loading search results...
               </p>
+            ) : !hasSearched ? (
+              <EmptyState
+                compact
+                description="Enter a query above to find sources, study notes, and remembered facts across your workspace."
+                icon={SearchIcon}
+                title="Search your workspace"
+              />
             ) : results.length === 0 ? (
-              <div className="rounded-md border border-dashed bg-muted/20 p-4">
-                <p className="text-sm text-muted-foreground">
-                  No results yet. Run a query to search your workspace context.
-                </p>
-              </div>
+              <EmptyState
+                compact
+                description={`No matches for "${query.trim()}". Try different keywords or broaden your filter.`}
+                icon={SearchIcon}
+                title="No results found"
+              />
             ) : activeFilter === 'all' ? (
               <div className="space-y-4">
                 <section className="space-y-2">

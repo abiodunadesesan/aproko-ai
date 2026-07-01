@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@aproko/ui": "workspace:*",
+    "@clerk/localizations": "^4.12.0",
     "@clerk/nextjs": "^6.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.18",
     "@radix-ui/react-dialog": "^1.1.17",
@@ -38,6 +39,7 @@
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "stripe": "^22.3.0",
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {

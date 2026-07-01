@@ -1,36 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getPreferredTheme, THEME_STORAGE_KEY, type AppTheme } from '@/lib/theme';
 
-type Theme = 'light' | 'dark';
-
-const STORAGE_KEY = 'aproko-theme';
-
-function getPreferredTheme(): Theme {
-  if (typeof window === 'undefined') {
-    return 'light';
-  }
-
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === 'light' || saved === 'dark') {
-    return saved;
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme: Theme) {
+function applyTheme(theme: AppTheme) {
   const root = document.documentElement;
   if (theme === 'dark') {
     root.classList.add('dark');
   } else {
     root.classList.remove('dark');
   }
-  window.localStorage.setItem(STORAGE_KEY, theme);
+  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<AppTheme>('light');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -41,7 +25,7 @@ export function ThemeToggle() {
   }, []);
 
   function toggleTheme() {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    const next: AppTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     applyTheme(next);
   }

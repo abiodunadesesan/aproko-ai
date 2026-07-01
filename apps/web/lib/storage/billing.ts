@@ -65,3 +65,63 @@ export async function getBillingSubscription(workspaceId: string): Promise<Billi
 
   return toBillingSubscription(data as DbSubscriptionRow);
 }
+
+export type UpsertBillingSubscriptionInput = {
+  workspaceId: string;
+  planCode: string;
+  status: string;
+  provider: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+};
+
+export async function upsertBillingSubscription(
+  input: UpsertBillingSubscriptionInput,
+): Promise<BillingSubscription> {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return {
+      workspaceId: input.workspaceId,
+      planCode: input.planCode,
+      status: input.status,
+      provider: input.provider,
+      currentPeriodStart: input.currentPeriodStart,
+      currentPeriodEnd: input.currentPeriodEnd,
+      cancelAtPeriodEnd: input.cancelAtPeriodEnd,
+    };
+  }
+
+  const row = {
+    workspace_id: input.workspaceId,
+    plan_code: input.planCode,
+    status: input.status,
+    provider: input.provider,
+    current_period_start: input.currentPeriodStart,
+    current_period_end: input.currentPeriodEnd,
+    cancel_at_period_end: input.cancelAtPeriodEnd,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .upsert(row, { onConflict: 'workspace_id' })
+    .select(
+      'workspace_id, plan_code, status, provider, current_period_start, current_period_end, cancel_at_period_end, updated_at',
+    )
+    .maybeSingle();
+
+  if (error || !data) {
+    return {
+      workspaceId: input.workspaceId,
+      planCode: input.planCode,
+      status: input.status,
+      provider: input.provider,
+      currentPeriodStart: input.currentPeriodStart,
+      currentPeriodEnd: input.currentPeriodEnd,
+      cancelAtPeriodEnd: input.cancelAtPeriodEnd,
+    };
+  }
+
+  return toBillingSubscription(data as DbSubscriptionRow);
+}

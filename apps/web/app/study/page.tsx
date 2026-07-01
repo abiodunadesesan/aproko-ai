@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { GraduationCap, ScrollText, StickyNote } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -812,7 +815,8 @@ export default function StudyPage() {
 
   return (
     <AppShell
-      subtitle="Study workspace with notes, flashcards, quizzes, and AI study summaries."
+      headerIcon={GraduationCap}
+      subtitle="Quizzes, flashcards, and notes generated from your materials."
       title="Study"
     >
       <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -837,7 +841,12 @@ export default function StudyPage() {
               {isLoading ? (
                 <p className="text-sm text-muted-foreground">Loading notes...</p>
               ) : filteredNotes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No notes found.</p>
+                <EmptyState
+                  compact
+                  description="Create a note or upload a document in chat to generate study material."
+                  icon={StickyNote}
+                  title="No notes yet"
+                />
               ) : (
                 filteredNotes.map((note) => (
                   <button
@@ -890,7 +899,7 @@ export default function StudyPage() {
                   ) : null}
                   {notice ? (
                     <div
-                      className="rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+                      className="rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
                       role="status"
                     >
                       {notice}
@@ -945,7 +954,12 @@ export default function StudyPage() {
               {isLoadingDecks ? (
                 <p className="text-sm text-muted-foreground">Loading decks...</p>
               ) : filteredDecks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No flashcard decks yet.</p>
+                <EmptyState
+                  compact
+                  description="Generate flashcards from a note or create a deck to get started."
+                  icon={GraduationCap}
+                  title="No flashcard decks yet"
+                />
               ) : (
                 <div className="grid gap-2 md:grid-cols-2">
                   {filteredDecks.map((deck) => (
@@ -1061,7 +1075,12 @@ export default function StudyPage() {
               {isLoadingQuizzes ? (
                 <p className="text-sm text-muted-foreground">Loading quizzes...</p>
               ) : filteredQuizzes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No quizzes yet.</p>
+                <EmptyState
+                  compact
+                  description="Upload notes or documents in chat and ask to create a quiz."
+                  icon={GraduationCap}
+                  title="No quizzes yet"
+                />
               ) : (
                 <div className="grid gap-2 md:grid-cols-2">
                   {filteredQuizzes.map((quiz) => (
@@ -1183,9 +1202,28 @@ export default function StudyPage() {
               />
 
               {isLoadingSummaries ? (
-                <p className="text-sm text-muted-foreground">Loading summaries...</p>
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                </div>
               ) : filteredSummaries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No study summaries yet.</p>
+                <EmptyState
+                  compact
+                  action={
+                    <Button
+                      disabled={isGeneratingSummary}
+                      onClick={() => void generateStudySummary()}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
+                    </Button>
+                  }
+                  description="Generate a summary from your active note or workspace notes."
+                  icon={ScrollText}
+                  title="No study summaries yet"
+                />
               ) : (
                 <div className="space-y-2">
                   {filteredSummaries.map((summary) => (

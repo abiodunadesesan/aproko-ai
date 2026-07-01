@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CreditCard } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const WORKSPACE_ID = 'default-workspace';
 export default function BillingPage() {
   const [subscription, setSubscription] = useState<BillingSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -60,27 +62,87 @@ export default function BillingPage() {
     }
   }
 
-  function openCheckoutPlaceholder(code: PlanCode) {
-    setNotice(
-      `Checkout integration is next. Selected plan: ${code}. This baseline confirms plan visibility and billing state.`,
-    );
+  async function startCheckout(code: PlanCode) {
+    if (code === 'free') {
+      return;
+    }
+
+    if (code === normalizedCurrentPlan) {
+      setNotice('You are already on this plan.');
+      setError(null);
+      return;
+    }
+
+    setIsStartingCheckout(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch('/api/v1/billing/checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: WORKSPACE_ID,
+          planCode: code,
+        }),
+      });
+      const payload = (await response.json()) as {
+        data?: {
+          checkoutUrl: string | null;
+          message: string;
+        };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error ?? 'Failed to start checkout');
+      }
+
+      if (payload.data.checkoutUrl) {
+        window.location.assign(payload.data.checkoutUrl);
+        return;
+      }
+
+      setNotice(payload.data.message);
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'Failed to start checkout');
+    } finally {
+      setIsStartingCheckout(false);
+    }
   }
 
   useEffect(() => {
     void loadSubscription();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const checkoutState = new URLSearchParams(window.location.search).get('checkout');
+    if (checkoutState === 'success') {
+      setNotice('Checkout completed. Your subscription will update shortly.');
+    } else if (checkoutState === 'cancelled') {
+      setNotice('Checkout was cancelled. No changes were made to your plan.');
+    }
+  }, []);
+
   return (
-    <AppShell subtitle="Review your plan, billing period, and subscription status." title="Billing">
+    <AppShell
+      headerIcon={CreditCard}
+      subtitle="Review your plan, billing period, and subscription status."
+      title="Billing"
+    >
       <section className="space-y-6 sm:space-y-8">
         <PricingSection
           currentPlanCode={normalizedCurrentPlan}
           mode="billing"
-          onSelectPlan={openCheckoutPlaceholder}
+          onSelectPlan={(code) => void startCheckout(code)}
         />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
+          <Card className="border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-100">
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="text-sm sm:text-base">Subscription status</CardTitle>
             </CardHeader>
@@ -91,7 +153,7 @@ export default function BillingPage() {
                 </p>
               ) : (
                 <>
-                  <div className="space-y-1 text-sm text-zinc-300">
+                  <div className="space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
                     <p>
                       <span className="text-zinc-500">Plan:</span>{' '}
                       {subscription?.planCode ?? 'free'}
@@ -116,10 +178,11 @@ export default function BillingPage() {
                   <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Button
                       className="w-full rounded-full transition-transform hover:-translate-y-0.5 sm:w-auto"
-                      onClick={() => openCheckoutPlaceholder(normalizedCurrentPlan)}
+                      disabled={isStartingCheckout}
+                      onClick={() => void startCheckout(normalizedCurrentPlan)}
                       type="button"
                     >
-                      Manage subscription
+                      {isStartingCheckout ? 'Starting checkout...' : 'Manage subscription'}
                     </Button>
                     <Button
                       className="w-full rounded-full sm:w-auto"
@@ -135,16 +198,16 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-zinc-800 bg-zinc-900/50 text-zinc-100">
+          <Card className="border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-100">
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="text-sm sm:text-base">Usage snapshot</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Billing usage meters (tokens, uploads, and workspace limits) are part of the next
                 billing increment.
               </p>
-              <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-400">
+              <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
                 <li>Current workspace: {subscription?.workspaceId ?? WORKSPACE_ID}</li>
                 <li>Model usage counters: pending integration</li>
                 <li>Storage usage counters: pending integration</li>
@@ -164,7 +227,7 @@ export default function BillingPage() {
       ) : null}
       {notice ? (
         <div
-          className="mt-4 rounded-md border border-zinc-600/30 bg-zinc-800/40 p-3 text-sm text-zinc-200"
+          className="mt-4 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
           role="status"
         >
           {notice}

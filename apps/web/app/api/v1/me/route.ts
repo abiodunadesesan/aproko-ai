@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { isAdminUser } from '@/lib/auth/admin';
 import {
   getProfileByClerkUserId,
   updateProfileByClerkUserId,
@@ -13,12 +14,14 @@ type MeRouteDependencies = {
   auth: AuthDependency;
   getProfileByClerkUserId: typeof getProfileByClerkUserId;
   updateProfileByClerkUserId: typeof updateProfileByClerkUserId;
+  isAdminUser: (userId: string | null) => boolean;
 };
 
-function toMePayload(userId: string, profile: AppProfile | null) {
+function toMePayload(userId: string, profile: AppProfile | null, isAdmin: boolean) {
   return {
     clerk_user_id: userId,
     profile,
+    isAdmin,
   };
 }
 
@@ -38,7 +41,7 @@ export function createMeRouteHandlers(deps: MeRouteDependencies) {
 
         const profile = await deps.getProfileByClerkUserId(userId);
         return withPerformanceHeaders(
-          Response.json(toMePayload(userId, profile), { status: 200 }),
+          Response.json(toMePayload(userId, profile, deps.isAdminUser(userId)), { status: 200 }),
           startedAtMs,
           {
             cacheControl: 'private, max-age=15, stale-while-revalidate=60',
@@ -73,7 +76,9 @@ export function createMeRouteHandlers(deps: MeRouteDependencies) {
           return Response.json({ error: 'Profile not found' }, { status: 404 });
         }
 
-        return Response.json(toMePayload(userId, profile), { status: 200 });
+        return Response.json(toMePayload(userId, profile, deps.isAdminUser(userId)), {
+          status: 200,
+        });
       } catch (error) {
         captureServerError(error, { route: '/api/v1/me', action: 'patch_profile' });
         return Response.json({ error: 'Failed to update profile' }, { status: 500 });
@@ -89,4 +94,5 @@ export const { GET, PATCH } = createMeRouteHandlers({
   },
   getProfileByClerkUserId,
   updateProfileByClerkUserId,
+  isAdminUser,
 });

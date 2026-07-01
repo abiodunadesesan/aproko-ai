@@ -1,7 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
 import Link from 'next/link';
-import { ArrowUpRight, FileText, MessageSquare, Sparkles } from 'lucide-react';
-import { syncProfileFromClerkUser } from '@/lib/auth/profile-sync';
+import { LayoutDashboard } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,31 +13,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  getWorkspaceDashboardStats,
+  type DashboardActivityStatus,
+} from '@/lib/storage/dashboard-stats';
+import { syncProfileFromClerkUser } from '@/lib/auth/profile-sync';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { ArrowUpRight, FileText, MessageSquare, Sparkles } from 'lucide-react';
 
-const metrics = [
-  { label: 'Active Sources', value: '24', helper: '+6 this week' },
-  { label: 'Memory Captures', value: '183', helper: 'Indexed and searchable' },
-  { label: 'Study Streak', value: '7 days', helper: 'Consistent momentum' },
-  { label: 'AI Sessions', value: '41', helper: 'Workspace conversations' },
-];
-
-type ActivityStatus = 'Indexed' | 'Synced' | 'Ranked';
-
-const recentActivity: Array<{
-  item: string;
-  type: string;
-  status: ActivityStatus;
-  updated: string;
-}> = [
-  { item: 'Q2 Marketing Deck', type: 'Source', status: 'Indexed', updated: '2h ago' },
-  { item: 'Growth Strategy Notes', type: 'Note', status: 'Synced', updated: '5h ago' },
-  { item: 'Customer Interview Batch', type: 'Memory', status: 'Ranked', updated: 'Yesterday' },
-];
-
-const statusVariant: Record<ActivityStatus, 'default' | 'secondary' | 'outline'> = {
+const statusVariant: Record<DashboardActivityStatus, 'default' | 'secondary' | 'outline'> = {
   Indexed: 'default',
   Synced: 'secondary',
   Ranked: 'outline',
+  Active: 'default',
 };
 
 export default async function DashboardPage() {
@@ -57,13 +43,46 @@ export default async function DashboardPage() {
     }
   }
 
+  const stats = await getWorkspaceDashboardStats('default-workspace', userId);
+
+  const metrics = [
+    {
+      label: 'Active Sources',
+      value: String(stats.sourceCount),
+      helper:
+        stats.sourcesThisWeek > 0
+          ? `+${stats.sourcesThisWeek} this week`
+          : 'Upload documents to get started',
+    },
+    {
+      label: 'Memory Captures',
+      value: String(stats.memoryCount),
+      helper: stats.memoryCount > 0 ? 'Indexed and searchable' : 'No memory items yet',
+    },
+    {
+      label: 'Study Streak',
+      value: stats.studyStreakDays > 0 ? `${stats.studyStreakDays} days` : '0 days',
+      helper:
+        stats.studyItemCount > 0
+          ? `${stats.studyItemCount} study outputs in workspace`
+          : 'Create notes or quizzes to build momentum',
+    },
+    {
+      label: 'AI Sessions',
+      value: String(stats.chatSessionCount),
+      helper:
+        stats.chatSessionCount > 0 ? 'Workspace conversations' : 'Start your first chat session',
+    },
+  ];
+
   return (
     <AppShell
-      subtitle="A premium, knowledge-first workspace: capture context quickly, keep momentum, and jump back in with AI."
+      headerIcon={LayoutDashboard}
+      subtitle="Capture context quickly, keep momentum, and jump back in with AI."
       title="Dashboard"
     >
       <section className="space-y-6">
-        <Card>
+        <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
           <CardHeader>
             <CardTitle>Welcome back</CardTitle>
             <CardDescription>
@@ -72,7 +91,7 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button asChild className="transition-transform hover:-translate-y-0.5">
+            <Button asChild className="rounded-full transition-transform hover:-translate-y-0.5">
               <Link href="/library">
                 Open Library
                 <ArrowUpRight className="h-4 w-4" />
@@ -80,7 +99,7 @@ export default async function DashboardPage() {
             </Button>
             <Button
               asChild
-              className="transition-transform hover:-translate-y-0.5"
+              className="rounded-full transition-transform hover:-translate-y-0.5"
               variant="secondary"
             >
               <Link href="/chat">
@@ -90,7 +109,7 @@ export default async function DashboardPage() {
             </Button>
             <Button
               asChild
-              className="transition-transform hover:-translate-y-0.5"
+              className="rounded-full transition-transform hover:-translate-y-0.5"
               variant="outline"
             >
               <Link href="/research">
@@ -103,13 +122,20 @@ export default async function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => (
-            <Card className="transition-colors hover:bg-muted/30" key={metric.label}>
+            <Card
+              className="border-zinc-200 bg-white transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
+              key={metric.label}
+            >
               <CardHeader className="pb-2">
-                <CardDescription>{metric.label}</CardDescription>
-                <CardTitle className="text-3xl tracking-tight">{metric.value}</CardTitle>
+                <CardDescription className="text-zinc-600 dark:text-zinc-400">
+                  {metric.label}
+                </CardDescription>
+                <CardTitle className="text-3xl tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {metric.value}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">{metric.helper}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">{metric.helper}</p>
               </CardContent>
             </Card>
           ))}
@@ -122,42 +148,55 @@ export default async function DashboardPage() {
           </TabsList>
 
           <TabsContent value="activity">
-            <Card>
+            <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
                 <CardDescription>Latest updates across your workspace.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Updated</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentActivity.map((row) => (
-                      <TableRow key={row.item}>
-                        <TableCell className="font-medium">{row.item}</TableCell>
-                        <TableCell>{row.type}</TableCell>
-                        <TableCell>
-                          <Badge variant={statusVariant[row.status]}>{row.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {row.updated}
-                        </TableCell>
+                {stats.recentActivity.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center dark:border-zinc-800 dark:bg-zinc-900/40">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      No activity yet
+                    </p>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                      Upload a document or start a chat to see updates here.
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Updated</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {stats.recentActivity.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="max-w-[240px] truncate font-medium">
+                            {row.item}
+                          </TableCell>
+                          <TableCell>{row.type}</TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant[row.status]}>{row.status}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right text-zinc-600 dark:text-zinc-400">
+                            {row.updatedLabel}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="workspace-health">
-            <Card>
+            <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
               <CardHeader>
                 <CardTitle>Workspace Health</CardTitle>
                 <CardDescription>
@@ -176,7 +215,7 @@ export default async function DashboardPage() {
                     <FileText className="h-3.5 w-3.5" />
                     <span>{userId ?? 'unknown'}</span>
                   </Badge>
-                  <span className="text-muted-foreground">Clerk user identifier</span>
+                  <span className="text-zinc-600 dark:text-zinc-400">Clerk user identifier</span>
                 </p>
               </CardContent>
             </Card>

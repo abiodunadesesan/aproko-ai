@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import {
   createContext,
   useCallback,
@@ -19,22 +20,32 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+function persistLocale(locale: LandingLocale) {
+  window.localStorage.setItem(LANDING_LOCALE_STORAGE_KEY, locale);
+  document.documentElement.lang = locale;
+  document.cookie = `${LANDING_LOCALE_STORAGE_KEY}=${locale};path=/;max-age=31536000;samesite=lax`;
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<LandingLocale>('en');
 
   useEffect(() => {
     const saved = window.localStorage.getItem(LANDING_LOCALE_STORAGE_KEY);
     if (saved === 'en' || saved === 'fr' || saved === 'es' || saved === 'de' || saved === 'pt') {
       setLocaleState(saved);
-      document.documentElement.lang = saved;
+      persistLocale(saved);
     }
   }, []);
 
-  const setLocale = useCallback((next: LandingLocale) => {
-    setLocaleState(next);
-    window.localStorage.setItem(LANDING_LOCALE_STORAGE_KEY, next);
-    document.documentElement.lang = next;
-  }, []);
+  const setLocale = useCallback(
+    (next: LandingLocale) => {
+      setLocaleState(next);
+      persistLocale(next);
+      router.refresh();
+    },
+    [router],
+  );
 
   const value = useMemo(
     () => ({

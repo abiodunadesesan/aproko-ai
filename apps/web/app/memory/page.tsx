@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Brain } from 'lucide-react';
+import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
+import { EmptyState } from '@/components/app/empty-state';
+import { ListRowsSkeleton } from '@/components/app/list-rows-skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 
 const WORKSPACE_ID = 'default-workspace';
@@ -199,7 +202,8 @@ export default function MemoryPage() {
 
   return (
     <AppShell
-      subtitle="Memory timeline baseline for Sprint 4. Capture workspace memory items before embeddings and retrieval layers."
+      headerIcon={Brain}
+      subtitle="Items saved from chat and study — searchable across your workspace."
       title="Memory"
     >
       <section className="grid gap-6 lg:grid-cols-[340px_1fr]">
@@ -354,16 +358,19 @@ export default function MemoryPage() {
           </CardHeader>
           <CardContent aria-live="polite" className="space-y-3">
             {isLoading ? (
-              <div className="space-y-2" role="status">
-                <p className="sr-only">Loading memory timeline</p>
-                <Skeleton className="h-16 w-full rounded-md" />
-                <Skeleton className="h-16 w-full rounded-md" />
-                <Skeleton className="h-16 w-full rounded-md" />
-              </div>
+              <ListRowsSkeleton rows={4} />
             ) : items.length === 0 ? (
-              <div className="rounded-md border border-dashed bg-muted/20 p-4">
-                <p className="text-sm text-muted-foreground">No memory items yet.</p>
-              </div>
+              <EmptyState
+                compact
+                action={
+                  <Button asChild className="rounded-full" size="sm" variant="outline">
+                    <Link href="/chat">Go to Chat</Link>
+                  </Button>
+                }
+                description="Say &ldquo;remember this&rdquo; in chat or capture memory items from your workspace."
+                icon={Brain}
+                title="No remembered items yet"
+              />
             ) : (
               <div className="space-y-2">
                 {items.map((item) => (

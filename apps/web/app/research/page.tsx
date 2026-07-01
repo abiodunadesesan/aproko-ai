@@ -1,7 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { FileText, Sparkles } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -247,6 +250,7 @@ export default function ResearchPage() {
 
   return (
     <AppShell
+      headerIcon={Sparkles}
       subtitle="Create focused research workspaces that combine sources, chat context, and working notes."
       title="Research"
     >
@@ -287,32 +291,41 @@ export default function ResearchPage() {
             <CardTitle>Workspace Context</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mt-3 grid gap-2 md:grid-cols-[280px_1fr]">
-              <Select
-                onValueChange={(value) => setActiveWorkspaceId(value)}
-                value={activeWorkspaceId}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      researchWorkspaces.length ? 'Select workspace' : 'No research workspace yet'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {researchWorkspaces.map((workspace) => (
-                    <SelectItem key={workspace.id} value={workspace.id}>
-                      {workspace.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="rounded-md border p-3 text-sm text-muted-foreground">
-                {activeWorkspace
-                  ? `${activeWorkspace.title} • ${activeWorkspace.description ?? 'No description'}`
-                  : 'Choose a workspace to manage linked sources.'}
+            {!isLoading && researchWorkspaces.length === 0 ? (
+              <EmptyState
+                compact
+                description="Create a research workspace above to group sources and scope chat context for a specific topic."
+                icon={Sparkles}
+                title="No research workspaces yet"
+              />
+            ) : (
+              <div className="mt-3 grid gap-2 md:grid-cols-[280px_1fr]">
+                <Select
+                  onValueChange={(value) => setActiveWorkspaceId(value)}
+                  value={activeWorkspaceId}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        researchWorkspaces.length ? 'Select workspace' : 'No research workspace yet'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {researchWorkspaces.map((workspace) => (
+                      <SelectItem key={workspace.id} value={workspace.id}>
+                        {workspace.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="rounded-md border p-3 text-sm text-muted-foreground">
+                  {activeWorkspace
+                    ? `${activeWorkspace.title} • ${activeWorkspace.description ?? 'No description'}`
+                    : 'Choose a workspace to manage linked sources.'}
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -353,12 +366,29 @@ export default function ResearchPage() {
             </div>
 
             <div className="mt-3 space-y-2">
-              {linkedSourceDetails.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {isLoading
-                    ? 'Loading linked sources...'
-                    : 'No source linked yet. Add one to scope research context.'}
-                </p>
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading linked sources...</p>
+              ) : !activeWorkspaceId ? (
+                <EmptyState
+                  compact
+                  description="Select or create a research workspace to link library sources."
+                  icon={FileText}
+                  title="No workspace selected"
+                />
+              ) : linkedSourceDetails.length === 0 ? (
+                <EmptyState
+                  compact
+                  action={
+                    availableSources.length > 0 ? null : (
+                      <Button asChild size="sm" type="button" variant="outline">
+                        <Link href="/library">Upload sources</Link>
+                      </Button>
+                    )
+                  }
+                  description="Link documents from your library to scope research context for this workspace."
+                  icon={FileText}
+                  title="No linked sources yet"
+                />
               ) : (
                 linkedSourceDetails.map((entry) => (
                   <div
@@ -392,7 +422,7 @@ export default function ResearchPage() {
           </div>
         ) : null}
         {notice ? (
-          <div className="rounded-md border border-emerald-300/50 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <div className="rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200">
             {notice}
           </div>
         ) : null}

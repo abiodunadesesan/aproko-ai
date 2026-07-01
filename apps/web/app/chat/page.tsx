@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MessageSquare } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -496,93 +497,47 @@ export default function ChatPage() {
 
   return (
     <AppShell
-      subtitle="Chat with workspace memory context, citations, and baseline multi-model routing (CHAT-005 + MEM-005)."
+      headerIcon={MessageSquare}
+      subtitle="Ask questions grounded in your library with citations and memory context."
       title="AI Chat"
     >
-      <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <Card className="space-y-3 p-6">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">Sessions</p>
-            <p className="text-xs text-muted-foreground">Context mode: workspace</p>
-          </div>
+      <section className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        <ChatSessionSidebar
+          activeSessionId={activeSessionId}
+          isLoading={isLoadingSessions}
+          onDeleteSession={(session) => {
+            void removeSession(session as ChatSession);
+          }}
+          onNewSession={() => setActiveSessionId(null)}
+          onRenameSession={(session) => {
+            void renameSession(session as ChatSession);
+          }}
+          onSelectSession={setActiveSessionId}
+          sessions={sessions}
+        />
 
-          <Button onClick={() => setActiveSessionId(null)} type="button" variant="outline">
-            New session
-          </Button>
-
-          <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-            {isLoadingSessions ? (
-              <div className="space-y-2">
-                <Skeleton className="h-16 w-full rounded-md" />
-                <Skeleton className="h-16 w-full rounded-md" />
-                <Skeleton className="h-16 w-full rounded-md" />
-              </div>
-            ) : sessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No chat sessions yet.</p>
-            ) : (
-              sessions.map((session) => (
-                <article
-                  className={`rounded-md border px-3 py-2 text-sm ${
-                    activeSessionId === session.id ? 'bg-muted' : 'hover:bg-muted'
-                  }`}
-                  key={session.id}
-                >
-                  <button
-                    className="w-full text-left"
-                    onClick={() => setActiveSessionId(session.id)}
-                    type="button"
-                  >
-                    <p className="font-medium">{session.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(session.lastMessageAt ?? session.updatedAt).toLocaleString()}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatSessionModel(session) ?? 'model pending'}
-                    </p>
-                  </button>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button
-                      onClick={() => {
-                        void renameSession(session);
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        void removeSession(session);
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-        </Card>
-
-        <Card className="flex min-h-[520px] flex-col p-0">
-          <CardHeader className="mb-3 border-b pb-3">
-            <CardTitle className="text-sm font-semibold">
+        <Card className="flex min-h-[520px] flex-col border-zinc-200 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-900/60">
+          <CardHeader className="border-b border-zinc-200 pb-3 dark:border-zinc-800">
+            <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
               {activeSession?.title ?? 'New Chat'}
             </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Workspace-scoped assistant stream | Session model:{' '}
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Workspace-scoped assistant · Session model:{' '}
               {activeSession ? (formatSessionModel(activeSession) ?? 'not set') : 'not set'}
             </p>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col p-6 pt-0">
+          <CardContent className="flex flex-1 flex-col p-4 sm:p-6">
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {messages.length === 0 ? (
-                <div className="rounded-md border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
-                  Start a conversation. Your first message creates a session automatically.
+                <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
+                  <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Hi!</p>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    How can I help you today?
+                  </p>
+                  <p className="mt-4 max-w-md text-xs text-zinc-500 dark:text-zinc-500">
+                    Ask about your documents, memory, or study materials. Your first message creates
+                    a session automatically.
+                  </p>
                 </div>
               ) : (
                 messages.map((message) => (
@@ -679,10 +634,11 @@ export default function ChatPage() {
                   </Select>
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:justify-end">
-                  <p className="hidden text-xs text-muted-foreground md:block">
-                    Streaming contract active (CHAT-005)
-                  </p>
-                  <Button disabled={isSending || !input.trim()} type="submit">
+                  <Button
+                    className="rounded-full"
+                    disabled={isSending || !input.trim()}
+                    type="submit"
+                  >
                     {isSending ? 'Sending...' : 'Send'}
                   </Button>
                 </div>

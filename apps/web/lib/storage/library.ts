@@ -15,6 +15,7 @@ export type LibrarySource = {
   size: number;
   updatedAt: string | null;
   mimeType: string | null;
+  sourceType?: string | null;
 };
 
 type DbSourceRecord = {
@@ -27,6 +28,7 @@ type DbSourceRecord = {
   byte_size?: number | null;
   mime_type?: string | null;
   updated_at?: string | null;
+  source_type?: string | null;
 };
 
 export function getLibraryBucketName(): string {
@@ -51,7 +53,10 @@ function decodeSourceId(sourceId: string): string {
 
 function inferSourceType(fileName: string, mimeType: string | null): string {
   const ext = fileName.split('.').pop()?.toLowerCase();
+  const lowerName = fileName.toLowerCase();
 
+  if (ext === 'vtt' || ext === 'srt') return 'transcript';
+  if (lowerName.includes('transcript')) return 'transcript';
   if (ext === 'pdf') return 'pdf';
   if (ext === 'docx') return 'docx';
   if (ext === 'pptx') return 'pptx';
@@ -60,6 +65,22 @@ function inferSourceType(fileName: string, mimeType: string | null): string {
   if (mimeType?.startsWith('image/')) return 'image';
   if (mimeType?.startsWith('audio/')) return 'audio';
   return 'note_import';
+}
+
+export function isTranscriptSource(source: LibrarySource): boolean {
+  const type = source.sourceType ?? inferSourceType(source.name, source.mimeType);
+  if (type === 'transcript' || type === 'audio') {
+    return true;
+  }
+
+  const folder = source.folder.toLowerCase();
+  const project = source.project.toLowerCase();
+  if (folder.includes('transcript') || project.includes('transcript')) {
+    return true;
+  }
+
+  const ext = source.name.split('.').pop()?.toLowerCase();
+  return ext === 'vtt' || ext === 'srt' || ext === 'txt' || ext === 'md';
 }
 
 function toSourceFromStorage(
@@ -83,6 +104,7 @@ function toSourceFromStorage(
     size: item.metadata?.size ?? 0,
     updatedAt: item.updated_at ?? null,
     mimeType: item.metadata?.mimetype ?? null,
+    sourceType: inferSourceType(item.name, item.metadata?.mimetype ?? null),
   };
 }
 
@@ -100,6 +122,9 @@ function toSourceFromDb(workspaceId: string, row: DbSourceRecord): LibrarySource
     size: row.byte_size ?? 0,
     updatedAt: row.updated_at ?? null,
     mimeType: row.mime_type ?? null,
+    sourceType:
+      row.source_type ??
+      inferSourceType(row.display_name ?? fileNameFromPath, row.mime_type ?? null),
   };
 }
 
@@ -155,7 +180,7 @@ async function listSourcesFromDatabase(workspaceId: string): Promise<LibrarySour
   const { data, error } = await supabase
     .from('sources')
     .select(
-      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at',
+      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at, source_type',
     )
     .eq('workspace_id', workspaceId)
     .order('updated_at', { ascending: false });
@@ -238,6 +263,11 @@ export async function listLibrarySources(workspaceId: string): Promise<LibrarySo
   });
 }
 
+export async function listTranscriptSources(workspaceId: string): Promise<LibrarySource[]> {
+  const sources = await listLibrarySources(workspaceId);
+  return sources.filter(isTranscriptSource);
+}
+
 export async function uploadLibraryFile(
   workspaceId: string,
   file: File,
@@ -312,7 +342,7 @@ export async function getLibrarySource(
   const dbLookup = await supabase
     .from('sources')
     .select(
-      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at',
+      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at, source_type',
     )
     .eq('workspace_id', workspaceId)
     .eq('storage_path', objectPath)

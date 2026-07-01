@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { EmptyState } from '@/components/app/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -87,11 +89,18 @@ export default function AdminPage() {
 
   return (
     <AppShell
+      headerIcon={ShieldCheck}
       subtitle="Platform-level operational view for users, workspace footprint, and usage."
       title="Admin"
     >
       <section className="space-y-6">
-        {error ? (
+        {error === 'Admin access required.' ? (
+          <EmptyState
+            description="This area is restricted to platform administrators. Contact your workspace owner if you need access."
+            icon={ShieldCheck}
+            title="Admin access required"
+          />
+        ) : error ? (
           <div
             className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
             role="alert"
@@ -100,88 +109,94 @@ export default function AdminPage() {
           </div>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Usage summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2" role="status">
-                <p className="sr-only">Loading admin usage data</p>
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : usage ? (
-              <div className="grid gap-2 text-sm md:grid-cols-4">
-                <div className="rounded-md border bg-muted/20 p-3">Users: {usage.totalUsers}</div>
-                <div className="rounded-md border bg-muted/20 p-3">
-                  Workspaces: {usage.totalWorkspaces}
-                </div>
-                <div className="rounded-md border bg-muted/20 p-3">
-                  Sources: {usage.totalSources}
-                </div>
-                <div className="rounded-md border bg-muted/20 p-3">
-                  Messages: {usage.totalMessages}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No usage data available.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading users...</p>
-            ) : users.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No users found.</p>
-            ) : (
-              <div className="space-y-2">
-                {users.map((user) => (
-                  <div
-                    className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
-                    key={user.clerkUserId}
-                  >
-                    <p>{user.fullName ?? 'Unknown user'}</p>
-                    <p className="text-muted-foreground">{user.email ?? user.clerkUserId}</p>
+        {!error || error !== 'Admin access required.' ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Usage summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2" role="status">
+                    <p className="sr-only">Loading admin usage data</p>
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Workspace footprint</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading workspaces...</p>
-            ) : workspaces.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No workspace footprint yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {workspaces.map((workspace) => (
-                  <div
-                    className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
-                    key={workspace.workspaceId}
-                  >
-                    <p className="font-medium">{workspace.workspaceId}</p>
-                    <p className="text-muted-foreground">
-                      {workspace.projects} projects · {workspace.sources} sources ·{' '}
-                      {workspace.conversations} conversations
-                    </p>
+                ) : usage ? (
+                  <div className="grid gap-2 text-sm md:grid-cols-4">
+                    <div className="rounded-md border bg-muted/20 p-3">
+                      Users: {usage.totalUsers}
+                    </div>
+                    <div className="rounded-md border bg-muted/20 p-3">
+                      Workspaces: {usage.totalWorkspaces}
+                    </div>
+                    <div className="rounded-md border bg-muted/20 p-3">
+                      Sources: {usage.totalSources}
+                    </div>
+                    <div className="rounded-md border bg-muted/20 p-3">
+                      Messages: {usage.totalMessages}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No usage data available.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading users...</p>
+                ) : users.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No users found.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {users.map((user) => (
+                      <div
+                        className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
+                        key={user.clerkUserId}
+                      >
+                        <p>{user.fullName ?? 'Unknown user'}</p>
+                        <p className="text-muted-foreground">{user.email ?? user.clerkUserId}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Workspace footprint</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading workspaces...</p>
+                ) : workspaces.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No workspace footprint yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {workspaces.map((workspace) => (
+                      <div
+                        className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
+                        key={workspace.workspaceId}
+                      >
+                        <p className="font-medium">{workspace.workspaceId}</p>
+                        <p className="text-muted-foreground">
+                          {workspace.projects} projects · {workspace.sources} sources ·{' '}
+                          {workspace.conversations} conversations
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
       </section>
     </AppShell>
   );

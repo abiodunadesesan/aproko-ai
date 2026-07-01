@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { UserRound } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,7 +118,11 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <AppShell subtitle="Manage your profile and default AI preferences." title="Settings">
+    <AppShell
+      headerIcon={UserRound}
+      subtitle="Your account details and subscription."
+      title="Settings"
+    >
       <section className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -217,7 +222,7 @@ export default function SettingsPage() {
       ) : null}
       {notice ? (
         <div
-          className="mt-4 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+          className="mt-4 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
           role="status"
         >
           {notice}

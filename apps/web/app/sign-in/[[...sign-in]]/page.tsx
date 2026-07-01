@@ -1,15 +1,10 @@
 import { AuthShell } from '@/components/auth-shell';
-import { clerkDarkAppearance } from '@/lib/clerk-appearance';
-import { SignIn } from '@clerk/nextjs';
+import { ClerkSignInForm } from '@/components/auth/clerk-sign-in-form';
 
 export default function SignInPage() {
   return (
     <AuthShell mode="sign-in">
-      <SignIn
-        appearance={clerkDarkAppearance}
-        fallbackRedirectUrl="/dashboard"
-        forceRedirectUrl="/dashboard"
-      />
+      <ClerkSignInForm />
     </AuthShell>
   );
 }

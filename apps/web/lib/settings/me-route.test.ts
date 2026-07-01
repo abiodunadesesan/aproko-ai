@@ -7,6 +7,7 @@ test('me GET returns 401 when unauthenticated', async () => {
     auth: async () => ({ userId: null }),
     getProfileByClerkUserId: async () => null,
     updateProfileByClerkUserId: async () => null,
+    isAdminUser: () => false,
   });
 
   const response = await handlers.GET();
@@ -24,6 +25,7 @@ test('me GET returns profile payload', async () => {
       avatar_url: null,
     }),
     updateProfileByClerkUserId: async () => null,
+    isAdminUser: () => false,
   });
 
   const response = await handlers.GET();
@@ -31,9 +33,11 @@ test('me GET returns profile payload', async () => {
   const payload = (await response.json()) as {
     clerk_user_id: string;
     profile: { full_name: string };
+    isAdmin: boolean;
   };
   assert.equal(payload.clerk_user_id, 'user_1');
   assert.equal(payload.profile.full_name, 'Aproko User');
+  assert.equal(payload.isAdmin, false);
 });
 
 test('me PATCH validates required full_name key', async () => {
@@ -41,6 +45,7 @@ test('me PATCH validates required full_name key', async () => {
     auth: async () => ({ userId: 'user_1' }),
     getProfileByClerkUserId: async () => null,
     updateProfileByClerkUserId: async () => null,
+    isAdminUser: () => false,
   });
 
   const response = await handlers.PATCH(
@@ -65,6 +70,7 @@ test('me PATCH returns updated profile', async () => {
       full_name: 'Updated Name',
       avatar_url: null,
     }),
+    isAdminUser: () => true,
   });
 
   const response = await handlers.PATCH(

@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { FileText } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
+import { EmptyState } from '@/components/app/empty-state';
+import { TableSkeleton } from '@/components/app/table-skeleton';
 import { buttonVariants } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -15,7 +18,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -1235,10 +1237,7 @@ export default function LibraryPage() {
   }, []);
 
   return (
-    <AppShell
-      subtitle="Upload and organize workspace knowledge by projects and folders."
-      title="Library"
-    >
+    <AppShell headerIcon={FileText} subtitle="Upload and manage your documents." title="Library">
       <section className="space-y-6">
         <Card>
           <CardHeader>
@@ -1616,7 +1615,7 @@ export default function LibraryPage() {
             ) : null}
             {notice ? (
               <p
-                className="mb-3 rounded-md border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-700"
+                className="mb-3 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
                 role="status"
               >
                 {notice}
@@ -1660,37 +1659,38 @@ export default function LibraryPage() {
             ) : null}
 
             {isLoading ? (
-              <div className="space-y-3" role="status">
-                <p className="text-sm text-muted-foreground">Loading library...</p>
-                <div className="space-y-2">
-                  <Skeleton className="h-10 w-full rounded-md" />
-                  <Skeleton className="h-10 w-full rounded-md" />
-                  <Skeleton className="h-10 w-full rounded-md" />
-                </div>
-              </div>
+              <TableSkeleton rows={6} />
             ) : sources.length === 0 ? (
-              <div className="rounded-md border border-dashed p-4">
-                <p className="text-sm text-muted-foreground">
-                  No files yet. Upload your first source above.
-                </p>
-              </div>
+              <EmptyState
+                action={
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Use the upload form above to add your first file.
+                  </p>
+                }
+                description="Upload PDFs, slides, and transcripts to make them searchable across chat and study."
+                icon={FileText}
+                title="No documents yet"
+              />
             ) : filteredSources.length === 0 ? (
-              <div className="rounded-md border border-dashed p-4">
-                <p className="text-sm text-muted-foreground">
-                  No files match your current search and filters.
-                </p>
-                <button
-                  className={`${buttonSecondaryClass} mt-3`}
-                  onClick={() => {
-                    setQuery('');
-                    setProjectFilter('all');
-                    setFolderFilter('all');
-                  }}
-                  type="button"
-                >
-                  Clear filters
-                </button>
-              </div>
+              <EmptyState
+                compact
+                action={
+                  <button
+                    className={`${buttonSecondaryClass} mt-1`}
+                    onClick={() => {
+                      setQuery('');
+                      setProjectFilter('all');
+                      setFolderFilter('all');
+                    }}
+                    type="button"
+                  >
+                    Clear filters
+                  </button>
+                }
+                description="Try a different search term or reset your project and folder filters."
+                icon={FileText}
+                title="No matching documents"
+              />
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
