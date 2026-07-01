@@ -3,7 +3,6 @@ import { auth } from '@clerk/nextjs/server';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { getLibrarySignedUrl, getLibrarySource } from '@/lib/storage/library';
 
 const WORKSPACE_ID = 'default-workspace';
@@ -34,7 +33,7 @@ export default async function LibrarySourcePage({
             <Link href="/library">Back to library</Link>
           </Button>
         }
-        meta={appPageMeta.librarySource}
+        pageId="librarySource"
         subtitle="This document could not be found."
         title="Source not found"
       >
@@ -53,7 +52,7 @@ export default async function LibrarySourcePage({
           <Link href="/library">Back to library</Link>
         </Button>
       }
-      meta={appPageMeta.librarySource}
+      pageId="librarySource"
       subtitle={`Project: ${source.project} · Folder: ${source.folder}`}
       title={source.name}
     >

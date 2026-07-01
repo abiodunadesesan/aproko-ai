@@ -13,6 +13,8 @@ import {
   UserRound,
 } from 'lucide-react';
 
+export type AppPageId = keyof typeof appPageMeta;
+
 export type AppPageMeta = {
   title: string;
   subtitle: string;

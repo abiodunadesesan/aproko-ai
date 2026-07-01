@@ -5,7 +5,6 @@ import { Search as SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -102,7 +101,7 @@ export default function SearchPage() {
   }
 
   return (
-    <AppPageShell meta={appPageMeta.search}>
+    <AppPageShell pageId="search">
       <section className="space-y-4">
         <Card>
           <CardHeader>

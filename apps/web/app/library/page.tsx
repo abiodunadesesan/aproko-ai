@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
 import { buttonVariants } from '@/components/ui/button';
@@ -1238,7 +1237,7 @@ export default function LibraryPage() {
   }, []);
 
   return (
-    <AppPageShell meta={appPageMeta.library}>
+    <AppPageShell pageId="library">
       <section className="space-y-6">
         <Card>
           <CardHeader>

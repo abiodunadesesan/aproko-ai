@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -250,7 +249,7 @@ export default function ResearchPage() {
   }
 
   return (
-    <AppPageShell meta={appPageMeta.research}>
+    <AppPageShell pageId="research">
       <section className="space-y-4">
         <Card>
           <CardHeader>

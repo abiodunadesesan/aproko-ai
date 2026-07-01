@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -89,7 +88,7 @@ export default function AdminPage() {
   }, []);
 
   return (
-    <AppPageShell meta={appPageMeta.admin}>
+    <AppPageShell pageId="admin">
       <section className="space-y-6">
         {error === 'Admin access required.' ? (
           <EmptyState

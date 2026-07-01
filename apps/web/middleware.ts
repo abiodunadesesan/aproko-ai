@@ -20,28 +20,34 @@ const isProtectedRoute = createRouteMatcher([
   '/api/v1/me(.*)',
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  const pathname = req.nextUrl.pathname;
+export default clerkMiddleware(
+  async (auth, req) => {
+    const pathname = req.nextUrl.pathname;
 
-  if (pathname === '/sign-in' || pathname === '/sign-up') {
-    const { userId } = await auth();
-    if (userId) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
-    return;
-  }
-
-  if (isProtectedRoute(req)) {
-    const isE2EMockAuthEnabled = process.env.E2E_MOCK_AUTH === 'true';
-    const hasE2EMockAuthCookie = req.cookies.get('aproko_e2e_auth')?.value === '1';
-
-    if (isE2EMockAuthEnabled && hasE2EMockAuthCookie) {
+    if (pathname === '/sign-in' || pathname === '/sign-up') {
+      const { userId } = await auth();
+      if (userId) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
       return;
     }
 
-    await auth.protect();
-  }
-});
+    if (isProtectedRoute(req)) {
+      const isE2EMockAuthEnabled = process.env.E2E_MOCK_AUTH === 'true';
+      const hasE2EMockAuthCookie = req.cookies.get('aproko_e2e_auth')?.value === '1';
+
+      if (isE2EMockAuthEnabled && hasE2EMockAuthCookie) {
+        return;
+      }
+
+      await auth.protect({ unauthenticatedUrl: '/sign-in' });
+    }
+  },
+  {
+    signInUrl: '/sign-in',
+    signUpUrl: '/sign-up',
+  },
+);
 
 export const config = {
   matcher: [

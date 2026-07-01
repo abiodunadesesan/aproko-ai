@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { PricingSection } from '@/components/landing/pricing-section';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { normalizePlanCode, type PlanCode } from '@/lib/pricing-plans';
@@ -129,7 +128,7 @@ export default function BillingPage() {
   }, []);
 
   return (
-    <AppPageShell meta={appPageMeta.billing}>
+    <AppPageShell pageId="billing">
       <section className="space-y-6 sm:space-y-8">
         <PricingSection
           currentPlanCode={normalizedCurrentPlan}

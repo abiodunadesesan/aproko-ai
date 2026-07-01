@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Mic, Upload } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
 import { Button } from '@/components/ui/button';
@@ -128,7 +127,7 @@ export default function TranscriptsPage() {
   }
 
   return (
-    <AppPageShell headerBadge={`${transcripts.length} files`} meta={appPageMeta.transcripts}>
+    <AppPageShell headerBadge={`${transcripts.length} files`} pageId="transcripts">
       <section className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">

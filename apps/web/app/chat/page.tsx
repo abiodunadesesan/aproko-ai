@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -496,7 +495,7 @@ export default function ChatPage() {
   }, [activeSessionId]);
 
   return (
-    <AppPageShell meta={appPageMeta.chat}>
+    <AppPageShell pageId="chat">
       <section className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <ChatSessionSidebar
           activeSessionId={activeSessionId}

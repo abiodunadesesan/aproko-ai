@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +29,13 @@ const statusVariant: Record<DashboardActivityStatus, 'default' | 'secondary' | '
 
 export default async function DashboardPage() {
   const { userId } = await auth();
-  const user = await currentUser();
+  let user = null;
+
+  try {
+    user = await currentUser();
+  } catch (error) {
+    console.error('Dashboard user lookup failed', error);
+  }
 
   let profileSynced = false;
 
@@ -43,7 +48,21 @@ export default async function DashboardPage() {
     }
   }
 
-  const stats = await getWorkspaceDashboardStats('default-workspace', userId);
+  let stats;
+  try {
+    stats = await getWorkspaceDashboardStats('default-workspace', userId);
+  } catch (error) {
+    console.error('Dashboard stats load failed', error);
+    stats = {
+      sourceCount: 0,
+      sourcesThisWeek: 0,
+      memoryCount: 0,
+      studyItemCount: 0,
+      chatSessionCount: 0,
+      studyStreakDays: 0,
+      recentActivity: [],
+    };
+  }
 
   const metrics = [
     {
@@ -76,7 +95,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <AppPageShell meta={appPageMeta.dashboard}>
+    <AppPageShell pageId="dashboard">
       <section className="space-y-6">
         <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
           <CardHeader>

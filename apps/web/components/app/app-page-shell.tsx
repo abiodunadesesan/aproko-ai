@@ -2,10 +2,10 @@
 
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/app-shell';
-import type { AppPageMeta } from '@/lib/navigation/app-pages';
+import { appPageMeta, type AppPageId } from '@/lib/navigation/app-pages';
 
 type AppPageShellProps = {
-  meta: AppPageMeta;
+  pageId: AppPageId;
   children: ReactNode;
   title?: string;
   subtitle?: string;
@@ -14,13 +14,15 @@ type AppPageShellProps = {
 };
 
 export function AppPageShell({
-  meta,
+  pageId,
   children,
   title,
   subtitle,
   headerBadge,
   headerAction,
 }: AppPageShellProps) {
+  const meta = appPageMeta[pageId];
+
   return (
     <AppShell
       headerIcon={meta.icon}

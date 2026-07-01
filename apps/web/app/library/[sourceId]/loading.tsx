@@ -1,10 +1,9 @@
 import { AppLoadingShell } from '@/components/app/app-loading-shell';
-import { appPageMeta } from '@/lib/navigation/app-pages';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LibrarySourceLoading() {
   return (
-    <AppLoadingShell meta={appPageMeta.librarySource}>
+    <AppLoadingShell pageId="librarySource">
       <section className="space-y-6">
         <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
           <Skeleton className="h-6 w-48" />
