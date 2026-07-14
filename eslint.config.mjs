@@ -14,6 +14,7 @@ export default tseslint.config(
       '**/public/**',
       '**/postcss.config.mjs',
       '**/next-env.d.ts',
+      '**/.cursor/skills/**',
     ],
   },
   js.configs.recommended,

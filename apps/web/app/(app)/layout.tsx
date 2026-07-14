@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { connection } from 'next/server';
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  await connection();
   return children;
 }

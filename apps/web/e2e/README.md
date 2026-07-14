@@ -49,7 +49,7 @@ pnpm e2e:ui
 
 Playwright starts Next.js with `E2E_MOCK_AUTH=true`.
 
-When this flag is enabled, middleware allows protected routes only if the
+When this flag is enabled, the proxy layer allows protected routes only if the
 `aproko_e2e_auth=1` cookie is present. Tests that need authenticated shell behavior set this
 cookie explicitly via `enableMockAuth()`.
 
