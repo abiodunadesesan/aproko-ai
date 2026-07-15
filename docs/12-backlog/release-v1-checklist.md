@@ -3,7 +3,7 @@
 ## Status
 
 - **Release target:** `Aproko AI Web V1`
-- **State:** In Progress (quality and CI/CD gates passing; production deployment validation pending)
+- **State:** Launch-ready pending `VERCEL_TOKEN` GitHub secret and final product sign-off
 
 ## Go-Live Gates
 
@@ -26,10 +26,11 @@
 
 ### 3) Infrastructure and Environment
 
-- [ ] Production environment variables verified (Clerk, Supabase, analytics, observability, billing).
+- [x] Production environment variables verified for auth, data, rate limits, and Sentry (Clerk, Supabase, Upstash, Sentry DSNs on Production).
 - [x] Supabase migrations applied and confirmed (`supabase db push` in linked project).
 - [ ] Clerk production settings verified (redirect URLs, OAuth providers, session settings).
 - [ ] Storage bucket policies and CORS validated for production behavior.
+- [ ] `POSTHOG_API_KEY` and `NEXT_PUBLIC_APP_URL` added to Vercel (deferred if analytics/billing not in launch scope).
 
 **Required production env vars** (see `apps/web/.env.example`):
 
@@ -44,49 +45,49 @@
 
 ### 4) CI/CD and Deployment
 
-- [x] GitHub `CI` workflow green on main (latest run: `28455414852`).
-- [x] GitHub `Vercel Deploy` workflow green on main (latest run: `28455414496`, deploy path skipped because `VERCEL_TOKEN` is unset).
-- [x] Vercel production deployment healthy and accessible (`https://aprokoai.vercel.app`, deployment `dpl_EM3yqb9mCQbPCUYC6mQKtd3XveMZ`).
+- [x] GitHub `CI` workflow green on main (latest run: `29406111644`, commit `7d60693`).
+- [ ] GitHub `Vercel Deploy` workflow performs real deploys (`VERCEL_TOKEN` secret not yet configured).
+- [x] Vercel production deployment healthy and accessible (`https://aprokoai.vercel.app`, deployment `dpl_GAoVMYdj7PwfDipRBevnRHJkcKyJ`).
 - [x] Rollback path documented (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 5) Observability and Operations
 
-- [ ] Sentry receiving frontend/server errors in production.
+- [x] Sentry example route reachable in production (`/sentry-example-page` returns `200`; `/api/sentry-example-api` returns `500` as expected).
+- [ ] Sentry issue confirmed in dashboard after triggering example error (manual check in Sentry UI).
 - [ ] PostHog events visible for critical flows.
 - [ ] Alerting/escalation owners identified for launch week.
 - [x] Basic operational runbook available for incident response (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 6) Security and Compliance Baseline
 
-- [ ] Auth-protected routes and admin routes manually verified in production.
+- [x] Auth-protected API routes return redirect/guard for signed-out users in production (`/api/v1/me`, `/api/v1/billing/subscription`, `/api/v1/admin/users` return `307`).
 - [x] Secrets are not committed and are sourced from environment providers only (tracked file/pattern scan completed).
-- [ ] Public API endpoints reviewed for auth/validation/rate-limit posture.
+- [x] Public API endpoints reviewed for auth/validation/rate-limit posture (billing checkout/subscription and profile mutation routes rate-limited).
 - [x] Rate limiting added to billing checkout/subscription and profile mutation routes; workspace write routes already covered (see `apps/web/lib/api/rate-limit.ts`).
 - [x] Data retention and deletion behavior documented for user-facing support (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 7) Launch Execution
 
-- [x] Final smoke test on production URL completed (root and sign-in return `200`; auth-protected route is guarded for signed-out users).
-- [ ] Internal launch sign-off recorded (engineering + product).
+- [x] Final smoke test on production URL completed (2026-07-15): core routes return `200`; auth APIs guarded with `307`.
+- [x] Engineering launch sign-off recorded (2026-07-15): CI green, production deploy healthy, Sentry integrated, smoke checks passing.
+- [ ] Product launch sign-off recorded.
 - [ ] Public launch checklist completed (changelog/release note/announcement).
 - [ ] Post-launch monitoring window scheduled (first 24-72h).
 
 ## Release Decision
 
-- **Go/No-Go:** `TBD`
-- **Release owner:** `TBD`
+- **Go/No-Go:** `Go` (engineering) / `Pending` (product)
+- **Release owner:** `Engineering: completed 2026-07-15` / `Product: TBD`
 - **Planned release date:** `TBD`
 
 ## Notes
 
 - Local release quality suite re-run and passing (`lint`, `typecheck`, `unit`, `e2e`, `build`).
 - Supabase remote migration list confirms local/remote parity through `202606300003`.
-- Last CI failure root cause: build required Clerk provider with an invalid placeholder key in CI.
-- Mitigation added: layout now only mounts `ClerkProvider` when a valid publishable key is present.
-- Last Vercel deploy failure root cause: missing `VERCEL_TOKEN` secret caused CLI `--token` empty error.
-- Latest push-triggered runs are green for both `CI` and `Vercel Deploy`.
-- Current deploy workflow status: passing in skip mode; production deploy remains blocked until `VERCEL_TOKEN` is configured.
-- Production deploy performed via Vercel CLI; initial runtime failure (`MIDDLEWARE_INVOCATION_FAILED`) traced to Clerk env propagation under Turbo.
-- Fixes applied: production Clerk keys synced, `turbo.json` `globalEnv` updated for Clerk/Supabase runtime variables, and production redeployed successfully.
-- Release operations runbook added with explicit smoke/rollback/incident/data-handling procedures.
-- Public API posture quick scan: auth and validation checks are broadly present in `app/api/v1`; explicit request rate limiting is not yet implemented and remains a release risk.
+- CI typecheck failure on Sentry commit (`5efadb9`) fixed in `7d60693` by conditionally passing `authToken` to `withSentryConfig`.
+- GitHub CI run `29406111644` green after fix (lint, typecheck, build).
+- Production smoke test (2026-07-15): `/`, `/sign-in`, `/sign-up`, `/dashboard`, `/library`, `/chat`, `/memory`, `/study`, `/research`, `/billing`, `/settings`, `/admin`, `/sentry-example-page` all return `200`.
+- Sentry example API returns `500` in production (expected fault injection).
+- `VERCEL_TOKEN` GitHub secret still required for automated deploys on push; manual CLI deploy from repo root works.
+- Production deploy performed via Vercel CLI; deployment `dpl_GAoVMYdj7PwfDipRBevnRHJkcKyJ` aliased to `https://aprokoai.vercel.app`.
+- Release operations runbook available with explicit smoke/rollback/incident/data-handling procedures.
