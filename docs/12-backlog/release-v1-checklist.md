@@ -27,6 +27,7 @@
 ### 3) Infrastructure and Environment
 
 - [x] Production environment variables verified for auth, data, rate limits, and Sentry (Clerk, Supabase, Upstash, Sentry DSNs on Production).
+- [x] `NEXT_PUBLIC_APP_URL` and Clerk force-redirect URLs set on Vercel Production (2026-07-15).
 - [x] Supabase migrations applied and confirmed (`supabase db push` in linked project).
 - [ ] Clerk production settings verified (redirect URLs, OAuth providers, session settings).
 - [ ] Storage bucket policies and CORS validated for production behavior.
