@@ -29,29 +29,29 @@ export type AppNavGroup = {
 
 export const chatNavItem: AppNavItem = {
   id: 'chat',
-  label: 'AI Chat',
+  label: 'Chat',
   href: '/chat',
   icon: MessageSquare,
 };
 
 export const appNavGroups: AppNavGroup[] = [
   {
-    label: 'Navigation',
+    label: 'Workspace',
     items: [
       { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { id: 'search', label: 'Search', href: '/search', icon: Search },
-      { id: 'transcripts', label: 'My Transcripts', href: '/transcripts', icon: Mic },
-      { id: 'library', label: 'Documents', href: '/library', icon: FileText },
-      { id: 'memory', label: 'Remembered', href: '/memory', icon: Brain },
+      { id: 'transcripts', label: 'Transcripts', href: '/transcripts', icon: Mic },
+      { id: 'library', label: 'Library', href: '/library', icon: FileText },
+      { id: 'memory', label: 'Memory', href: '/memory', icon: Brain },
       { id: 'research', label: 'Research', href: '/research', icon: Sparkles },
-      { id: 'study', label: 'Study Materials', href: '/study', icon: BookOpen },
+      { id: 'study', label: 'Study', href: '/study', icon: BookOpen },
       { id: 'writing', label: 'Writing', href: '/writing', icon: PenLine },
     ],
   },
   {
     label: 'Account',
     items: [
-      { id: 'settings', label: 'Profile', href: '/settings', icon: Settings },
+      { id: 'settings', label: 'Settings', href: '/settings', icon: Settings },
       { id: 'billing', label: 'Billing', href: '/billing', icon: CreditCard },
       { id: 'admin', label: 'Admin', href: '/admin', icon: ShieldCheck },
     ],

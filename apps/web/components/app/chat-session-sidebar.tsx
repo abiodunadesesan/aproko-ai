@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MessageSquare, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { MessageSquare, Pencil, Search, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 export type ChatSessionListItem = {
   id: string;
@@ -24,23 +25,17 @@ type ChatSessionSidebarProps = {
   onNewSession: () => void;
   onRenameSession: (session: ChatSessionListItem) => void;
   onDeleteSession: (session: ChatSessionListItem) => void;
+  className?: string;
 };
-
-function formatSessionModel(session: ChatSessionListItem): string | null {
-  if (session.modelProvider && session.modelName) {
-    return `${session.modelProvider}:${session.modelName}`;
-  }
-  return null;
-}
 
 export function ChatSessionSidebar({
   sessions,
   activeSessionId,
   isLoading,
   onSelectSession,
-  onNewSession,
   onRenameSession,
   onDeleteSession,
+  className,
 }: ChatSessionSidebarProps) {
   const [query, setQuery] = useState('');
 
@@ -53,75 +48,73 @@ export function ChatSessionSidebar({
   }, [query, sessions]);
 
   return (
-    <aside className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
-      <div className="space-y-3 border-b border-zinc-200/80 p-4 dark:border-zinc-800">
-        <Button className="w-full rounded-xl" onClick={onNewSession} type="button">
-          <Plus className="mr-1.5 h-4 w-4" />
-          New chat
-        </Button>
+    <aside
+      className={cn(
+        'flex h-full min-h-0 flex-col border-r border-zinc-200/70 bg-zinc-50/80 dark:border-zinc-800/80 dark:bg-[#171717]',
+        className,
+      )}
+    >
+      <div className="space-y-2 p-3">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
           <Input
             aria-label="Search conversations"
-            className="h-9 rounded-xl border-zinc-200 bg-white pl-9 dark:border-zinc-700 dark:bg-zinc-950"
+            className="h-9 rounded-full border-zinc-200/80 bg-white pl-9 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search chats..."
+            placeholder="Search chats"
             value={query}
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="px-3 pb-1">
+        <p className="px-2 text-[11px] font-medium text-zinc-500">Recents</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-2 pb-3">
         {isLoading ? (
-          <div className="space-y-2 p-2">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
+          <div className="space-y-1.5 p-1">
+            <Skeleton className="h-9 w-full rounded-lg" />
+            <Skeleton className="h-9 w-full rounded-lg" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
         ) : filteredSessions.length === 0 ? (
           <EmptyState
-            compact
             className="mx-1 border-none bg-transparent"
+            compact
             description={
               query.trim()
                 ? 'Try a different search term.'
-                : 'Send a message to create your first conversation.'
+                : 'Your conversations will show up here.'
             }
             icon={MessageSquare}
-            title={query.trim() ? 'No conversations found' : 'No conversations yet'}
+            title={query.trim() ? 'No chats found' : 'No chats yet'}
           />
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             {filteredSessions.map((session) => {
               const isActive = activeSessionId === session.id;
               return (
                 <li key={session.id}>
                   <div
-                    className={`group flex items-start gap-1 rounded-xl border px-2 py-2 transition-colors ${
+                    className={cn(
+                      'group flex items-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors',
                       isActive
-                        ? 'border-zinc-300 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/80'
-                        : 'border-transparent hover:border-zinc-200 hover:bg-white/80 dark:hover:border-zinc-800 dark:hover:bg-zinc-900'
-                    }`}
+                        ? 'bg-zinc-200/90 dark:bg-zinc-800'
+                        : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60',
+                    )}
                   >
                     <button
-                      className="min-w-0 flex-1 text-left"
+                      className="min-w-0 flex-1 truncate text-left text-[13px] text-zinc-800 dark:text-zinc-200"
                       onClick={() => onSelectSession(session.id)}
                       type="button"
                     >
-                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        {session.title}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {new Date(session.lastMessageAt ?? session.updatedAt).toLocaleString()}
-                      </p>
-                      <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-500">
-                        {formatSessionModel(session) ?? 'model pending'}
-                      </p>
+                      {session.title}
                     </button>
-                    <div className="flex shrink-0 flex-col gap-0.5 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                    <div className="flex shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                       <Button
                         aria-label={`Rename ${session.title}`}
-                        className="h-7 w-7"
+                        className="h-7 w-7 text-zinc-500"
                         onClick={() => onRenameSession(session)}
                         size="icon"
                         type="button"
@@ -131,7 +124,7 @@ export function ChatSessionSidebar({
                       </Button>
                       <Button
                         aria-label={`Delete ${session.title}`}
-                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        className="h-7 w-7 text-zinc-500 hover:text-red-500"
                         onClick={() => onDeleteSession(session)}
                         size="icon"
                         type="button"

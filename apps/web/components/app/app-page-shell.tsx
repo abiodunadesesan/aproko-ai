@@ -11,6 +11,8 @@ type AppPageShellProps = {
   subtitle?: string;
   headerBadge?: string;
   headerAction?: ReactNode;
+  /** Full-bleed layout without page header (ChatGPT-style chat). */
+  immersive?: boolean;
 };
 
 export function AppPageShell({
@@ -20,8 +22,23 @@ export function AppPageShell({
   subtitle,
   headerBadge,
   headerAction,
+  immersive = false,
 }: AppPageShellProps) {
   const meta = appPageMeta[pageId];
+
+  if (immersive) {
+    return (
+      <AppShell
+        immersive
+        subtitle={subtitle ?? meta.subtitle}
+        title={title ?? meta.title}
+        {...(headerBadge ? { headerBadge } : {})}
+        {...(headerAction ? { headerAction } : {})}
+      >
+        {children}
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

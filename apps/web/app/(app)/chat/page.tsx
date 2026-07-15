@@ -1,12 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type RefObject,
+} from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mic, Square } from 'lucide-react';
+import { ArrowUp, FolderOpen, Globe, Mic, PenLine, Square } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const WORKSPACE_ID = 'default-workspace';
 const LAST_SESSION_STORAGE_KEY = `aproko.chat.last-session.${WORKSPACE_ID}`;
@@ -170,6 +179,7 @@ export default function ChatPage() {
   const [renameTitle, setRenameTitle] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -179,6 +189,7 @@ export default function ChatPage() {
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [activeSessionId, sessions],
   );
+  const showEmptyState = messages.length === 0 && !isSending;
 
   useEffect(() => {
     if (!activeSession) {
@@ -190,30 +201,38 @@ export default function ChatPage() {
     }
   }, [activeSession]);
 
-  const loadSessions = useCallback(async (nextSessionId?: string | null) => {
-    setIsLoadingSessions(true);
-    setError(null);
+  const loadSessions = useCallback(
+    async (nextSessionId?: string | null, options?: { preferEmpty?: boolean }) => {
+      setIsLoadingSessions(true);
+      setError(null);
 
-    try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions`);
-      const payload = (await response.json()) as SessionsResponse;
-      if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to load chat sessions');
+      try {
+        const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions`);
+        const payload = (await response.json()) as SessionsResponse;
+        if (!response.ok) {
+          throw new Error(payload.error ?? 'Failed to load chat sessions');
+        }
+
+        setSessions(payload.data);
+        if (options?.preferEmpty) {
+          setActiveSessionId(null);
+          return;
+        }
+
+        const fallbackId = payload.data[0]?.id ?? null;
+        const requestedId = nextSessionId?.trim() ?? '';
+        const requestedIsAvailable = requestedId
+          ? payload.data.some((session) => session.id === requestedId)
+          : false;
+        setActiveSessionId(requestedIsAvailable ? requestedId : fallbackId);
+      } catch (fetchError) {
+        setError(fetchError instanceof Error ? fetchError.message : 'Failed to load chat sessions');
+      } finally {
+        setIsLoadingSessions(false);
       }
-
-      setSessions(payload.data);
-      const fallbackId = payload.data[0]?.id ?? null;
-      const requestedId = nextSessionId?.trim() ?? '';
-      const requestedIsAvailable = requestedId
-        ? payload.data.some((session) => session.id === requestedId)
-        : false;
-      setActiveSessionId(requestedIsAvailable ? requestedId : fallbackId);
-    } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : 'Failed to load chat sessions');
-    } finally {
-      setIsLoadingSessions(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   async function loadMessages(sessionId: string) {
     setError(null);
@@ -683,18 +702,21 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
-    const searchSessionId =
-      typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('session')
-        : null;
+    const params =
+      typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const wantsNewChat = params?.get('new') === '1';
+    const searchSessionId = params?.get('session') ?? null;
     const storedSessionId =
       typeof window !== 'undefined' ? window.localStorage.getItem(LAST_SESSION_STORAGE_KEY) : null;
-    const preferredSessionId = searchSessionId ?? storedSessionId;
+    const preferredSessionId = wantsNewChat ? null : (searchSessionId ?? storedSessionId);
 
-    void loadSessions(preferredSessionId).finally(() => {
+    void loadSessions(preferredSessionId, { preferEmpty: Boolean(wantsNewChat) }).finally(() => {
       setIsHistoryReady(true);
+      if (wantsNewChat) {
+        router.replace('/chat');
+      }
     });
-  }, [loadSessions]);
+  }, [loadSessions, router]);
 
   useEffect(() => {
     if (!isHistoryReady || typeof window === 'undefined') {
@@ -702,6 +724,7 @@ export default function ChatPage() {
     }
 
     const params = new URLSearchParams(window.location.search);
+    params.delete('new');
 
     if (activeSessionId) {
       params.set('session', activeSessionId);
@@ -724,11 +747,29 @@ export default function ChatPage() {
     void loadMessages(activeSessionId);
   }, [activeSessionId]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isSending]);
+
+  function autoResizeComposer() {
+    const el = chatInputRef.current;
+    if (!el) {
+      return;
+    }
+    el.style.height = '0px';
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }
+
+  useEffect(() => {
+    autoResizeComposer();
+  }, [input]);
+
   return (
-    <AppPageShell pageId="chat">
-      <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
+    <AppPageShell immersive pageId="chat">
+      <section className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)]">
         <ChatSessionSidebar
           activeSessionId={activeSessionId}
+          className="hidden min-h-[calc(100svh-3rem)] lg:flex"
           isLoading={isLoadingSessions}
           onDeleteSession={(session) => {
             void removeSession(session as ChatSession);
@@ -741,167 +782,167 @@ export default function ChatPage() {
           sessions={sessions}
         />
 
-        <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-zinc-200/80 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-900/60">
-          <CardHeader className="border-b border-zinc-200/80 pb-3 dark:border-zinc-800">
-            <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {activeSession?.title ?? 'New chat'}
-            </CardTitle>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              Grounded in your library · Model:{' '}
-              {activeSession ? (formatSessionModel(activeSession) ?? selectedModel) : selectedModel}
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col p-4 sm:p-6">
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-              {messages.length === 0 ? (
-                <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
-                  <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                    Hi — ask anything about your workspace
-                  </p>
-                  <p className="mt-2 max-w-md text-sm text-zinc-600 dark:text-zinc-400">
-                    Your first message creates a chat. Use rename and delete in the sidebar to
-                    manage conversations.
-                  </p>
+        <div className="relative flex min-h-[calc(100svh-3rem)] flex-col bg-white dark:bg-[#212121]">
+          <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6">
+            <div className="min-w-0">
+              <Select
+                disabled={isSending}
+                onValueChange={(value) => {
+                  if (isChatModel(value)) {
+                    setSelectedModel(value);
+                  }
+                }}
+                value={selectedModel}
+              >
+                <SelectTrigger
+                  className="h-8 w-auto min-w-[10rem] border-none bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0"
+                  id="chat-model-select"
+                >
+                  <SelectValue placeholder="Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHAT_MODELS.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="truncate px-2 text-[11px] text-zinc-500">
+                {activeSession?.title ?? 'New chat'} · grounded in your library
+              </p>
+            </div>
+          </header>
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {showEmptyState ? (
+              <div
+                className="flex flex-1 flex-col items-center justify-center px-4 pb-8 pt-6"
+                data-testid="chat-welcome"
+              >
+                <h1 className="max-w-xl text-center text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+                  What&apos;s on your mind today?
+                </h1>
+                <p className="mt-3 max-w-md text-center text-sm text-zinc-500">
+                  Ask about your documents, notes, and memory — Aproko answers with citations.
+                </p>
+
+                <form
+                  className="mt-10 w-full max-w-2xl"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void sendMessage(input);
+                  }}
+                >
+                  <Composer
+                    error={error}
+                    input={input}
+                    isListening={isListening}
+                    isSending={isSending}
+                    isTranscribingVoice={isTranscribingVoice}
+                    onChange={setInput}
+                    onToggleVoice={() => void toggleVoiceInput()}
+                    textareaRef={chatInputRef}
+                  />
+                </form>
+
+                <div className="mt-6 flex flex-col items-stretch gap-2 sm:items-center">
+                  <QuickPrompt href="/writing" icon={PenLine} label="Write or edit" />
+                  <QuickPrompt href="/search" icon={Globe} label="Look something up" />
+                  <QuickPrompt href="/library" icon={FolderOpen} label="Browse your library" />
                 </div>
-              ) : (
-                messages.map((message) => (
+              </div>
+            ) : (
+              <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6 md:px-6">
+                {messages.map((message) => (
                   <article
-                    className={`rounded-xl border px-3 py-2.5 transition-colors ${
-                      message.role === 'assistant'
-                        ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/50'
-                        : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'
-                    }`}
+                    className={cn(
+                      'group',
+                      message.role === 'user' ? 'flex justify-end' : 'flex justify-start',
+                    )}
                     data-testid={
                       message.role === 'assistant' ? 'chat-assistant-message' : 'chat-user-message'
                     }
                     key={message.id}
                   >
-                    <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
-                      {message.role}
-                    </p>
-                    {message.role === 'assistant' && message.memoryContext?.length ? (
-                      <div className="mb-2 rounded-md border bg-background px-2 py-1.5">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Memory Context
-                        </p>
-                        {message.memoryContext.map((memory) => (
-                          <p
-                            className="mt-1 text-xs text-muted-foreground"
-                            key={`${message.id}-${memory.memoryItemId}`}
-                          >
-                            {memory.summary} ({memory.memoryType}, {memory.rankScore.toFixed(2)})
-                          </p>
-                        ))}
+                    {message.role === 'user' ? (
+                      <div className="max-w-[85%] rounded-3xl bg-zinc-100 px-4 py-2.5 text-[15px] leading-relaxed text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+                        <p className="whitespace-pre-wrap">{message.content}</p>
                       </div>
-                    ) : null}
-                    <p className="whitespace-pre-wrap text-sm">
-                      {message.content || (isSending ? '...' : '')}
-                    </p>
-                    {message.role === 'assistant' && message.citations?.length ? (
-                      <div className="mt-3 space-y-2 border-t pt-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Citations
-                        </p>
-                        {message.citations.map((citation) => (
-                          <div
-                            className="rounded-md border bg-background px-2 py-1.5"
-                            data-testid="chat-citation"
-                            key={citation.id}
-                          >
-                            <p className="text-xs font-medium">
-                              {citation.title}{' '}
-                              <span className="font-normal text-muted-foreground">
-                                ({citation.sourceType})
-                              </span>
-                            </p>
-                            <p className="text-xs text-muted-foreground">{citation.snippet}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </article>
-                ))
-              )}
-            </div>
-
-            <form
-              className="mt-4 space-y-3 border-t border-zinc-200/80 pt-4 dark:border-zinc-800"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const textarea = event.currentTarget.querySelector(
-                  '[data-testid="chat-input"]',
-                ) as HTMLTextAreaElement | null;
-                void sendMessage(textarea?.value);
-              }}
-            >
-              <Textarea
-                className="min-h-24 rounded-xl"
-                data-testid="chat-input"
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="Ask a question about your workspace..."
-                ref={chatInputRef}
-                value={input}
-              />
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-muted-foreground" htmlFor="chat-model-select">
-                    Model
-                  </label>
-                  <Select
-                    disabled={isSending}
-                    onValueChange={(value) => {
-                      if (isChatModel(value)) {
-                        setSelectedModel(value);
-                      }
-                    }}
-                    value={selectedModel}
-                  >
-                    <SelectTrigger className="h-8 w-[230px] rounded-xl" id="chat-model-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CHAT_MODELS.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between gap-2 sm:justify-end">
-                  <Button
-                    className="rounded-xl"
-                    disabled={isSending || isTranscribingVoice}
-                    onClick={() => void toggleVoiceInput()}
-                    type="button"
-                    variant={isListening ? 'destructive' : 'outline'}
-                  >
-                    {isListening ? (
-                      <>
-                        <Square className="mr-1.5 h-3.5 w-3.5" />
-                        Stop
-                      </>
                     ) : (
-                      <>
-                        <Mic className="mr-1.5 h-3.5 w-3.5" />
-                        {isTranscribingVoice ? 'Transcribing...' : 'Voice'}
-                      </>
+                      <div className="w-full max-w-none space-y-3 text-[15px] leading-7 text-zinc-800 dark:text-zinc-100">
+                        {message.memoryContext?.length ? (
+                          <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                              Memory
+                            </p>
+                            {message.memoryContext.map((memory) => (
+                              <p
+                                className="mt-1 text-xs text-zinc-500"
+                                key={`${message.id}-${memory.memoryItemId}`}
+                              >
+                                {memory.summary}
+                              </p>
+                            ))}
+                          </div>
+                        ) : null}
+                        <p className="whitespace-pre-wrap">
+                          {message.content || (isSending ? '…' : '')}
+                        </p>
+                        {message.citations?.length ? (
+                          <div className="space-y-2 border-t border-zinc-200/80 pt-3 dark:border-zinc-800">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                              Citations
+                            </p>
+                            {message.citations.map((citation) => (
+                              <div
+                                className="rounded-xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/50"
+                                data-testid="chat-citation"
+                                key={citation.id}
+                              >
+                                <p className="text-xs font-medium">
+                                  {citation.title}{' '}
+                                  <span className="font-normal text-zinc-500">
+                                    ({citation.sourceType})
+                                  </span>
+                                </p>
+                                <p className="text-xs text-zinc-500">{citation.snippet}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     )}
-                  </Button>
-                  <Button
-                    className="rounded-xl"
-                    data-testid="chat-send"
-                    disabled={isSending || !input.trim()}
-                    type="submit"
-                  >
-                    {isSending ? 'Sending...' : 'Send'}
-                  </Button>
-                </div>
+                  </article>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+
+          {!showEmptyState ? (
+            <div className="shrink-0 bg-gradient-to-t from-white via-white to-transparent px-4 pb-4 pt-2 dark:from-[#212121] dark:via-[#212121] md:px-6">
+              <form
+                className="mx-auto w-full max-w-3xl"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void sendMessage(input);
+                }}
+              >
+                <Composer
+                  error={error}
+                  input={input}
+                  isListening={isListening}
+                  isSending={isSending}
+                  isTranscribingVoice={isTranscribingVoice}
+                  onChange={setInput}
+                  onToggleVoice={() => void toggleVoiceInput()}
+                  textareaRef={chatInputRef}
+                />
+              </form>
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <Dialog
@@ -943,5 +984,103 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
     </AppPageShell>
+  );
+}
+
+function QuickPrompt({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <Link
+      className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+      href={href}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  );
+}
+
+function Composer({
+  input,
+  error,
+  isSending,
+  isListening,
+  isTranscribingVoice,
+  onChange,
+  onToggleVoice,
+  textareaRef,
+}: {
+  input: string;
+  error: string | null;
+  isSending: boolean;
+  isListening: boolean;
+  isTranscribingVoice: boolean;
+  onChange: (value: string) => void;
+  onToggleVoice: () => void;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+}) {
+  const canSend = Boolean(input.trim()) && !isSending;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end gap-2 rounded-[28px] border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/80">
+        <Textarea
+          className="max-h-[180px] min-h-[44px] flex-1 resize-none border-0 bg-transparent px-2 py-2.5 text-[15px] shadow-none focus-visible:ring-0"
+          data-testid="chat-input"
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              if (canSend) {
+                event.currentTarget.form?.requestSubmit();
+              }
+            }
+          }}
+          placeholder="Ask anything"
+          ref={textareaRef}
+          rows={1}
+          value={input}
+        />
+        <div className="flex shrink-0 items-center gap-1 pb-1">
+          <Button
+            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+            className="h-9 w-9 rounded-full text-zinc-600 dark:text-zinc-300"
+            disabled={isSending || isTranscribingVoice}
+            onClick={onToggleVoice}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+          <Button
+            aria-label="Send message"
+            className={cn(
+              'h-9 w-9 rounded-full',
+              canSend
+                ? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200'
+                : 'bg-zinc-200 text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500',
+            )}
+            data-testid="chat-send"
+            disabled={!canSend}
+            size="icon"
+            type="submit"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      {error ? <p className="px-2 text-sm text-destructive">{error}</p> : null}
+      <p className="px-2 text-center text-[11px] text-zinc-400">
+        Aproko can make mistakes. Check citations against your sources.
+      </p>
+    </div>
   );
 }

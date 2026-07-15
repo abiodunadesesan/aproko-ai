@@ -50,9 +50,10 @@ test.describe('Critical user journeys', () => {
     test.setTimeout(120_000);
     await enableMockAuth(page);
     await installWorkspaceMocks(page);
-    await page.goto('/chat', { waitUntil: 'commit', timeout: 90_000 });
+    await page.goto('/chat?new=1', { waitUntil: 'commit', timeout: 90_000 });
 
-    await expect(page.getByRole('heading', { name: 'AI Chat' })).toBeVisible();
+    await expect(page.getByTestId('chat-welcome')).toBeVisible();
+    await expect(page.getByTestId('chat-input')).toBeVisible();
 
     const chatInput = page.getByTestId('chat-input');
     await chatInput.click();

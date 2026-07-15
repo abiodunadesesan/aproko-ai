@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Search } from 'lucide-react';
+import { Search, SquarePen } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
 import { AprokoLogo } from '@/components/brand/aproko-logo';
 import { PageHeader } from '@/components/app/page-header';
@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/sidebar';
 import { appNavGroups, chatNavItem, getEnabledNavItems, navTestId } from '@/lib/navigation/app-nav';
 import { shouldOpenSearchFromShortcut } from '@/lib/navigation/shortcuts';
+import { cn } from '@/lib/utils';
 
 type AppShellProps = {
   title: string;
@@ -51,6 +52,8 @@ type AppShellProps = {
   headerAction?: ReactNode;
   /** Hide the duplicate subtitle block when using PageHeader in content. */
   hideSubtitle?: boolean;
+  /** Full-bleed ChatGPT-style layout (no page header, no content max-width). */
+  immersive?: boolean;
 };
 
 function NavLink({
@@ -70,11 +73,12 @@ function NavLink({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        className={
+        className={cn(
+          'h-9 rounded-lg text-[13px] transition-colors',
           isActive
-            ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-            : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
-        }
+            ? 'bg-zinc-200/80 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
+            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100',
+        )}
         isActive={isActive}
       >
         <Link data-testid={navTestId(id)} href={href}>
@@ -94,6 +98,7 @@ export function AppShell({
   headerBadge,
   headerAction,
   hideSubtitle = false,
+  immersive = false,
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -144,28 +149,47 @@ export function AppShell({
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  function startNewChat() {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('aproko.chat.last-session.default-workspace');
+    }
+    router.push('/chat?new=1');
+  }
+
   const ChatIcon = chatNavItem.icon;
 
   return (
     <SidebarProvider>
       <Sidebar
-        className="border-r border-zinc-200/80 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-950/80"
+        className="border-r border-zinc-200/70 bg-zinc-50 dark:border-zinc-800/80 dark:bg-[#171717]"
         collapsible="icon"
         data-testid="app-sidebar"
         variant="inset"
       >
-        <SidebarHeader className="border-b border-zinc-200/80 px-2 py-3 dark:border-zinc-800">
+        <SidebarHeader className="gap-2 px-2 py-3">
           <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
             <AprokoLogo className="group-data-[collapsible=icon]:hidden" size="sm" />
             <SidebarTrigger
               aria-label="Toggle sidebar"
-              className="h-8 w-8 shrink-0 rounded-lg text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="h-8 w-8 shrink-0 rounded-lg text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             />
           </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="h-9 rounded-lg bg-zinc-200/60 text-[13px] font-medium text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700"
+                onClick={startNewChat}
+                tooltip="New chat"
+              >
+                <SquarePen className="h-4 w-4" />
+                <span>New chat</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent className="gap-0">
-          <SidebarGroup className="py-2">
+        <SidebarContent className="gap-0 px-1">
+          <SidebarGroup className="py-1">
             <SidebarMenu>
               <NavLink
                 href={chatNavItem.href}
@@ -174,15 +198,25 @@ export function AppShell({
                 isActive={isActive(chatNavItem.href)}
                 label={chatNavItem.label}
               />
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className="h-9 rounded-lg text-[13px] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100"
+                  onClick={() => setIsCommandOpen(true)}
+                  tooltip="Search"
+                >
+                  <Search className="h-4 w-4" />
+                  <span>Search</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
 
-          <SidebarSeparator />
+          <SidebarSeparator className="mx-2 bg-zinc-200 dark:bg-zinc-800" />
 
           {appNavGroups.map((group) => (
-            <SidebarGroup className="py-2" key={group.label ?? 'default'}>
+            <SidebarGroup className="py-1" key={group.label ?? 'default'}>
               {group.label ? (
-                <SidebarGroupLabel className="px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-500">
+                <SidebarGroupLabel className="px-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-500">
                   {group.label}
                 </SidebarGroupLabel>
               ) : null}
@@ -193,6 +227,10 @@ export function AppShell({
                       return false;
                     }
                     if (item.id === 'admin' && !isAdmin) {
+                      return false;
+                    }
+                    // Search is pinned above.
+                    if (item.id === 'search') {
                       return false;
                     }
                     return true;
@@ -216,7 +254,7 @@ export function AppShell({
           </div>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-zinc-200/80 p-2 dark:border-zinc-800">
+        <SidebarFooter className="border-t border-zinc-200/70 p-2 dark:border-zinc-800/80">
           <div className="group-data-[collapsible=icon]:hidden">
             <SidebarUser />
           </div>
@@ -225,33 +263,47 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="bg-zinc-50/50 dark:bg-zinc-950/50">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-zinc-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/90 md:px-6">
+      <SidebarInset
+        className={cn(
+          'bg-zinc-50/40 dark:bg-[#212121]',
+          immersive && 'min-h-svh bg-white dark:bg-[#212121]',
+        )}
+      >
+        <header
+          className={cn(
+            'sticky top-0 z-10 flex h-12 items-center justify-between gap-3 px-3 md:px-4',
+            immersive
+              ? 'border-b-0 bg-transparent'
+              : 'border-b border-zinc-200/70 bg-white/85 backdrop-blur-md dark:border-zinc-800/80 dark:bg-[#212121]/85',
+          )}
+        >
           <div className="flex min-w-0 items-center gap-2 md:hidden">
             <SidebarTrigger aria-label="Open sidebar" className="md:hidden" />
-            <span className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
               {title}
             </span>
           </div>
 
           <div className="hidden min-w-0 flex-1 md:block" />
 
-          <div className="flex items-center gap-2">
-            <Button
-              aria-label="Open search"
-              className="h-9 rounded-full border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              data-testid="open-search-shortcut"
-              onClick={() => setIsCommandOpen(true)}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
-              <kbd className="pointer-events-none hidden rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                ⌘K
-              </kbd>
-            </Button>
+          <div className="flex items-center gap-1.5">
+            {!immersive ? (
+              <Button
+                aria-label="Open search"
+                className="h-8 rounded-full border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                data-testid="open-search-shortcut"
+                onClick={() => setIsCommandOpen(true)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Search</span>
+                <kbd className="pointer-events-none hidden rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  ⌘K
+                </kbd>
+              </Button>
+            ) : null}
             <ThemeToggle />
             {shouldRenderUserButton ? (
               <UserButton afterSignOutUrl="/" />
@@ -263,26 +315,34 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-          <div className="mx-auto max-w-6xl space-y-6">
-            {headerIcon ? (
-              <PageHeader
-                icon={headerIcon}
-                subtitle={subtitle}
-                title={title}
-                {...(headerBadge ? { badge: headerBadge } : {})}
-                {...(headerAction ? { action: headerAction } : {})}
-              />
-            ) : (
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  {title}
-                </h1>
-                {!hideSubtitle ? (
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
-                ) : null}
-              </div>
+        <main
+          className={cn('flex-1', immersive ? 'flex min-h-0 flex-col p-0' : 'p-4 md:p-6 lg:p-8')}
+        >
+          <div
+            className={cn(
+              immersive ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto max-w-6xl space-y-6',
             )}
+          >
+            {!immersive ? (
+              headerIcon ? (
+                <PageHeader
+                  icon={headerIcon}
+                  subtitle={subtitle}
+                  title={title}
+                  {...(headerBadge ? { badge: headerBadge } : {})}
+                  {...(headerAction ? { action: headerAction } : {})}
+                />
+              ) : (
+                <div className="space-y-1">
+                  <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                    {title}
+                  </h1>
+                  {!hideSubtitle ? (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
+                  ) : null}
+                </div>
+              )
+            ) : null}
             {children}
           </div>
         </main>
