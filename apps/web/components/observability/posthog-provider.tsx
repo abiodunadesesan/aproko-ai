@@ -1,6 +1,5 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import posthog from 'posthog-js';
 import { PostHogProvider as PostHogProviderShell, usePostHog } from 'posthog-js/react';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -43,40 +42,6 @@ function PostHogPageviews() {
   return null;
 }
 
-function PostHogIdentify() {
-  const { user, isLoaded } = useUser();
-  const client = usePostHog();
-
-  useEffect(() => {
-    if (!client || !isLoaded) {
-      return;
-    }
-
-    if (!user?.id) {
-      client.reset();
-      return;
-    }
-
-    client.identify(user.id, {
-      email: user.primaryEmailAddress?.emailAddress ?? undefined,
-      name: user.fullName ?? undefined,
-    });
-  }, [client, isLoaded, user]);
-
-  return null;
-}
-
-function PostHogInstrumentation() {
-  return (
-    <>
-      <Suspense fallback={null}>
-        <PostHogPageviews />
-      </Suspense>
-      <PostHogIdentify />
-    </>
-  );
-}
-
 export function PostHogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     initPosthogClient();
@@ -88,7 +53,9 @@ export function PostHogProvider({ children }: { children: ReactNode }) {
 
   return (
     <PostHogProviderShell client={posthog}>
-      <PostHogInstrumentation />
+      <Suspense fallback={null}>
+        <PostHogPageviews />
+      </Suspense>
       {children}
     </PostHogProviderShell>
   );

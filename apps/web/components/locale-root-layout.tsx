@@ -49,13 +49,13 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
   });
 
   const appContent = (
-    <PostHogProvider>
+    <>
       <Suspense fallback={null}>
         <ObservabilityProvider />
       </Suspense>
       <Toaster />
       {children}
-    </PostHogProvider>
+    </>
   );
 
   return (
@@ -68,11 +68,13 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
         />
       </head>
       <body>
-        {isClerkEnabled() ? (
-          <ClerkProviderShell locale={locale}>{appContent}</ClerkProviderShell>
-        ) : (
-          appContent
-        )}
+        <PostHogProvider>
+          {isClerkEnabled() ? (
+            <ClerkProviderShell locale={locale}>{appContent}</ClerkProviderShell>
+          ) : (
+            appContent
+          )}
+        </PostHogProvider>
       </body>
     </html>
   );
