@@ -7,8 +7,17 @@ This file is the persistent operating manual for all coding agents working in th
 ## 1) Product Constraints (Non-Negotiable)
 
 - Build **Aproko AI** as a web-first AI Knowledge Operating System.
-- Version 1 scope is web only.
-- Do **not** implement desktop apps, mobile apps, browser automation, live meeting recording, voice assistant, or AI phone calls in V1.
+- Version 1 / V1.1 delivery surface is **web only** (`apps/web`).
+- Do **not** implement desktop apps, mobile apps, browser automation, invisible system meeting capture, voice assistant product, or AI phone calls without an approved V2 epic.
+- **Web-safe study copilot expansion (Sprint 19, shipped):**
+  - User-initiated browser mic/upload → transcript (Whisper when `OPENAI_API_KEY` is set)
+  - LLM study pipeline (summaries, flashcards, quizzes, slide outlines) from notes/transcripts
+  - Grounded chat with hydrated source/transcript excerpts + memory + chat voice input
+  - Legitimate writing polish (clarity / concise / professional / academic)
+  - Optional transparency detector check (GPTZero when `GPTZERO_API_KEY` is set; Turnitin via institutional portal only)
+- Do **not** build detector-evasion writing tools (e.g. marketed to beat Turnitin/GPTZero, or rewrite-to-lower-detector-score).
+- Desktop screen overlay + OS-level meeting/audio capture = **V2 companion** only  
+  (`docs/12-backlog/sprint-19-web-study-copilot.md`, `docs/02-architecture/03-desktop-companion-v2.md`).
 - Prefer `TODO` sections over unsupported assumptions.
 - Every implementation must map to documented architecture and approved product scope.
 
@@ -42,27 +51,34 @@ Always follow this high-level order unless explicitly changed by the product own
 Use these defaults unless a documented architecture decision changes them:
 
 ### Frontend
-- Next.js 15 (App Router)
+
+- Next.js 16 (App Router) — V1 was planned on 15; production web ships Next.js 16
 - React 19
 - TypeScript
 - Tailwind CSS
 - shadcn/ui
-- TanStack Query
-- Zustand
+- TanStack Query (where used)
+- Zustand (where used)
 
 ### Backend and Data
-- FastAPI (Python)
+
+- Primary V1/V1.1 web APIs: Next.js Route Handlers under `apps/web/app/api/v1`
+- FastAPI (Python) packages under `backend/` remain the long-term service split target
 - Supabase PostgreSQL
 - Clerk
 - Supabase Storage
-- Qdrant
+- Qdrant (retrieval acceleration; hybrid lexical search live in web today)
 
 ### AI
-- LiteLLM gateway
-- Providers: OpenAI, Anthropic, Gemini, Perplexity
-- OCR: PaddleOCR
+
+- Current web generation: Vercel AI SDK (`ai` + `@ai-sdk/*`) for chat/study/writing
+- Speech-to-text: OpenAI Whisper (`whisper-1`) when `OPENAI_API_KEY` is set
+- Target gateway for multi-service routing: LiteLLM (architecture default; not required for every Route Handler call yet)
+- Providers: OpenAI, Anthropic, Gemini (+ Perplexity when wired)
+- OCR: PaddleOCR (worker path; architecture target)
 
 ### Infra and Ops
+
 - Vercel
 - Railway
 - Docker

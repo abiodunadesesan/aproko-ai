@@ -131,6 +131,11 @@ test('flashcard generate POST creates cards from note', async () => {
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
+    listWorkspaceNotes: async () => [],
+    readLibrarySourceText: async () => null,
+    generateFlashcardDrafts: async () => [
+      { question: 'What do mitochondria produce?', answer: 'ATP for energy' },
+    ],
     createFlashcard: async (_workspaceId, deckId, question, answer) => ({
       id: `${deckId}-${question.slice(0, 4)}`,
       workspaceId: 'ws-1',
@@ -152,8 +157,55 @@ test('flashcard generate POST creates cards from note', async () => {
   );
 
   assert.equal(response.status, 200);
+  const payload = (await response.json()) as { data: Array<{ id: string; question: string }> };
+  assert.equal(payload.data.length, 1);
+  assert.equal(payload.data[0]?.question, 'What do mitochondria produce?');
+});
+
+test('flashcard generate POST creates cards from transcript sourceId', async () => {
+  const handlers = createFlashcardGenerateRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    getFlashcardDeckById: async () => ({
+      id: 'deck-1',
+      workspaceId: 'ws-1',
+      title: 'Lecture Deck',
+      sourceNoteId: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }),
+    getWorkspaceNoteById: async () => null,
+    listWorkspaceNotes: async () => [],
+    readLibrarySourceText: async () => ({
+      title: 'lecture-transcript.txt',
+      content: 'Photosynthesis converts light energy into chemical energy.',
+      sourceId: 'src-1',
+    }),
+    generateFlashcardDrafts: async (content) => [
+      { question: 'What does photosynthesis convert?', answer: content.slice(0, 40) },
+    ],
+    createFlashcard: async (_workspaceId, deckId, question, answer) => ({
+      id: 'card-src',
+      workspaceId: 'ws-1',
+      deckId,
+      question,
+      answer,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }),
+  });
+
+  const response = await handlers.POST(
+    new Request('http://localhost', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sourceId: 'src-1' }),
+    }),
+    { params: Promise.resolve({ workspaceId: 'ws-1', deckId: 'deck-1' }) },
+  );
+
+  assert.equal(response.status, 200);
   const payload = (await response.json()) as { data: Array<{ id: string }> };
-  assert.ok(payload.data.length > 0);
+  assert.equal(payload.data.length, 1);
 });
 
 test('flashcard deck by id DELETE returns ok', async () => {

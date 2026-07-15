@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { generateFlashcardDrafts } from '@/lib/ai/study-generation';
 import { createFlashcard, getFlashcardDeckById, type Flashcard } from '@/lib/storage/flashcards';
-import { getWorkspaceNoteById } from '@/lib/storage/notes';
+import { getWorkspaceNoteById, listWorkspaceNotes } from '@/lib/storage/notes';
+import { readLibrarySourceText } from '@/lib/storage/library';
+import { resolveStudySourceContent } from '@/lib/study/resolve-source';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
 
@@ -11,7 +14,10 @@ type FlashcardGenerateRouteDependencies = {
   auth: AuthDependency;
   getFlashcardDeckById: typeof getFlashcardDeckById;
   getWorkspaceNoteById: typeof getWorkspaceNoteById;
+  listWorkspaceNotes: typeof listWorkspaceNotes;
+  readLibrarySourceText: typeof readLibrarySourceText;
   createFlashcard: typeof createFlashcard;
+  generateFlashcardDrafts: typeof generateFlashcardDrafts;
 };
 
 type RouteContext = {
@@ -30,82 +36,97 @@ function toCardPayload(card: Flashcard) {
   };
 }
 
-function buildFlashcardPairs(noteContent: string): Array<{ question: string; answer: string }> {
-  const segments = noteContent
-    .split(/[.\n]/)
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 20)
-    .slice(0, 6);
-
-  return segments.map((segment, index) => ({
-    question: `Flashcard ${index + 1}: What is a key point from this note?`,
-    answer: segment,
-  }));
-}
-
 export function createFlashcardGenerateRouteHandlers(deps: FlashcardGenerateRouteDependencies) {
   return {
     POST: async (request: Request, context: RouteContext) => {
-      const { userId } = await deps.auth();
-      if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      const rateLimitResponse = await enforceRateLimit({
-        request,
-        userId,
-        policy: rateLimitPolicies.flashcardsGenerate,
-      });
-      if (rateLimitResponse) {
-        return rateLimitResponse;
-      }
+      try {
+        const { userId } = await deps.auth();
+        if (!userId) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const rateLimitResponse = await enforceRateLimit({
+          request,
+          userId,
+          policy: rateLimitPolicies.flashcardsGenerate,
+        });
+        if (rateLimitResponse) {
+          return rateLimitResponse;
+        }
 
-      const { workspaceId, deckId } = await context.params;
-      const deck = await deps.getFlashcardDeckById(workspaceId, deckId);
-      if (!deck) {
-        return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
-      }
+        const { workspaceId, deckId } = await context.params;
+        const deck = await deps.getFlashcardDeckById(workspaceId, deckId);
+        if (!deck) {
+          return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
+        }
 
-      const rawBody = (await request.json().catch(() => null)) as { noteId?: string } | null;
-      const noteId = rawBody?.noteId?.trim() || deck.sourceNoteId || '';
-      if (!noteId) {
-        return NextResponse.json({ error: 'noteId is required' }, { status: 400 });
-      }
+        const rawBody = (await request.json().catch(() => null)) as {
+          noteId?: string;
+          sourceId?: string;
+        } | null;
 
-      const note = await deps.getWorkspaceNoteById(workspaceId, noteId);
-      if (!note) {
-        return NextResponse.json({ error: 'Source note not found' }, { status: 404 });
-      }
+        let resolved;
+        try {
+          resolved = await resolveStudySourceContent(
+            workspaceId,
+            {
+              noteId: rawBody?.noteId || deck.sourceNoteId,
+              sourceId: rawBody?.sourceId,
+            },
+            {
+              getWorkspaceNoteById: deps.getWorkspaceNoteById,
+              listWorkspaceNotes: deps.listWorkspaceNotes,
+              readLibrarySourceText: deps.readLibrarySourceText,
+            },
+          );
+        } catch (resolveError) {
+          const message =
+            resolveError instanceof Error ? resolveError.message : 'Unable to resolve study source';
+          return NextResponse.json(
+            { error: message },
+            { status: message.includes('not found') ? 404 : 400 },
+          );
+        }
 
-      const pairs = buildFlashcardPairs(note.content);
-      if (!pairs.length) {
+        const pairs = await deps.generateFlashcardDrafts(resolved.content);
+        if (!pairs.length) {
+          return NextResponse.json(
+            { error: 'Source content is too short for generation' },
+            { status: 400 },
+          );
+        }
+
+        const created: Flashcard[] = [];
+        for (const pair of pairs) {
+          const card = await deps.createFlashcard(workspaceId, deckId, pair.question, pair.answer);
+          if (card) {
+            created.push(card);
+          }
+        }
+
+        await trackServerEvent({
+          event: 'flashcards_generated',
+          distinctId: userId,
+          properties: {
+            workspace_id: workspaceId,
+            deck_id: deckId,
+            note_id: resolved.sourceNoteId,
+            source_id: resolved.sourceId,
+            cards_generated: created.length,
+          },
+        });
+
+        return NextResponse.json({
+          data: created.map(toCardPayload),
+        });
+      } catch (error) {
+        console.error('Failed to generate flashcards', error);
         return NextResponse.json(
-          { error: 'Note content is too short for generation' },
-          { status: 400 },
+          {
+            error: error instanceof Error ? error.message : 'Failed to generate flashcards',
+          },
+          { status: 500 },
         );
       }
-
-      const created: Flashcard[] = [];
-      for (const pair of pairs) {
-        const card = await deps.createFlashcard(workspaceId, deckId, pair.question, pair.answer);
-        if (card) {
-          created.push(card);
-        }
-      }
-
-      await trackServerEvent({
-        event: 'flashcards_generated',
-        distinctId: userId,
-        properties: {
-          workspace_id: workspaceId,
-          deck_id: deckId,
-          note_id: noteId,
-          cards_generated: created.length,
-        },
-      });
-
-      return NextResponse.json({
-        data: created.map(toCardPayload),
-      });
     },
   };
 }
@@ -117,5 +138,8 @@ export const { POST } = createFlashcardGenerateRouteHandlers({
   },
   getFlashcardDeckById,
   getWorkspaceNoteById,
+  listWorkspaceNotes,
+  readLibrarySourceText,
   createFlashcard,
+  generateFlashcardDrafts,
 });

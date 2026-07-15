@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Mic,
+  PenLine,
   Search,
   Settings,
   ShieldCheck,
@@ -44,6 +45,7 @@ export const appNavGroups: AppNavGroup[] = [
       { id: 'memory', label: 'Remembered', href: '/memory', icon: Brain },
       { id: 'research', label: 'Research', href: '/research', icon: Sparkles },
       { id: 'study', label: 'Study Materials', href: '/study', icon: BookOpen },
+      { id: 'writing', label: 'Writing', href: '/writing', icon: PenLine },
     ],
   },
   {

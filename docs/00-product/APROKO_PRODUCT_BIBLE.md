@@ -158,11 +158,11 @@ AI is the interface layer that helps users interact with their knowledge system.
 
 ### Product Surface Expansion
 
-- Web (primary, now)
-- Desktop app (future client)
+- Web (primary, now) — including Sprint 19 study-copilot expansion
+- Desktop companion (V2 design: `../02-architecture/03-desktop-companion-v2.md`)
 - Mobile app (future client)
 - Browser extension (future capture client)
-- Meeting capture and transcription clients (future ingestion layer)
+- Meeting capture and transcription clients (future ingestion layer; web mic/upload already shipped)
 
 All surfaces should plug into one platform model, not create isolated products.
 

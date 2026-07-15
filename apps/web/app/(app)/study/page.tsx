@@ -107,8 +107,17 @@ type StudySummary = {
   updatedAt: string;
 };
 
+type TranscriptSource = {
+  id: string;
+  name: string;
+  sourceType?: string | null;
+};
+
 export default function StudyPage() {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [transcripts, setTranscripts] = useState<TranscriptSource[]>([]);
+  const [generationSource, setGenerationSource] = useState<'note' | 'transcript'>('note');
+  const [selectedTranscriptId, setSelectedTranscriptId] = useState<string | null>(null);
   const [decks, setDecks] = useState<FlashcardDeck[]>([]);
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -141,6 +150,7 @@ export default function StudyPage() {
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGeneratingCards, setIsGeneratingCards] = useState(false);
+  const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [isDeletingDeck, setIsDeletingDeck] = useState(false);
   const [quizAnswerDrafts, setQuizAnswerDrafts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
@@ -224,6 +234,54 @@ export default function StudyPage() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function loadTranscripts() {
+    try {
+      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/transcripts`, {
+        cache: 'no-store',
+      });
+      const payload = (await response.json()) as { data?: TranscriptSource[]; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to load transcripts');
+      }
+      const textTranscripts = (payload.data ?? []).filter((item) => {
+        const name = item.name.toLowerCase();
+        return (
+          name.endsWith('.txt') ||
+          name.endsWith('.md') ||
+          name.endsWith('.vtt') ||
+          name.endsWith('.srt') ||
+          item.sourceType === 'transcript' ||
+          item.sourceType === 'txt' ||
+          item.sourceType === 'markdown'
+        );
+      });
+      setTranscripts(textTranscripts);
+      setSelectedTranscriptId((current) => {
+        if (current && textTranscripts.some((item) => item.id === current)) {
+          return current;
+        }
+        return textTranscripts[0]?.id ?? null;
+      });
+    } catch (loadError) {
+      console.warn('Failed to load transcripts for study generation', loadError);
+      setTranscripts([]);
+      setSelectedTranscriptId(null);
+    }
+  }
+
+  function buildGenerationBody(): { noteId?: string; sourceId?: string } {
+    if (generationSource === 'transcript') {
+      if (!selectedTranscriptId) {
+        throw new Error('Select a transcript source for generation.');
+      }
+      return { sourceId: selectedTranscriptId };
+    }
+    if (!activeNoteId) {
+      throw new Error('Select a source note for generation.');
+    }
+    return { noteId: activeNoteId };
   }
 
   async function loadDecks() {
@@ -463,22 +521,18 @@ export default function StudyPage() {
       return;
     }
 
-    if (!activeNote) {
-      setError('Select a source note for generation.');
-      return;
-    }
-
     setIsGeneratingCards(true);
     setError(null);
     setNotice(null);
 
     try {
+      const body = buildGenerationBody();
       const response = await fetch(
         `/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks/${activeDeck.id}/generate`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ noteId: activeNote.id }),
+          body: JSON.stringify(body),
         },
       );
       const payload = (await response.json()) as { data?: Flashcard[]; error?: string };
@@ -581,22 +635,19 @@ export default function StudyPage() {
       setError('Select a quiz before generating questions.');
       return;
     }
-    if (!activeNote) {
-      setError('Select an active note for quiz generation.');
-      return;
-    }
 
     setIsGeneratingQuiz(true);
     setError(null);
     setNotice(null);
 
     try {
+      const body = buildGenerationBody();
       const response = await fetch(
         `/api/v1/workspaces/${WORKSPACE_ID}/quizzes/${activeQuiz.id}/generate`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ noteId: activeNote.id }),
+          body: JSON.stringify(body),
         },
       );
       const payload = (await response.json()) as { data?: QuizQuestion[]; error?: string };
@@ -677,12 +728,11 @@ export default function StudyPage() {
     setNotice(null);
 
     try {
+      const body = buildGenerationBody();
       const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/summaries/generate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          noteId: activeNote?.id ?? null,
-        }),
+        body: JSON.stringify({ ...body, kind: 'summary' }),
       });
 
       const payload = (await response.json()) as { data?: StudySummary; error?: string };
@@ -698,6 +748,35 @@ export default function StudyPage() {
       );
     } finally {
       setIsGeneratingSummary(false);
+    }
+  }
+
+  async function generateSlideOutline() {
+    setIsGeneratingOutline(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const body = buildGenerationBody();
+      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/summaries/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...body, kind: 'outline' }),
+      });
+
+      const payload = (await response.json()) as { data?: StudySummary; error?: string };
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error ?? 'Failed to generate slide outline');
+      }
+
+      setSummaries((current) => [payload.data as StudySummary, ...current]);
+      setNotice('Slide outline generated.');
+    } catch (generateError) {
+      setError(
+        generateError instanceof Error ? generateError.message : 'Failed to generate slide outline',
+      );
+    } finally {
+      setIsGeneratingOutline(false);
     }
   }
 
@@ -777,6 +856,7 @@ export default function StudyPage() {
 
   useEffect(() => {
     void loadNotes();
+    void loadTranscripts();
     void loadDecks();
     void loadQuizzes();
     void loadSummaries();
@@ -815,6 +895,51 @@ export default function StudyPage() {
 
   return (
     <AppPageShell pageId="study">
+      <div className="mb-4 space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Generation source</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <select
+              aria-label="Generation source type"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              onChange={(event) =>
+                setGenerationSource(event.target.value === 'transcript' ? 'transcript' : 'note')
+              }
+              value={generationSource}
+            >
+              <option value="note">Active note</option>
+              <option value="transcript">Transcript file</option>
+            </select>
+            {generationSource === 'transcript' ? (
+              <select
+                aria-label="Transcript source"
+                className="h-10 min-w-[240px] flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                onChange={(event) => setSelectedTranscriptId(event.target.value || null)}
+                value={selectedTranscriptId ?? ''}
+              >
+                {transcripts.length === 0 ? (
+                  <option value="">No transcript text files yet</option>
+                ) : (
+                  transcripts.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Uses the note selected in the left panel
+                {activeNote ? ` (${activeNote.title})` : ''}.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {notice ? <p className="text-sm text-emerald-700 dark:text-emerald-400">{notice}</p> : null}
+      </div>
       <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <Card>
           <CardHeader>
@@ -982,11 +1107,11 @@ export default function StudyPage() {
                   <p className="text-sm font-medium">Deck: {activeDeck.title}</p>
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      disabled={isGeneratingCards || !activeNote}
+                      disabled={isGeneratingCards}
                       onClick={() => void generateCardsFromNote()}
                       type="button"
                     >
-                      {isGeneratingCards ? 'Generating...' : 'Generate from Active Note'}
+                      {isGeneratingCards ? 'Generating...' : 'Generate from source'}
                     </Button>
                     <Button
                       disabled={isDeletingDeck}
@@ -1102,11 +1227,11 @@ export default function StudyPage() {
                 <div className="space-y-3 rounded-md border p-3">
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      disabled={isGeneratingQuiz || !activeNote}
+                      disabled={isGeneratingQuiz}
                       onClick={() => void generateQuizFromNote()}
                       type="button"
                     >
-                      {isGeneratingQuiz ? 'Generating...' : 'Generate from Active Note'}
+                      {isGeneratingQuiz ? 'Generating...' : 'Generate from source'}
                     </Button>
                     <Button
                       disabled={isSubmittingQuiz || quizQuestions.length === 0}
@@ -1185,8 +1310,17 @@ export default function StudyPage() {
                 >
                   {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
                 </Button>
+                <Button
+                  disabled={isGeneratingOutline}
+                  onClick={() => void generateSlideOutline()}
+                  type="button"
+                  variant="outline"
+                >
+                  {isGeneratingOutline ? 'Generating...' : 'Generate Slide Outline'}
+                </Button>
                 <p className="text-xs text-muted-foreground">
-                  Uses active note when selected, otherwise builds from workspace notes.
+                  Uses the Generation source above (note or transcript). LLM when OPENAI_API_KEY is
+                  set.
                 </p>
               </div>
 

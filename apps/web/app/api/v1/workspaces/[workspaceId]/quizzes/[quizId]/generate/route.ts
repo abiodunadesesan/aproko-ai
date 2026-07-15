@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { generateQuizQuestionDrafts } from '@/lib/ai/study-generation';
 import { createQuizQuestion, getQuizById, type QuizQuestion } from '@/lib/storage/quizzes';
-import { getWorkspaceNoteById } from '@/lib/storage/notes';
+import { getWorkspaceNoteById, listWorkspaceNotes } from '@/lib/storage/notes';
+import { readLibrarySourceText } from '@/lib/storage/library';
+import { resolveStudySourceContent } from '@/lib/study/resolve-source';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -10,7 +14,10 @@ type QuizGenerateRouteDependencies = {
   auth: AuthDependency;
   getQuizById: typeof getQuizById;
   getWorkspaceNoteById: typeof getWorkspaceNoteById;
+  listWorkspaceNotes: typeof listWorkspaceNotes;
+  readLibrarySourceText: typeof readLibrarySourceText;
   createQuizQuestion: typeof createQuizQuestion;
+  generateQuizQuestionDrafts: typeof generateQuizQuestionDrafts;
 };
 
 type RouteContext = {
@@ -31,83 +38,101 @@ function toQuestionPayload(question: QuizQuestion) {
   };
 }
 
-function buildQuestionDrafts(
-  noteContent: string,
-): Array<{ prompt: string; options: string[]; correctOptionIndex: number }> {
-  const sentences = noteContent
-    .split(/[.\n]/)
-    .map((value) => value.trim())
-    .filter((value) => value.length > 18)
-    .slice(0, 5);
-
-  return sentences.map((sentence, index) => ({
-    prompt: `Q${index + 1}. Which option best matches this note point?`,
-    options: [
-      sentence,
-      'This statement is unrelated to the note',
-      'No relevant point was captured',
-      'The note did not mention this topic',
-    ],
-    correctOptionIndex: 0,
-  }));
-}
-
 export function createQuizGenerateRouteHandlers(deps: QuizGenerateRouteDependencies) {
   return {
     POST: async (request: Request, context: RouteContext) => {
-      const { userId } = await deps.auth();
-      if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      const rateLimitResponse = await enforceRateLimit({
-        request,
-        userId,
-        policy: rateLimitPolicies.quizzesWrite,
-      });
-      if (rateLimitResponse) {
-        return rateLimitResponse;
-      }
-
-      const { workspaceId, quizId } = await context.params;
-      const quiz = await deps.getQuizById(workspaceId, quizId);
-      if (!quiz) {
-        return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
-      }
-
-      const rawBody = (await request.json().catch(() => null)) as { noteId?: string } | null;
-      const noteId = rawBody?.noteId?.trim() || quiz.sourceNoteId || '';
-      if (!noteId) {
-        return NextResponse.json({ error: 'noteId is required' }, { status: 400 });
-      }
-
-      const note = await deps.getWorkspaceNoteById(workspaceId, noteId);
-      if (!note) {
-        return NextResponse.json({ error: 'Source note not found' }, { status: 404 });
-      }
-
-      const drafts = buildQuestionDrafts(note.content);
-      if (!drafts.length) {
-        return NextResponse.json(
-          { error: 'Note content is too short for quiz generation' },
-          { status: 400 },
-        );
-      }
-
-      const created: QuizQuestion[] = [];
-      for (const draft of drafts) {
-        const question = await deps.createQuizQuestion(
-          workspaceId,
-          quizId,
-          draft.prompt,
-          draft.options,
-          draft.correctOptionIndex,
-        );
-        if (question) {
-          created.push(question);
+      try {
+        const { userId } = await deps.auth();
+        if (!userId) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-      }
+        const rateLimitResponse = await enforceRateLimit({
+          request,
+          userId,
+          policy: rateLimitPolicies.quizzesWrite,
+        });
+        if (rateLimitResponse) {
+          return rateLimitResponse;
+        }
 
-      return NextResponse.json({ data: created.map(toQuestionPayload) });
+        const { workspaceId, quizId } = await context.params;
+        const quiz = await deps.getQuizById(workspaceId, quizId);
+        if (!quiz) {
+          return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+        }
+
+        const rawBody = (await request.json().catch(() => null)) as {
+          noteId?: string;
+          sourceId?: string;
+        } | null;
+
+        let resolved;
+        try {
+          resolved = await resolveStudySourceContent(
+            workspaceId,
+            {
+              noteId: rawBody?.noteId || quiz.sourceNoteId,
+              sourceId: rawBody?.sourceId,
+            },
+            {
+              getWorkspaceNoteById: deps.getWorkspaceNoteById,
+              listWorkspaceNotes: deps.listWorkspaceNotes,
+              readLibrarySourceText: deps.readLibrarySourceText,
+            },
+          );
+        } catch (resolveError) {
+          const message =
+            resolveError instanceof Error ? resolveError.message : 'Unable to resolve study source';
+          return NextResponse.json(
+            { error: message },
+            { status: message.includes('not found') ? 404 : 400 },
+          );
+        }
+
+        const drafts = await deps.generateQuizQuestionDrafts(resolved.content);
+        if (!drafts.length) {
+          return NextResponse.json(
+            { error: 'Source content is too short for quiz generation' },
+            { status: 400 },
+          );
+        }
+
+        const created: QuizQuestion[] = [];
+        for (const draft of drafts) {
+          const question = await deps.createQuizQuestion(
+            workspaceId,
+            quizId,
+            draft.prompt,
+            draft.options,
+            draft.correctOptionIndex,
+          );
+          if (question) {
+            created.push(question);
+          }
+        }
+
+        await trackServerEvent({
+          event: 'quiz_generated',
+          distinctId: userId,
+          properties: {
+            workspace_id: workspaceId,
+            quiz_id: quizId,
+            note_id: resolved.sourceNoteId,
+            source_id: resolved.sourceId,
+            questions_generated: created.length,
+          },
+        });
+
+        return NextResponse.json({ data: created.map(toQuestionPayload) });
+      } catch (error) {
+        console.error('Failed to generate quiz', error);
+        return NextResponse.json(
+          {
+            error: error instanceof Error ? error.message : 'Failed to generate quiz',
+          },
+          { status: 500 },
+        );
+      }
     },
   };
 }
@@ -119,5 +144,8 @@ export const { POST } = createQuizGenerateRouteHandlers({
   },
   getQuizById,
   getWorkspaceNoteById,
+  listWorkspaceNotes,
+  readLibrarySourceText,
   createQuizQuestion,
+  generateQuizQuestionDrafts,
 });

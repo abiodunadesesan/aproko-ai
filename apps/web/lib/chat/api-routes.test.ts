@@ -66,57 +66,126 @@ test('chat sessions POST returns created session payload', async () => {
 });
 
 test('chat messages POST streams assistant response', async () => {
-  const handlers = createChatMessagesRouteHandlers({
-    auth: async () => ({ userId: 'user-1' }),
-    getChatSessionById: async () => ({
-      id: 'session-1',
-      workspaceId: 'ws-1',
-      clerkUserId: 'user-1',
-      title: 'Research',
-      contextMode: 'workspace',
-      modelProvider: null,
-      modelName: null,
-      lastMessageAt: null,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    }),
-    listChatMessages: async () => [],
-    listMemoryItems: async () => [],
-    createChatMessage: async () => ({
-      id: 'msg-1',
-      workspaceId: 'ws-1',
-      sessionId: 'session-1',
-      role: 'assistant',
-      content: 'ok',
-      responseTransport: 'sse',
-      modelProvider: 'anthropic',
-      modelName: 'claude-3-5-sonnet',
-      status: 'completed',
-      metadata: {},
-      createdAt: '2026-01-01T00:00:00.000Z',
-    }),
-  });
+  const assistantText = 'HTML is a markup language used to structure content on the web.';
+  const previousAnthropicKey = process.env.ANTHROPIC_API_KEY;
+  process.env.ANTHROPIC_API_KEY = 'test-key';
 
-  const response = await handlers.POST(
-    new Request('http://localhost', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ content: 'Hello assistant', model: 'anthropic:claude-3-5-sonnet' }),
-    }),
-    { params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }) },
-  );
+  try {
+    const handlers = createChatMessagesRouteHandlers({
+      auth: async () => ({ userId: 'user-1' }),
+      getChatSessionById: async () => ({
+        id: 'session-1',
+        workspaceId: 'ws-1',
+        clerkUserId: 'user-1',
+        title: 'Research',
+        contextMode: 'workspace',
+        modelProvider: null,
+        modelName: null,
+        lastMessageAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+      listChatMessages: async () => [],
+      listMemoryItems: async () => [],
+      buildWorkspaceContext: async () => [],
+      streamAssistantGeneration: () => ({
+        textStream: (async function* () {
+          yield assistantText;
+        })(),
+        fullText: Promise.resolve(assistantText),
+      }),
+      createChatMessage: async (_workspaceId, _sessionId, role) => ({
+        id: role === 'user' ? 'msg-user' : 'msg-assistant',
+        workspaceId: 'ws-1',
+        sessionId: 'session-1',
+        role,
+        content: role === 'user' ? 'Hello assistant' : assistantText,
+        responseTransport: 'sse',
+        modelProvider: 'anthropic',
+        modelName: 'claude-3-5-sonnet',
+        status: 'completed',
+        metadata: {},
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    });
 
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('x-aproko-stream-transport'), 'sse');
-  const body = await response.text();
-  assert.match(body, /id: 1/);
-  assert.match(body, /event: start/);
-  assert.match(body, /event: delta/);
-  assert.match(body, /event: done/);
-  assert.match(body, /"citations":\[/);
-  assert.match(body, /"sourceType":"workspace-source"/);
-  assert.match(body, /"model":"anthropic:claude-3-5-sonnet"/);
-  assert.match(body, /"memoryContext":\[/);
+    const response = await handlers.POST(
+      new Request('http://localhost', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ content: 'Hello assistant', model: 'anthropic:claude-3-5-sonnet' }),
+      }),
+      { params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }) },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('x-aproko-stream-transport'), 'sse');
+    const body = await response.text();
+    assert.match(body, /id: 1/);
+    assert.match(body, /event: start/);
+    assert.match(body, /event: delta/);
+    assert.match(body, /event: done/);
+    assert.match(body, /"citations":\[/);
+    assert.match(body, /"model":"anthropic:claude-3-5-sonnet"/);
+    assert.match(body, /"memoryContext":\[/);
+    assert.match(body, /HTML is a markup languag/);
+  } finally {
+    if (previousAnthropicKey) {
+      process.env.ANTHROPIC_API_KEY = previousAnthropicKey;
+    } else {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+  }
+});
+
+test('chat messages POST returns 503 when model provider is not configured', async () => {
+  const previousOpenAiKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+
+  try {
+    const handlers = createChatMessagesRouteHandlers({
+      auth: async () => ({ userId: 'user-1' }),
+      getChatSessionById: async () => ({
+        id: 'session-1',
+        workspaceId: 'ws-1',
+        clerkUserId: 'user-1',
+        title: 'Research',
+        contextMode: 'workspace',
+        modelProvider: null,
+        modelName: null,
+        lastMessageAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+      listChatMessages: async () => [],
+      listMemoryItems: async () => [],
+      buildWorkspaceContext: async () => [],
+      streamAssistantGeneration: () => ({
+        textStream: (async function* () {
+          yield 'unused';
+        })(),
+        fullText: Promise.resolve('unused'),
+      }),
+      createChatMessage: async () => null,
+    });
+
+    const response = await handlers.POST(
+      new Request('http://localhost', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ content: 'Hello', model: 'openai:gpt-4o-mini' }),
+      }),
+      { params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }) },
+    );
+
+    assert.equal(response.status, 503);
+    const payload = (await response.json()) as { error: string };
+    assert.match(payload.error, /not configured/i);
+  } finally {
+    if (previousOpenAiKey) {
+      process.env.OPENAI_API_KEY = previousOpenAiKey;
+    }
+  }
 });
 
 test('chat messages POST returns 400 when message is empty', async () => {
@@ -136,6 +205,13 @@ test('chat messages POST returns 400 when message is empty', async () => {
     }),
     listChatMessages: async () => [],
     listMemoryItems: async () => [],
+    buildWorkspaceContext: async () => [],
+    streamAssistantGeneration: () => ({
+      textStream: (async function* () {
+        yield 'unused';
+      })(),
+      fullText: Promise.resolve('unused'),
+    }),
     createChatMessage: async () => null,
   });
 
@@ -169,6 +245,13 @@ test('chat messages POST returns 400 when model is unsupported', async () => {
     }),
     listChatMessages: async () => [],
     listMemoryItems: async () => [],
+    buildWorkspaceContext: async () => [],
+    streamAssistantGeneration: () => ({
+      textStream: (async function* () {
+        yield 'unused';
+      })(),
+      fullText: Promise.resolve('unused'),
+    }),
     createChatMessage: async () => null,
   });
 
@@ -191,6 +274,13 @@ test('chat messages GET returns 404 when session does not exist', async () => {
     getChatSessionById: async () => null,
     listChatMessages: async () => [],
     listMemoryItems: async () => [],
+    buildWorkspaceContext: async () => [],
+    streamAssistantGeneration: () => ({
+      textStream: (async function* () {
+        yield 'unused';
+      })(),
+      fullText: Promise.resolve('unused'),
+    }),
     createChatMessage: async () => null,
   });
 
@@ -246,6 +336,13 @@ test('chat messages GET returns persisted history payload', async () => {
       },
     ],
     listMemoryItems: async () => [],
+    buildWorkspaceContext: async () => [],
+    streamAssistantGeneration: () => ({
+      textStream: (async function* () {
+        yield 'unused';
+      })(),
+      fullText: Promise.resolve('unused'),
+    }),
     createChatMessage: async () => null,
   });
 

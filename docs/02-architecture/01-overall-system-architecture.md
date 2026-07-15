@@ -18,30 +18,41 @@ This document is the primary system architecture reference for implementation se
 
 ```mermaid
 graph TD
-  U[User Browser] --> FE[Frontend: Next.js 15]
-  FE --> API[Backend API: FastAPI]
+  U[User Browser] --> FE[Frontend: Next.js 16]
+  FE --> API[Web API: Next.js /api/v1 Route Handlers]
   FE --> AUTH[Clerk Auth]
   API --> PG[(Supabase PostgreSQL)]
   API --> STORE[(Supabase Storage)]
-  API --> VDB[(Qdrant Vector DB)]
-  API --> GATE[LiteLLM AI Gateway]
-  GATE --> OAI[OpenAI]
-  GATE --> ANT[Anthropic]
-  GATE --> GEM[Gemini]
-  GATE --> PPX[Perplexity]
-  API --> QUEUE[Job Queue]
-  QUEUE --> WORKERS[Background Workers]
-  WORKERS --> PG
-  WORKERS --> STORE
-  WORKERS --> VDB
-  FE --> OBS[Monitoring: Sentry + PostHog + Platform Observability]
+  API --> VDB[(Qdrant Vector DB target)]
+  API --> AISDK[Vercel AI SDK + provider SDKs]
+  AISDK --> OAI[OpenAI]
+  AISDK --> ANT[Anthropic]
+  AISDK --> GEM[Gemini]
+  FE --> OBS[Monitoring: Sentry + PostHog]
   API --> OBS
-  WORKERS --> OBS
+```
+
+**Topology note (post–Sprint 19):** Production V1.1 primary request path is **Next.js Route Handlers** in `apps/web`. FastAPI + LiteLLM + workers remain the target modular backend for heavy async ingestion; they are not required for every chat/study/writing call today.
+
+Legacy diagram intent (FastAPI + LiteLLM + queue) remains valid as the **target** multi-service topology:
+
+```mermaid
+graph TD
+  U2[User Browser] --> FE2[Frontend: Next.js]
+  FE2 --> API2[Backend API: FastAPI target]
+  API2 --> GATE[LiteLLM AI Gateway target]
+  GATE --> OAI2[OpenAI]
+  GATE --> ANT2[Anthropic]
+  GATE --> GEM2[Gemini]
+  GATE --> PPX[Perplexity]
+  API2 --> QUEUE[Job Queue]
+  QUEUE --> WORKERS[Background Workers]
 ```
 
 ## Frontend Architecture
 
 ### Stack
+
 - Next.js 15 App Router
 - React 19 + TypeScript
 - Tailwind CSS + shadcn/ui
@@ -49,12 +60,14 @@ graph TD
 - Zustand for UI/session-local state
 
 ### Responsibilities
+
 - Authentication entry and protected app shell
 - Dashboard, chat, library, memory, research, study, settings, billing
 - Real-time UX for ingestion and AI generation states
 - Citation rendering and source navigation
 
 ### Frontend Boundaries
+
 - No business-critical logic in client-only state.
 - Authorization and data filtering are enforced server-side.
 - All write operations go through backend APIs.
@@ -62,11 +75,13 @@ graph TD
 ## Backend Architecture
 
 ### Core API Layer
+
 - FastAPI REST service under `/v1`.
 - Authenticated user and workspace-scoped operations.
 - Orchestrates retrieval, memory access, and AI calls.
 
 ### Domain Services
+
 - Workspace and membership service
 - Source ingestion orchestration service
 - Chat orchestration service
@@ -76,6 +91,7 @@ graph TD
 - Billing integration service
 
 ### Integration Layer
+
 - Supabase clients for auth, relational data, storage
 - Qdrant client for vector retrieval
 - LiteLLM client for model abstraction and provider routing
@@ -83,15 +99,18 @@ graph TD
 ## AI Gateway Architecture (LiteLLM)
 
 ### Purpose
+
 - Unified model interface across providers.
 - Centralized routing, fallback strategy, usage tracking.
 
 ### Responsibilities
+
 - Provider selection by task type
 - Retry/fallback policy for transient model failures
 - Token and latency telemetry collection
 
 ### Constraints
+
 - Never expose provider credentials to frontend.
 - Prompt and retrieval metadata must be logged for traceability.
 
@@ -100,15 +119,18 @@ graph TD
 ## Authentication Architecture
 
 ### Provider
+
 - Clerk
 
 ### V1 Flows
+
 - Email/password sign-up and sign-in
 - Google sign-in
 - Password reset
 - Session verification for protected routes
 
 ### Access Control
+
 - Workspace membership-based authorization
 - Role model: owner/editor/viewer/platform-admin
 - Backend checks + DB access constraints
@@ -116,9 +138,11 @@ graph TD
 ## File Processing Architecture
 
 ### Supported Inputs (V1)
+
 - PDF, DOCX, PPTX, TXT, Markdown, images, audio
 
 ### Pipeline
+
 1. Upload to object storage
 2. Register source record
 3. Dispatch processing job
@@ -145,15 +169,18 @@ flowchart LR
 ## Memory Engine Architecture
 
 ### Purpose
+
 - Persist useful knowledge across sessions.
 
 ### Memory Classes
+
 - Short-term chat memory
 - Long-term workspace memory
 - Timeline memory
 - Document-derived memory
 
 ### Lifecycle (High-Level)
+
 - Extract candidate memory from chats/files/summaries
 - Score and deduplicate
 - Persist and index
@@ -164,6 +191,7 @@ flowchart LR
 ## Search Engine Architecture
 
 ### Retrieval Strategy
+
 - Hybrid retrieval combining:
   - lexical search (PostgreSQL FTS)
   - semantic search (Qdrant ANN)
@@ -185,6 +213,7 @@ flowchart LR
 ## Background Workers Architecture
 
 ### Worker Domains
+
 - ingestion worker
 - OCR/transcription worker
 - embedding/indexing worker
@@ -192,6 +221,7 @@ flowchart LR
 - study artifact generation worker
 
 ### Reliability Patterns
+
 - idempotent jobs
 - retry with exponential backoff
 - dead-letter handling
@@ -202,21 +232,26 @@ flowchart LR
 ## Storage Architecture
 
 ### Relational Storage
+
 - Supabase PostgreSQL for transactional data and metadata.
 
 ### Object Storage
+
 - Supabase Storage for raw uploads and generated artifacts.
 
 ### Vector Storage
+
 - Qdrant for embedding vectors and vector-filter metadata.
 
 ### Data Ownership
+
 - PostgreSQL remains source of truth for authorization boundaries.
 - Vector DB is retrieval acceleration, not permission source.
 
 ## Deployment Architecture
 
 ### Platforms
+
 - Frontend: Vercel
 - Backend API and workers: Railway (Dockerized)
 - Edge and DNS controls: Cloudflare
@@ -238,16 +273,20 @@ graph LR
 ## Monitoring Architecture
 
 ### Error and Performance Monitoring
+
 - Sentry for exception tracking and tracing.
 
 ### Product Analytics
+
 - PostHog for product events and journey analytics.
 
 ### Runtime Observability
+
 - Platform observability (logs/metrics/traces for deployments and services).
 - Structured logging for API and workers.
 
 ### Monitoring Requirements
+
 - Request ID propagation across frontend -> API -> workers.
 - Failure correlation for ingestion, retrieval, and generation paths.
 - Alerting for auth failures, queue lag, 5xx spikes, and AI provider degradation.

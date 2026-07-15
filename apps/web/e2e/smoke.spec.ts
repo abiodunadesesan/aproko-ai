@@ -45,6 +45,7 @@ test('sidebar navigation links exist', async ({ page }) => {
   await expect(page.getByTestId('nav-link-chat')).toBeVisible();
   await expect(page.getByTestId('nav-link-memory')).toBeVisible();
   await expect(page.getByTestId('nav-link-study')).toBeVisible();
+  await expect(page.getByTestId('nav-link-writing')).toBeVisible();
   await expect(page.getByTestId('nav-link-settings')).toBeVisible();
   await expect(page.getByTestId('nav-link-billing')).toBeVisible();
 });
@@ -116,4 +117,13 @@ test('study page loads', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/study/);
   await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+});
+
+test('writing page loads', async ({ page }) => {
+  test.setTimeout(120_000);
+  await enableMockAuth(page);
+  await page.goto('/writing', { waitUntil: 'commit', timeout: 90_000 });
+
+  await expect(page).toHaveURL(/\/writing/);
+  await expect(page.getByRole('heading', { name: 'Writing' })).toBeVisible();
 });

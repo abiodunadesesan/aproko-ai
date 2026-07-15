@@ -66,6 +66,9 @@ test('study summary generate POST creates summary from specific note', async () 
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
+    readLibrarySourceText: async () => null,
+    generateStudySummaryMarkdown: async () => '## Overview\nLLM summary',
+    generateSlideOutlineMarkdown: async () => '# Slide Outline\n## Title\n- Topic',
     createStudySummary: async (_workspaceId, title, content, sourceNoteId) => ({
       id: 'summary-1',
       workspaceId: 'ws-1',
@@ -88,9 +91,52 @@ test('study summary generate POST creates summary from specific note', async () 
   );
 
   assert.equal(response.status, 201);
-  const payload = (await response.json()) as { data: { id: string; sourceNoteId: string | null } };
+  const payload = (await response.json()) as {
+    data: { id: string; sourceNoteId: string | null; content: string; title: string };
+  };
   assert.equal(payload.data.id, 'summary-1');
   assert.equal(payload.data.sourceNoteId, 'note-1');
+  assert.equal(payload.data.content, '## Overview\nLLM summary');
+  assert.match(payload.data.title, /^Study Summary:/);
+});
+
+test('study summary generate POST creates slide outline from sourceId', async () => {
+  const handlers = createStudySummaryGenerateRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    listWorkspaceNotes: async () => [],
+    getWorkspaceNoteById: async () => null,
+    readLibrarySourceText: async () => ({
+      title: 'lecture.txt',
+      content: 'Intro to HTML and CSS for building pages.',
+      sourceId: 'src-1',
+    }),
+    generateStudySummaryMarkdown: async () => 'unused',
+    generateSlideOutlineMarkdown: async () => '# Slide Outline\n## Intro\n- HTML',
+    createStudySummary: async (_workspaceId, title, content, sourceNoteId) => ({
+      id: 'outline-1',
+      workspaceId: 'ws-1',
+      summaryType: 'study',
+      title,
+      content,
+      sourceNoteId: sourceNoteId ?? null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }),
+  });
+
+  const response = await handlers.POST(
+    new Request('http://localhost', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sourceId: 'src-1', kind: 'outline' }),
+    }),
+    { params: Promise.resolve({ workspaceId: 'ws-1' }) },
+  );
+
+  assert.equal(response.status, 201);
+  const payload = (await response.json()) as { data: { title: string; content: string } };
+  assert.match(payload.data.title, /^Slide Outline:/);
+  assert.match(payload.data.content, /Slide Outline/);
 });
 
 test('study summary generate POST returns 400 with no notes context', async () => {
@@ -98,6 +144,9 @@ test('study summary generate POST returns 400 with no notes context', async () =
     auth: async () => ({ userId: 'user-1' }),
     listWorkspaceNotes: async () => [],
     getWorkspaceNoteById: async () => null,
+    readLibrarySourceText: async () => null,
+    generateStudySummaryMarkdown: async () => 'unused',
+    generateSlideOutlineMarkdown: async () => 'unused',
     createStudySummary: async () => null,
   });
 
@@ -107,6 +156,6 @@ test('study summary generate POST returns 400 with no notes context', async () =
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
-    error: 'No workspace notes found for summary generation',
+    error: 'No workspace notes found for generation',
   });
 });

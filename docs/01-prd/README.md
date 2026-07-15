@@ -2,7 +2,9 @@
 
 ## Executive Summary
 
-Aproko AI is a web-first AI knowledge operating system that helps users capture, structure, retrieve, and reuse knowledge across documents, conversations, and time. Version 1 focuses on high-signal knowledge workflows for individuals and teams: AI chat over uploaded materials, memory-aware retrieval, notes, study tools, and research workspace orchestration.
+Aproko AI is a web-first AI knowledge operating system that helps users capture, structure, retrieve, and reuse knowledge across documents, conversations, and time. Version 1 focuses on high-signal knowledge workflows for individuals and teams: AI chat over uploaded materials, memory-aware retrieval, notes, study tools, research workspaces, browser transcript capture, and legitimate writing polish.
+
+Sprint 19 expanded the web surface into a **study-copilot** mode without shipping a desktop capture suite.
 
 ## Product Vision
 
@@ -76,20 +78,21 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 
 1. User can create and manage workspaces.
 2. User can upload files: PDF, DOCX, PPTX, TXT, Markdown, images, and audio.
-3. System extracts text, metadata, and OCR content.
-4. User can chat with workspace-aware context.
-5. Responses include references/citations to source chunks.
-6. User can save generated notes, summaries, flashcards, and quizzes.
-7. User can upload meeting transcripts and generate summaries/actions.
+3. System extracts text, metadata, and OCR content (async workers for heavy paths; sync Whisper for user-uploaded/browser audio when configured).
+4. User can chat with workspace-aware context (including voice-to-text input in the web UI).
+5. Responses include references/citations to source chunks / hydrated excerpts when retrieval context is used.
+6. User can save generated notes, summaries, flashcards, quizzes, and slide outlines.
+7. User can upload meeting transcripts **or record/upload audio in-browser** and generate study assets.
 8. User can perform global and workspace-scoped search.
-9. User has timeline view of key memory events.
+9. User has timeline/memory views of key retained items.
+10. User can polish writing for clarity/tone (not detector evasion).
 
 ### Account & Administration
 
-10. User can authenticate via Clerk (email + Google sign-in + password reset).
-11. User can manage profile and settings.
-12. Billing plans and subscription state are enforced in feature gates.
-13. Admin dashboard supports user/workspace/usage oversight.
+11. User can authenticate via Clerk (email + Google sign-in + password reset).
+12. User can manage profile and settings.
+13. Billing plans and subscription state are enforced in feature gates.
+14. Admin dashboard supports user/workspace/usage oversight.
 
 ## Non-Functional Requirements
 
@@ -105,8 +108,10 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 ## User Stories (Selected)
 
 - As a user, I upload PDF/DOCX/PPTX/TXT/Markdown/image/audio content and ask grounded questions with citations.
-- As a user, I generate flashcards from selected notes.
-- As a user, I revisit prior sessions and see memory timeline context.
+- As a user, I record a lecture snippet in the browser and get a transcript in My Transcripts.
+- As a user, I generate flashcards, quizzes, summaries, or slide outlines from a note or transcript.
+- As a user, I polish a draft for clarity or academic tone without detector-evasion tooling.
+- As a user, I revisit prior sessions and see memory context in chat.
 - As an admin, I review usage trends and account-level health.
 - As a paid user, I access higher usage limits and advanced features.
 

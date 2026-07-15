@@ -186,6 +186,16 @@ export const rateLimitPolicies = {
     windowMs: 60_000,
     maxRequests: 12,
   },
+  writingPolishWrite: {
+    bucket: 'v1:writing:polish:post',
+    windowMs: 60_000,
+    maxRequests: 30,
+  },
+  writingDetectWrite: {
+    bucket: 'v1:writing:detect:post',
+    windowMs: 60_000,
+    maxRequests: 20,
+  },
   researchWrite: {
     bucket: 'v1:research:write',
     windowMs: 60_000,

@@ -395,6 +395,50 @@ export async function getLibrarySignedUrl(
   return data.signedUrl;
 }
 
+export async function readLibrarySourceText(
+  workspaceId: string,
+  sourceId: string,
+): Promise<{ title: string; content: string; sourceId: string } | null> {
+  const source = await getLibrarySource(workspaceId, sourceId);
+  if (!source) {
+    return null;
+  }
+
+  const ext = source.name.split('.').pop()?.toLowerCase() ?? '';
+  const textLike =
+    ['txt', 'md', 'markdown', 'vtt', 'srt', 'json', 'csv'].includes(ext) ||
+    source.mimeType?.startsWith('text/') ||
+    source.sourceType === 'transcript';
+
+  if (!textLike) {
+    throw new Error(
+      'Selected source is not readable text. Use a transcript .txt/.md/.vtt/.srt file.',
+    );
+  }
+
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const download = await supabase.storage.from(getLibraryBucketName()).download(source.objectPath);
+  if (download.error || !download.data) {
+    console.warn('Unable to download library source text.', download.error?.message);
+    return null;
+  }
+
+  const content = (await download.data.text()).trim();
+  if (!content) {
+    throw new Error('Selected source is empty');
+  }
+
+  return {
+    title: source.name,
+    content,
+    sourceId: source.id,
+  };
+}
+
 export async function updateLibrarySourceMetadata(params: {
   workspaceId: string;
   sourceId: string;

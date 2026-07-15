@@ -108,6 +108,15 @@ test('quiz generate POST creates questions from note', async () => {
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     }),
+    listWorkspaceNotes: async () => [],
+    readLibrarySourceText: async () => null,
+    generateQuizQuestionDrafts: async () => [
+      {
+        prompt: 'What produces ATP?',
+        options: ['Mitochondria', 'Ribosomes', 'Nucleus', 'Golgi'],
+        correctOptionIndex: 0,
+      },
+    ],
     createQuizQuestion: async (_workspaceId, quizId, prompt, options, correctOptionIndex) => ({
       id: `${quizId}-${prompt.slice(0, 3)}`,
       workspaceId: 'ws-1',
@@ -131,8 +140,9 @@ test('quiz generate POST creates questions from note', async () => {
   );
 
   assert.equal(response.status, 200);
-  const payload = (await response.json()) as { data: Array<{ id: string }> };
-  assert.ok(payload.data.length > 0);
+  const payload = (await response.json()) as { data: Array<{ id: string; prompt: string }> };
+  assert.equal(payload.data.length, 1);
+  assert.equal(payload.data[0]?.prompt, 'What produces ATP?');
 });
 
 test('quiz attempts POST returns created result', async () => {

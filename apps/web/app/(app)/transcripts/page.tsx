@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { Mic, Upload } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Mic, Square, Upload } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
@@ -49,13 +49,29 @@ function isThisMonth(isoDate: string | null): boolean {
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
 }
 
+function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
 export default function TranscriptsPage() {
   const [transcripts, setTranscripts] = useState<TranscriptSource[]>([]);
   const [query, setQuery] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
 
   async function loadTranscripts() {
     setIsLoading(true);
@@ -78,6 +94,12 @@ export default function TranscriptsPage() {
 
   useEffect(() => {
     void loadTranscripts();
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -93,36 +115,115 @@ export default function TranscriptsPage() {
     [transcripts],
   );
 
+  async function submitTranscriptFile(nextFile: File) {
+    setIsUploading(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', nextFile);
+
+      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/transcripts`, {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        data?: { transcript?: TranscriptSource; audio?: TranscriptSource | null };
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to create transcript');
+      }
+
+      setFile(null);
+      setNotice(
+        payload.data?.audio
+          ? `Transcribed and saved “${payload.data.transcript?.name ?? 'transcript'}”.`
+          : `Saved “${payload.data?.transcript?.name ?? nextFile.name}”.`,
+      );
+      await loadTranscripts();
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Failed to create transcript');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) {
       return;
     }
+    await submitTranscriptFile(file);
+  }
 
-    setIsUploading(true);
+  async function startRecording() {
     setError(null);
+    setNotice(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Microphone recording is not supported in this browser.');
+      return;
+    }
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('project', 'transcripts');
-      formData.append('folder', 'uploads');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      chunksRef.current = [];
 
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources`, {
-        method: 'POST',
-        body: formData,
-      });
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to upload transcript');
-      }
+      const preferredType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : '';
 
-      setFile(null);
-      await loadTranscripts();
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Failed to upload transcript');
-    } finally {
-      setIsUploading(false);
+      const recorder = preferredType
+        ? new MediaRecorder(stream, { mimeType: preferredType })
+        : new MediaRecorder(stream);
+
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        chunksRef.current = [];
+
+        const extension = blob.type.includes('mp4') ? 'mp4' : 'webm';
+        const recording = new File([blob], `mic-recording-${Date.now()}.${extension}`, {
+          type: blob.type || 'audio/webm',
+        });
+        void submitTranscriptFile(recording);
+      };
+
+      recorder.start(1000);
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      timerRef.current = window.setInterval(() => {
+        setRecordingSeconds((value) => value + 1);
+      }, 1000);
+    } catch {
+      setError('Microphone permission was denied or unavailable.');
+    }
+  }
+
+  function stopRecording() {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsRecording(false);
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
     }
   }
 
@@ -160,28 +261,60 @@ export default function TranscriptsPage() {
 
         <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
           <CardHeader>
-            <CardTitle className="text-base">Upload transcript</CardTitle>
+            <CardTitle className="text-base">Capture transcript</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <form
               className="flex flex-col gap-3 sm:flex-row sm:items-center"
               onSubmit={handleUpload}
             >
               <Input
-                accept=".txt,.md,.markdown,.vtt,.srt,audio/*"
-                aria-label="Choose transcript file"
+                accept=".txt,.md,.markdown,.vtt,.srt,audio/*,.webm,.mp3,.wav,.m4a"
+                aria-label="Choose transcript or audio file"
                 className="max-w-xl"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 type="file"
               />
-              <Button className="rounded-full" disabled={!file || isUploading} type="submit">
+              <Button
+                className="rounded-full"
+                disabled={!file || isUploading || isRecording}
+                type="submit"
+              >
                 <Upload className="mr-1.5 h-4 w-4" />
-                {isUploading ? 'Uploading...' : 'Upload'}
+                {isUploading ? 'Processing...' : 'Upload'}
               </Button>
             </form>
-            <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-              Supported: .txt, .md, .vtt, .srt, and audio files (max 25MB).
-            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {isRecording ? (
+                <Button
+                  className="rounded-full"
+                  disabled={isUploading}
+                  onClick={stopRecording}
+                  type="button"
+                  variant="destructive"
+                >
+                  <Square className="mr-1.5 h-4 w-4" />
+                  Stop ({formatDuration(recordingSeconds)})
+                </Button>
+              ) : (
+                <Button
+                  className="rounded-full"
+                  disabled={isUploading}
+                  onClick={() => void startRecording()}
+                  type="button"
+                  variant="outline"
+                >
+                  <Mic className="mr-1.5 h-4 w-4" />
+                  Record microphone
+                </Button>
+              )}
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                Text/subtitle files upload immediately. Audio is transcribed with Whisper when{' '}
+                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">OPENAI_API_KEY</code> is
+                set.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -198,6 +331,9 @@ export default function TranscriptsPage() {
           </CardHeader>
           <CardContent>
             {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
+            {notice ? (
+              <p className="mb-4 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>
+            ) : null}
 
             {isLoading ? (
               <TableSkeleton rows={5} />
@@ -208,7 +344,7 @@ export default function TranscriptsPage() {
                     <Link href="/chat">Open AI Chat</Link>
                   </Button>
                 }
-                description="Upload a transcript file above or add .txt/.vtt files to your transcripts folder in Documents."
+                description="Upload a transcript or record your microphone. Audio becomes searchable text in your workspace."
                 icon={Mic}
                 title={query.trim() ? 'No matching transcripts' : 'No transcripts yet'}
               />

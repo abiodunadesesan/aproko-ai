@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Mic,
+  PenLine,
   Search,
   ShieldCheck,
   Sparkles,
@@ -34,7 +35,7 @@ export const appPageMeta = {
   },
   transcripts: {
     title: 'My Transcripts',
-    subtitle: 'Upload and manage meeting transcripts and text captures.',
+    subtitle: 'Upload files or record your mic; audio becomes workspace transcripts.',
     icon: Mic,
   },
   library: {
@@ -67,6 +68,11 @@ export const appPageMeta = {
     title: 'Study',
     subtitle: 'Quizzes, flashcards, and notes generated from your materials.',
     icon: GraduationCap,
+  },
+  writing: {
+    title: 'Writing',
+    subtitle: 'Polish drafts for clarity and tone — not detector evasion.',
+    icon: PenLine,
   },
   settings: {
     title: 'Settings',

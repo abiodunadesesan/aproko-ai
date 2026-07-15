@@ -34,52 +34,65 @@ flowchart LR
 ## Stage 1 - File Ingestion
 
 ### Inputs
+
 - PDF, DOCX, PPTX, TXT, Markdown, images, audio
 
 ### Actions
+
 - upload via signed URL
 - register metadata and processing job
 - transition source state machine
 
 ### Outputs
+
 - source records and queued jobs
 
 ## Stage 2 - Parsing
 
 ### Actions
+
 - file-type aware parsers extract text/structure
 - capture page/slide/section boundaries when available
 - normalize extracted text into canonical representation
 
 ### Outputs
+
 - structured text blocks + metadata
 
 ## Stage 3 - OCR / Transcription
 
 ### OCR
+
 - PaddleOCR for image/scanned-text extraction
 - confidence metadata attached to extracted segments
 
 ### Audio
+
 - transcription pipeline converts audio into timestamped text segments
 
 ### Outputs
+
 - enriched text corpus for downstream chunking
 
-`TODO`: Final audio transcription provider and diarization strategy in V1 implementation scope.
+Web Step 1 (Sprint 19): browser mic/upload audio is transcribed synchronously with OpenAI Whisper (`whisper-1`) when `OPENAI_API_KEY` is set. Diarization remains deferred.
+
+`TODO`: Async worker queue + diarization strategy for long recordings.
 
 ## Stage 4 - Chunking
 
 ### Strategy
+
 - structure-aware chunking first (heading/page/slide boundaries)
 - token-window fallback with overlap
 - preserve source locators for citation rendering
 
 ### Suggested Defaults
+
 - chunk size target: 500-900 tokens
 - overlap target: 80-140 tokens
 
 ### Metadata per Chunk
+
 - workspace_id
 - source_id/source_version
 - source_type
@@ -89,10 +102,12 @@ flowchart LR
 ## Stage 5 - Embeddings
 
 ### Actions
+
 - generate vector embeddings per chunk
 - store vector references and model version metadata
 
 ### Outputs
+
 - Qdrant points + relational metadata mappings
 
 `TODO`: Final embedding model and dimensionality decision.
@@ -109,21 +124,26 @@ flowchart LR
 ```
 
 ### Lexical Channel
+
 - exact term and phrase recall
 - robust for named entities and literal terms
 
 ### Semantic Channel
+
 - concept-level recall and paraphrase robustness
 
 ### Merge
+
 - combine channels and deduplicate by source/segment
 
 ## Stage 7 - Re-ranking
 
 ### Purpose
+
 - improve top-k relevance quality before prompt assembly
 
 ### Signals
+
 - semantic score
 - lexical score
 - recency
@@ -135,24 +155,29 @@ flowchart LR
 ## Stage 8 - Citation Generation
 
 ### Citation Contract
+
 Each grounded claim should be traceable to:
+
 - source id/name
 - source locator (page/slide/section/timestamp/chunk)
 - confidence metadata
 
 ### Rules
+
 - if retrieval context is insufficient, model should state uncertainty.
 - never fabricate source references.
 
 ## Stage 9 - Prompt Assembly
 
 ### Inputs
+
 - user query
 - selected retrieved chunks
 - relevant memory context
 - system and policy prompts
 
 ### Assembly Constraints
+
 - enforce token budgets
 - prioritize highest-confidence chunks
 - preserve source diversity
@@ -161,10 +186,12 @@ Each grounded claim should be traceable to:
 ## Stage 10 - Response Generation
 
 ### Runtime
+
 - LiteLLM gateway call with selected provider/model
 - streaming response for UX responsiveness
 
 ### Post-processing
+
 - citation mapping validation
 - unsafe/unsupported output checks
 - structured payload returned to client
@@ -179,6 +206,7 @@ Each grounded claim should be traceable to:
 ## Observability
 
 Track per stage:
+
 - ingestion latency
 - parse/OCR success rates
 - chunk counts and average sizes

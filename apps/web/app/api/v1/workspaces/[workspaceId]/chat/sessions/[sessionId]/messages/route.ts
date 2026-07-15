@@ -1,12 +1,26 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import {
+  buildWorkspaceContext,
+  selectMemoryContext,
+  workspaceContextToCitations,
+  type ChatCitation,
+  type ChatMemoryContext,
+} from '@/lib/ai/chat-context';
+import {
+  canGenerateWithModel,
+  streamAssistantGeneration,
+  type ChatGenerationInput,
+  type ChatGenerationStream,
+} from '@/lib/ai/chat-generation';
+import { isChatModel, type ChatModel } from '@/lib/ai/chat-models';
+import {
   createChatMessage,
   getChatSessionById,
   listChatMessages,
   type ChatMessage,
 } from '@/lib/storage/chat';
-import { listMemoryItems, type MemoryItem } from '@/lib/storage/memory';
+import { listMemoryItems } from '@/lib/storage/memory';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
 
@@ -18,30 +32,13 @@ type ChatMessagesRouteDependencies = {
   listChatMessages: typeof listChatMessages;
   createChatMessage: typeof createChatMessage;
   listMemoryItems: typeof listMemoryItems;
+  buildWorkspaceContext: typeof buildWorkspaceContext;
+  streamAssistantGeneration: (input: ChatGenerationInput) => ChatGenerationStream;
 };
 
 type RouteContext = { params: Promise<{ workspaceId: string; sessionId: string }> };
 type SseEventName = 'start' | 'delta' | 'done' | 'error';
-type ChatModel = 'openai:gpt-4o-mini' | 'anthropic:claude-3-5-sonnet' | 'google:gemini-1.5-pro';
-type ChatCitation = {
-  id: string;
-  title: string;
-  snippet: string;
-  sourceType: 'workspace-source';
-};
-type ChatMemoryContext = {
-  memoryItemId: string;
-  memoryType: MemoryItem['memoryType'];
-  summary: string;
-  rankScore: number;
-};
 const DEFAULT_CHAT_MODEL: ChatModel = 'openai:gpt-4o-mini';
-
-function isChatModel(value: string): value is ChatModel {
-  return ['openai:gpt-4o-mini', 'anthropic:claude-3-5-sonnet', 'google:gemini-1.5-pro'].includes(
-    value,
-  );
-}
 
 function toMessagePayload(message: ChatMessage) {
   return {
@@ -64,27 +61,24 @@ function toSseBlock(eventId: number, event: SseEventName, payload: object): stri
 }
 
 function streamAssistantResponse(
-  text: string,
+  generation: ChatGenerationStream,
   citations: ChatCitation[],
   model: ChatModel,
   memoryContext: ChatMemoryContext[],
+  persistAssistantMessage: (fullText: string) => Promise<void>,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const chunkSize = 24;
-  const chunks: string[] = [];
-  for (let i = 0; i < text.length; i += chunkSize) {
-    chunks.push(text.slice(i, i + chunkSize));
-  }
 
   return new ReadableStream<Uint8Array>({
-    start(controller) {
+    async start(controller) {
       let eventId = 0;
       const enqueue = (event: SseEventName, payload: object) => {
         eventId += 1;
         controller.enqueue(encoder.encode(toSseBlock(eventId, event, payload)));
       };
 
-      const run = () => {
+      try {
         enqueue('start', {
           transport: 'sse',
           version: 1,
@@ -92,60 +86,47 @@ function streamAssistantResponse(
           memoryContext,
         });
 
-        for (let index = 0; index < chunks.length; index += 1) {
-          enqueue('delta', {
-            index,
-            content: chunks[index],
-          });
+        let buffered = '';
+        let deltaIndex = 0;
+
+        for await (const chunk of generation.textStream) {
+          buffered += chunk;
+          while (buffered.length >= chunkSize) {
+            const content = buffered.slice(0, chunkSize);
+            buffered = buffered.slice(chunkSize);
+            enqueue('delta', { index: deltaIndex, content });
+            deltaIndex += 1;
+          }
         }
 
+        if (buffered.length > 0) {
+          enqueue('delta', { index: deltaIndex, content: buffered });
+          deltaIndex += 1;
+        }
+
+        const fullText = (await generation.fullText).trim();
+        if (!fullText) {
+          throw new Error('Model returned an empty response');
+        }
+
+        await persistAssistantMessage(fullText);
+
         enqueue('done', {
-          totalChunks: chunks.length,
+          totalChunks: deltaIndex,
           citations,
           model,
           memoryContext,
         });
         controller.close();
-      };
-
-      try {
-        run();
-      } catch {
+      } catch (error) {
         enqueue('error', {
           code: 'STREAM_FAILED',
-          message: 'Unable to stream assistant response',
+          message: error instanceof Error ? error.message : 'Unable to stream assistant response',
         });
         controller.close();
       }
     },
   });
-}
-
-function memoryRecencyScore(timestamp: string): number {
-  const parsed = Date.parse(timestamp);
-  if (Number.isNaN(parsed)) {
-    return 0;
-  }
-
-  const ageHours = Math.max(0, (Date.now() - parsed) / 3_600_000);
-  return Math.exp(-ageHours / 72);
-}
-
-function selectMemoryContext(items: MemoryItem[]): ChatMemoryContext[] {
-  return items
-    .map((item) => {
-      const importance = item.importanceScore ?? 0.5;
-      const recency = memoryRecencyScore(item.updatedAt);
-      const rankScore = Number((importance * 0.6 + recency * 0.4).toFixed(4));
-      return {
-        memoryItemId: item.id,
-        memoryType: item.memoryType,
-        summary: item.summary,
-        rankScore,
-      };
-    })
-    .sort((a, b) => b.rankScore - a.rankScore)
-    .slice(0, 3);
 }
 
 export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependencies) {
@@ -212,6 +193,15 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
         return NextResponse.json({ error: 'Unsupported model' }, { status: 400 });
       }
 
+      if (!canGenerateWithModel(modelRaw)) {
+        return NextResponse.json(
+          {
+            error: `Model ${modelRaw} is not configured. Add the provider API key in server environment variables.`,
+          },
+          { status: 503 },
+        );
+      }
+
       const userMessage = await deps.createChatMessage(workspaceId, sessionId, 'user', content, {
         responseTransport: 'sse',
         model: modelRaw,
@@ -224,53 +214,69 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
         return NextResponse.json({ error: 'Failed to save user message' }, { status: 500 });
       }
 
-      const assistantText = `Model ${modelRaw} response: I received "${content}". Streaming and citations are active placeholders for Sprint 3 baseline.`;
       const memoryContext = selectMemoryContext(await deps.listMemoryItems(workspaceId));
-      const memoryContextText = memoryContext.length
-        ? ` Memory context: ${memoryContext.map((item) => item.summary).join(' | ')}`
-        : ' Memory context: none selected.';
-      const assistantTextWithMemory = `${assistantText}${memoryContextText}`;
-      const citations: ChatCitation[] = [
-        {
-          id: 'workspace-source-1',
-          title: 'Workspace Context Snapshot',
-          snippet:
-            'This response is grounded in workspace-scoped context for citation contract validation.',
-          sourceType: 'workspace-source',
-        },
-      ];
-      const assistantMessage = await deps.createChatMessage(
-        workspaceId,
-        sessionId,
-        'assistant',
-        assistantTextWithMemory,
-        {
-          responseTransport: 'sse',
-          model: modelRaw,
-          status: 'completed',
-          metadata: {
-            citations,
-            memoryContext,
-          },
-        },
-      );
-      if (!assistantMessage) {
-        return NextResponse.json({ error: 'Failed to save assistant message' }, { status: 500 });
-      }
+      const workspaceContext = await deps.buildWorkspaceContext(workspaceId, content);
+      const citations = workspaceContextToCitations(workspaceContext);
+      const priorMessages = await deps.listChatMessages(workspaceId, userId, sessionId);
+      const history = priorMessages
+        .filter((message) => message.id !== userMessage.id)
+        .slice(-12)
+        .flatMap((message) => {
+          if (message.role !== 'user' && message.role !== 'assistant') {
+            return [];
+          }
+          return [{ role: message.role, content: message.content }];
+        });
 
-      await trackServerEvent({
-        event: 'chat_message_sent',
-        distinctId: userId,
-        properties: {
-          workspace_id: workspaceId,
-          session_id: sessionId,
-          model: modelRaw,
-          memory_context_count: memoryContext.length,
-        },
+      const generation = deps.streamAssistantGeneration({
+        model: modelRaw,
+        userMessage: content,
+        history,
+        memoryContext,
+        workspaceContext,
       });
 
+      const persistAssistantMessage = async (fullText: string) => {
+        const assistantMessage = await deps.createChatMessage(
+          workspaceId,
+          sessionId,
+          'assistant',
+          fullText,
+          {
+            responseTransport: 'sse',
+            model: modelRaw,
+            status: 'completed',
+            metadata: {
+              citations,
+              memoryContext,
+            },
+          },
+        );
+        if (!assistantMessage) {
+          throw new Error('Failed to save assistant message');
+        }
+
+        await trackServerEvent({
+          event: 'chat_message_sent',
+          distinctId: userId,
+          properties: {
+            workspace_id: workspaceId,
+            session_id: sessionId,
+            model: modelRaw,
+            memory_context_count: memoryContext.length,
+            citation_count: citations.length,
+          },
+        });
+      };
+
       return new Response(
-        streamAssistantResponse(assistantTextWithMemory, citations, modelRaw, memoryContext),
+        streamAssistantResponse(
+          generation,
+          citations,
+          modelRaw,
+          memoryContext,
+          persistAssistantMessage,
+        ),
         {
           headers: {
             'Content-Type': 'text/event-stream',
@@ -293,4 +299,6 @@ export const { GET, POST } = createChatMessagesRouteHandlers({
   listChatMessages,
   createChatMessage,
   listMemoryItems,
+  buildWorkspaceContext,
+  streamAssistantGeneration,
 });

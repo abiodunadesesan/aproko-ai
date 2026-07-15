@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Mic, Square } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
@@ -57,7 +58,7 @@ type ChatCitation = {
   id: string;
   title: string;
   snippet: string;
-  sourceType: 'workspace-source';
+  sourceType: 'workspace-source' | 'note' | 'memory' | 'transcript';
 };
 
 type ChatMemoryContext = {
@@ -163,7 +164,13 @@ export default function ChatPage() {
   const [isHistoryReady, setIsHistoryReady] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ChatModel>('openai:gpt-4o-mini');
   const [error, setError] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isTranscribingVoice, setIsTranscribingVoice] = useState(false);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
@@ -222,6 +229,199 @@ export default function ChatPage() {
       setMessages([]);
     }
   }
+
+  function appendVoiceText(text: string) {
+    const next = text.trim();
+    if (!next) {
+      return;
+    }
+    setInput((current) => {
+      const base = current.trim();
+      return base ? `${base} ${next}` : next;
+    });
+  }
+
+  function stopBrowserSpeech() {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsListening(false);
+  }
+
+  function startBrowserSpeech(): boolean {
+    const SpeechRecognitionCtor =
+      typeof window !== 'undefined'
+        ? (
+            window as Window & {
+              SpeechRecognition?: new () => {
+                continuous: boolean;
+                interimResults: boolean;
+                lang: string;
+                onresult:
+                  | ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
+                  | null;
+                onerror: (() => void) | null;
+                onend: (() => void) | null;
+                start: () => void;
+                stop: () => void;
+              };
+              webkitSpeechRecognition?: new () => {
+                continuous: boolean;
+                interimResults: boolean;
+                lang: string;
+                onresult:
+                  | ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
+                  | null;
+                onerror: (() => void) | null;
+                onend: (() => void) | null;
+                start: () => void;
+                stop: () => void;
+              };
+            }
+          ).SpeechRecognition ||
+          (
+            window as Window & {
+              webkitSpeechRecognition?: new () => {
+                continuous: boolean;
+                interimResults: boolean;
+                lang: string;
+                onresult:
+                  | ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void)
+                  | null;
+                onerror: (() => void) | null;
+                onend: (() => void) | null;
+                start: () => void;
+                stop: () => void;
+              };
+            }
+          ).webkitSpeechRecognition
+        : undefined;
+
+    if (!SpeechRecognitionCtor) {
+      return false;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      const last = event.results[event.results.length - 1];
+      const transcript = last?.[0]?.transcript?.trim();
+      if (transcript) {
+        setInput(transcript);
+      }
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+    return true;
+  }
+
+  async function startWhisperVoiceCapture() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Microphone is not available in this browser.');
+      return;
+    }
+
+    setError(null);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaStreamRef.current = stream;
+    voiceChunksRef.current = [];
+
+    const preferredType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : '';
+    const recorder = preferredType
+      ? new MediaRecorder(stream, { mimeType: preferredType })
+      : new MediaRecorder(stream);
+    mediaRecorderRef.current = recorder;
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        voiceChunksRef.current.push(event.data);
+      }
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(voiceChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+      mediaRecorderRef.current = null;
+      voiceChunksRef.current = [];
+
+      const file = new File([blob], `chat-voice-${Date.now()}.webm`, {
+        type: blob.type || 'audio/webm',
+      });
+      void (async () => {
+        setIsTranscribingVoice(true);
+        try {
+          const formData = new FormData();
+          formData.append('audio', file);
+          const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/voice`, {
+            method: 'POST',
+            body: formData,
+          });
+          const payload = (await response.json()) as { data?: { text?: string }; error?: string };
+          if (!response.ok || !payload.data?.text) {
+            throw new Error(payload.error ?? 'Failed to transcribe voice input');
+          }
+          appendVoiceText(payload.data.text);
+        } catch (voiceError) {
+          setError(
+            voiceError instanceof Error ? voiceError.message : 'Failed to transcribe voice input',
+          );
+        } finally {
+          setIsTranscribingVoice(false);
+          setIsListening(false);
+        }
+      })();
+    };
+
+    recorder.start(500);
+    setIsListening(true);
+  }
+
+  async function toggleVoiceInput() {
+    if (isSending || isTranscribingVoice) {
+      return;
+    }
+
+    if (isListening) {
+      stopBrowserSpeech();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+
+    if (startBrowserSpeech()) {
+      return;
+    }
+
+    try {
+      await startWhisperVoiceCapture();
+    } catch {
+      setError('Microphone permission was denied or unavailable.');
+      setIsListening(false);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopBrowserSpeech();
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   async function createSessionFromPrompt(prompt: string): Promise<string | null> {
     const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions`, {
@@ -364,7 +564,10 @@ export default function ChatPage() {
       );
 
       if (!streamResponse.ok || !streamResponse.body) {
-        throw new Error('Failed to stream assistant response');
+        const payload = (await streamResponse.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(payload?.error ?? 'Failed to stream assistant response');
       }
 
       const reader = streamResponse.body.getReader();
@@ -582,7 +785,12 @@ export default function ChatPage() {
                             data-testid="chat-citation"
                             key={citation.id}
                           >
-                            <p className="text-xs font-medium">{citation.title}</p>
+                            <p className="text-xs font-medium">
+                              {citation.title}{' '}
+                              <span className="font-normal text-muted-foreground">
+                                ({citation.sourceType})
+                              </span>
+                            </p>
                             <p className="text-xs text-muted-foreground">{citation.snippet}</p>
                           </div>
                         ))}
@@ -639,6 +847,25 @@ export default function ChatPage() {
                   </Select>
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:justify-end">
+                  <Button
+                    className="rounded-full"
+                    disabled={isSending || isTranscribingVoice}
+                    onClick={() => void toggleVoiceInput()}
+                    type="button"
+                    variant={isListening ? 'destructive' : 'outline'}
+                  >
+                    {isListening ? (
+                      <>
+                        <Square className="mr-1.5 h-3.5 w-3.5" />
+                        Stop
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="mr-1.5 h-3.5 w-3.5" />
+                        {isTranscribingVoice ? 'Transcribing...' : 'Voice'}
+                      </>
+                    )}
+                  </Button>
                   <Button
                     className="rounded-full"
                     data-testid="chat-send"

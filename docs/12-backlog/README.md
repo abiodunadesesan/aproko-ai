@@ -26,9 +26,10 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Program Status
 
-- State: `All planned sprints complete`
+- State: `Sprint 19 web study-copilot expansion complete (web + docs; desktop V2 design-only)`
 - Closure board: `./sprint-18-program-closure.md`
-- Current execution board: `./release-v1-checklist.md`
+- Current execution board: `./sprint-19-web-study-copilot.md`
+- Launch checklist: `./release-v1-checklist.md`
 
 ## Sprint Boards
 

@@ -111,13 +111,16 @@ export async function searchWorkspace(
         }[]
       | null) ?? []
   ).map((row) => ({
-    id: row.id,
+    id: encodeURIComponent(row.storage_path),
     type: 'source',
     title: row.display_name ?? row.storage_path.split('/').pop() ?? 'Source',
-    snippet: toSnippet(`${row.project_slug ?? 'project'} / ${row.folder_slug ?? 'folder'}`),
+    snippet: toSnippet(
+      `${row.display_name ?? row.storage_path.split('/').pop() ?? 'Source'} · ${row.project_slug ?? 'project'} / ${row.folder_slug ?? 'folder'}`,
+    ),
     metadata: {
       project: row.project_slug,
       folder: row.folder_slug,
+      storagePath: row.storage_path,
     },
   }));
 

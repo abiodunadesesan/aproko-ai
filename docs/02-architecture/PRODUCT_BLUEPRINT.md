@@ -25,64 +25,76 @@ Create the world's best AI-powered knowledge workspace where users ask an AI tha
 
 ## V1 Scope (Web Only)
 
-### Included
-- Authentication: email, Google sign-in, password reset, user profile
+### Included (baseline + Sprint 19 web study-copilot expansion)
+
+- Authentication: email, Google sign-in, password reset, user profile (Clerk)
 - Dashboard: recent activity, uploads, conversations, timeline, quick actions
 - Library: PDF, DOCX, PPTX, TXT, Markdown, images, audio uploads with folder/project organization
-- AI Chat: normal, selected documents, project scope, workspace scope
+- Transcripts: text upload + browser mic/audio → STT → workspace transcript sources
+- AI Chat: workspace-scoped chat with streaming, citations, memory context, voice-to-text input
 - AI Memory: persistent memory from files/notes/chats/summaries
-- AI Search: semantic search across workspace assets
-- Notes: rich text + AI rewrite/summarize/expand/translate
-- Study: flashcards, quizzes, study guides
+- AI Search: workspace search across sources, notes, memory
+- Notes + Study: flashcards, quizzes, summaries, slide outlines (LLM when keys configured)
+- Writing polish: clarity / concise / professional / academic (not detector evasion)
 - Research: multi-document comparison and structured summaries
-- Settings: profile, AI preferences, privacy, workspace settings, billing
+- Settings: profile, privacy, workspace settings, billing
+- Observability: Sentry + PostHog
 
-### Out of Scope (V1)
-- Desktop overlay
-- Screen capture
-- Global shortcuts
+### Out of Scope (V1 / V1.1 web)
+
+- Desktop overlay / always-on screen-aware capture
+- Silent OS audio / bot-free Zoom·Meet·Teams hook
+- Global OS shortcuts as a native app
 - Mobile apps
-- Live meeting recording
-- Calendar integration
-- Email assistant
-- Voice assistant
-- AI phone calls
+- Calendar integration / email assistant products
+- Detector-evasion “humanizer” tools (Turnitin/GPTZero framing)
+- Voice assistant product surface / AI phone calls
 - Browser automation
+
+See V2 companion design: `docs/02-architecture/03-desktop-companion-v2.md`.
 
 ## Primary Navigation
 
-- Home
-- Chat
-- Library
-- Memory
+- AI Chat
+- Dashboard
+- Search
+- My Transcripts
+- Documents (Library)
+- Remembered (Memory)
 - Research
-- Study
-- Settings
+- Study Materials
+- Writing
+- Profile / Billing / Admin (role-gated)
 
 ## Stack Constitution
 
 ### Frontend
-- Next.js 15
+
+- Next.js 16 (App Router) in production web app
 - React 19
 - TypeScript
 - Tailwind CSS
 - shadcn/ui
-- TanStack Query
-- Zustand
 
 ### Backend and Data
-- FastAPI (Python)
+
+- Next.js `/api/v1` Route Handlers (current production path)
+- FastAPI service packages under `backend/` (future extraction target)
 - Supabase PostgreSQL
 - Clerk
 - Supabase Storage
-- Qdrant
+- Qdrant (target vector tier)
 
 ### AI
-- LiteLLM gateway
-- Providers: OpenAI, Anthropic, Gemini, Perplexity
-- OCR: PaddleOCR
+
+- Vercel AI SDK in `apps/web` for chat/study/writing
+- OpenAI Whisper for browser-provided audio STT
+- LiteLLM remains the multi-service gateway target as workers mature
+- Providers: OpenAI, Anthropic, Gemini, Perplexity (as keys/config allow)
+- OCR: PaddleOCR (worker architecture target)
 
 ### Infra and Ops
+
 - Vercel
 - Railway
 - Docker
@@ -112,6 +124,7 @@ Create the world's best AI-powered knowledge workspace where users ask an AI tha
 ## Delivery Gate
 
 Before implementing any feature:
+
 1. Confirm product requirement in PRD
 2. Confirm architecture support
 3. Confirm database support

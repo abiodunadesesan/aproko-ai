@@ -55,9 +55,11 @@
 ## Pagination
 
 Request:
+
 - `?cursor=<opaque>&limit=20`
 
 Response:
+
 ```json
 {
   "data": [],
@@ -71,16 +73,19 @@ Response:
 ## Endpoint Catalog
 
 ### Health and System
+
 - `GET /v1/health`
 - `GET /v1/version`
 
 ### Auth (Clerk-backed)
+
 - Auth UI and OAuth flows are handled by Clerk-hosted components/routes.
 - Backend verifies Clerk session/JWT on protected requests.
 - Optional sync endpoint for profile hydration:
   - `POST /v1/auth/session/sync`
 
 ### Workspaces
+
 - `GET /v1/workspaces`
 - `POST /v1/workspaces`
 - `GET /v1/workspaces/{workspace_id}`
@@ -100,6 +105,7 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 - `POST /v1/workspaces/{workspace_id}/sources/{source_id}/reprocess`
 
 ### Projects and Folders
+
 - `GET /v1/workspaces/{workspace_id}/projects`
 - `POST /v1/workspaces/{workspace_id}/projects`
 - `GET /v1/workspaces/{workspace_id}/projects/{project_id}`
@@ -112,44 +118,60 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 - `DELETE /v1/workspaces/{workspace_id}/folders/{folder_id}`
 
 ### Chat
+
 - `POST /v1/workspaces/{workspace_id}/chat/sessions`
 - `GET /v1/workspaces/{workspace_id}/chat/sessions`
 - `GET /v1/workspaces/{workspace_id}/chat/sessions/{session_id}`
 - `POST /v1/workspaces/{workspace_id}/chat/sessions/{session_id}/messages`
 
 ### Search
+
 - `GET /v1/workspaces/{workspace_id}/search?q=...`
 - `POST /v1/workspaces/{workspace_id}/search/semantic`
 
 ### Notes
+
 - `GET /v1/workspaces/{workspace_id}/notes`
 - `POST /v1/workspaces/{workspace_id}/notes`
 - `PATCH /v1/workspaces/{workspace_id}/notes/{note_id}`
 - `DELETE /v1/workspaces/{workspace_id}/notes/{note_id}`
 
 ### Flashcards
+
 - `POST /v1/workspaces/{workspace_id}/flashcards/decks`
 - `GET /v1/workspaces/{workspace_id}/flashcards/decks`
-- `POST /v1/workspaces/{workspace_id}/flashcards/decks/{deck_id}/generate`
+- `POST /v1/workspaces/{workspace_id}/flashcards/decks/{deck_id}/generate` — body `{ noteId? | sourceId? }`
 - `POST /v1/workspaces/{workspace_id}/flashcards/reviews`
 
 ### Quizzes
+
 - `POST /v1/workspaces/{workspace_id}/quizzes`
 - `GET /v1/workspaces/{workspace_id}/quizzes`
+- `POST /v1/workspaces/{workspace_id}/quizzes/{quiz_id}/generate` — body `{ noteId? | sourceId? }`
 - `POST /v1/workspaces/{workspace_id}/quizzes/{quiz_id}/attempts`
 - `POST /v1/workspaces/{workspace_id}/quizzes/{quiz_id}/attempts/{attempt_id}/submit`
 
 ### Meetings and Summaries
-- `POST /v1/workspaces/{workspace_id}/meetings/transcripts`
+
+- `GET /api/v1/workspaces/{workspace_id}/transcripts` — list transcript/audio sources
+- `POST /api/v1/workspaces/{workspace_id}/transcripts` — multipart `file`/`audio`; text stored directly; audio transcribed via Whisper when `OPENAI_API_KEY` is set
+- `POST /api/v1/workspaces/{workspace_id}/writing/polish` — `{ text, mode: "clarity"|"concise"|"professional"|"academic" }` → polished draft (clarity/tone only; not detector evasion)
+- `POST /api/v1/workspaces/{workspace_id}/writing/detect` — `{ text, source?: "draft"|"polished" }` → transparency report (`gptzero` live when `GPTZERO_API_KEY` is set; `turnitin` always returns unavailable + institution-portal guidance)
+- `POST /api/v1/workspaces/{workspace_id}/summaries/generate` — `{ noteId? | sourceId?, kind?: "summary" | "outline" }`
+- Chat grounding hydrates transcript/source text excerpts into prompts + citations (`note` | `transcript` | `workspace-source` | `memory`)
+- `POST /api/v1/workspaces/{workspace_id}/chat/voice` — multipart audio → `{ data: { text } }` for chat voice-to-text (Whisper; Web Speech preferred in UI when available)
+- `POST /v1/workspaces/{workspace_id}/meetings/transcripts` — legacy contract alias (prefer `/transcripts`)
 - `GET /v1/workspaces/{workspace_id}/meetings`
 - `POST /v1/workspaces/{workspace_id}/summaries`
 
 ### Timeline and Memory
+
 - `GET /v1/workspaces/{workspace_id}/timeline`
 - `GET /v1/workspaces/{workspace_id}/memory`
 - `POST /v1/workspaces/{workspace_id}/memory/rebuild`
 
 ### Settings and Billing
+
 - `GET /v1/me`
 - `PATCH /v1/me/settings`
 - `GET /v1/billing/subscription`
@@ -157,6 +179,7 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 - `POST /v1/billing/webhooks`
 
 ### Admin
+
 - `GET /v1/admin/users`
 - `GET /v1/admin/workspaces`
 - `GET /v1/admin/usage`
@@ -164,14 +187,17 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 ## Sample Request/Response
 
 ### Create Workspace
+
 `POST /v1/workspaces`
 
 Request:
+
 ```json
 { "name": "Research Lab" }
 ```
 
 Response `201`:
+
 ```json
 {
   "id": "ws_123",
