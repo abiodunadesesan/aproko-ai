@@ -66,9 +66,15 @@ If any step fails, stop rollout and execute rollback.
 
 ### Ownership
 
-- **Engineering incident owner:** `TODO`
+- **Engineering incident owner:** Repository owner / on-call engineer
 - **Product escalation owner:** `TODO`
 - **Support communications owner:** `TODO`
+
+### Launch week monitoring (2026-07-15 → 2026-07-18)
+
+- Check Sentry for new production issues daily.
+- Check Vercel deployment health after each `main` push.
+- Verify core routes: `/`, `/sign-in`, `/dashboard`, `/library`, `/chat`.
 
 ## Data Retention and Deletion (Support Baseline)
 
