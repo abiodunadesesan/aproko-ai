@@ -63,7 +63,10 @@ export function createStudySummaryGenerateRouteHandlers(
         try {
           resolved = await resolveStudySourceContent(
             workspaceId,
-            { noteId: rawBody?.noteId, sourceId: rawBody?.sourceId },
+            {
+              noteId: rawBody?.noteId ?? null,
+              sourceId: rawBody?.sourceId ?? null,
+            },
             {
               getWorkspaceNoteById: deps.getWorkspaceNoteById,
               listWorkspaceNotes: deps.listWorkspaceNotes,

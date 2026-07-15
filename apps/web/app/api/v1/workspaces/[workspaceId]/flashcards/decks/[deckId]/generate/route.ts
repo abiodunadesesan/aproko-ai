@@ -69,8 +69,8 @@ export function createFlashcardGenerateRouteHandlers(deps: FlashcardGenerateRout
           resolved = await resolveStudySourceContent(
             workspaceId,
             {
-              noteId: rawBody?.noteId || deck.sourceNoteId,
-              sourceId: rawBody?.sourceId,
+              noteId: rawBody?.noteId || deck.sourceNoteId || null,
+              sourceId: rawBody?.sourceId ?? null,
             },
             {
               getWorkspaceNoteById: deps.getWorkspaceNoteById,

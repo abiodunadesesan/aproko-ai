@@ -46,6 +46,6 @@ export function streamAssistantGeneration(input: ChatGenerationInput): ChatGener
 
   return {
     textStream: result.textStream,
-    fullText: result.text,
+    fullText: Promise.resolve(result.text),
   };
 }

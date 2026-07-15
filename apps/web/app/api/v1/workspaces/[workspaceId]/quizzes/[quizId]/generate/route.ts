@@ -71,8 +71,8 @@ export function createQuizGenerateRouteHandlers(deps: QuizGenerateRouteDependenc
           resolved = await resolveStudySourceContent(
             workspaceId,
             {
-              noteId: rawBody?.noteId || quiz.sourceNoteId,
-              sourceId: rawBody?.sourceId,
+              noteId: rawBody?.noteId || quiz.sourceNoteId || null,
+              sourceId: rawBody?.sourceId ?? null,
             },
             {
               getWorkspaceNoteById: deps.getWorkspaceNoteById,

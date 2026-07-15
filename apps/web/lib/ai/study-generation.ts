@@ -195,7 +195,8 @@ export async function generateQuizQuestionDrafts(sourceText: string): Promise<Qu
           ? question.options.map((option) => String(option).trim()).filter(Boolean)
           : [];
         const correctOptionIndex = Number(question.correctOptionIndex);
-        return {
+        const explanation = question.explanation ? String(question.explanation).trim() : undefined;
+        const draft: QuizQuestionDraft = {
           prompt: String(question.prompt ?? '').trim(),
           options: options.slice(0, 4),
           correctOptionIndex:
@@ -204,8 +205,11 @@ export async function generateQuizQuestionDrafts(sourceText: string): Promise<Qu
             correctOptionIndex < 4
               ? correctOptionIndex
               : 0,
-          explanation: question.explanation ? String(question.explanation).trim() : undefined,
         };
+        if (explanation) {
+          draft.explanation = explanation;
+        }
+        return draft;
       })
       .filter((question) => question.prompt && question.options.length >= 2)
       .slice(0, 8);
