@@ -7,6 +7,7 @@ import {
   type QuizAttempt,
 } from '@/lib/storage/quizzes';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -66,6 +67,18 @@ export function createQuizAttemptSubmitRouteHandlers(deps: QuizAttemptSubmitRout
       if (!attempt) {
         return NextResponse.json({ error: 'Failed to submit quiz attempt' }, { status: 500 });
       }
+
+      await trackServerEvent({
+        event: 'quiz_submitted',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          quiz_id: quizId,
+          score: attempt.score,
+          total_questions: attempt.totalQuestions,
+          answers_count: answers.length,
+        },
+      });
 
       return NextResponse.json({ data: toAttemptPayload(attempt, attemptId) });
     },

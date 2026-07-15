@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createFlashcard, getFlashcardDeckById, type Flashcard } from '@/lib/storage/flashcards';
 import { getWorkspaceNoteById } from '@/lib/storage/notes';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -90,6 +91,17 @@ export function createFlashcardGenerateRouteHandlers(deps: FlashcardGenerateRout
           created.push(card);
         }
       }
+
+      await trackServerEvent({
+        event: 'flashcards_generated',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          deck_id: deckId,
+          note_id: noteId,
+          cards_generated: created.length,
+        },
+      });
 
       return NextResponse.json({
         data: created.map(toCardPayload),

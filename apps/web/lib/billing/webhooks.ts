@@ -6,6 +6,7 @@ import {
   upsertBillingSubscription,
   type UpsertBillingSubscriptionInput,
 } from '@/lib/storage/billing';
+import { trackServerEvent } from '@/lib/observability/server';
 
 export type BillingWebhookResult = {
   received: true;
@@ -132,6 +133,21 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const synced = await syncStripeSubscription(subscription, session.client_reference_id);
+      if (synced) {
+        const subInput = subscriptionInputFromStripe(subscription, session.client_reference_id);
+        const userId =
+          subscription.metadata.clerkUserId ?? session.client_reference_id ?? 'unknown';
+        await trackServerEvent({
+          event: 'subscription_activated',
+          distinctId: userId,
+          properties: {
+            plan_code: subInput?.planCode,
+            workspace_id: subInput?.workspaceId,
+            provider: 'stripe',
+            stripe_subscription_id: subscriptionId,
+          },
+        });
+      }
       return finalizeWebhookResult(
         event,
         {
@@ -151,6 +167,25 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
       const synced = await syncStripeSubscription(subscription);
+      if (synced) {
+        const subInput = subscriptionInputFromStripe(subscription);
+        const userId = subscription.metadata.clerkUserId ?? subInput?.workspaceId ?? 'unknown';
+        const phEvent =
+          event.type === 'customer.subscription.deleted'
+            ? 'subscription_cancelled'
+            : 'subscription_updated';
+        await trackServerEvent({
+          event: phEvent,
+          distinctId: userId,
+          properties: {
+            plan_code: subInput?.planCode,
+            workspace_id: subInput?.workspaceId,
+            provider: 'stripe',
+            stripe_subscription_id: typeof subscription.id === 'string' ? subscription.id : null,
+            cancel_at_period_end: subInput?.cancelAtPeriodEnd,
+          },
+        });
+      }
       return finalizeWebhookResult(
         event,
         {

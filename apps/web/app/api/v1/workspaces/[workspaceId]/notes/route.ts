@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createWorkspaceNote, listWorkspaceNotes, type WorkspaceNote } from '@/lib/storage/notes';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -81,6 +82,17 @@ export function createNotesRouteHandlers(deps: NotesRouteDependencies) {
       if (!created) {
         return NextResponse.json({ error: 'Failed to create note' }, { status: 500 });
       }
+
+      await trackServerEvent({
+        event: 'note_created',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          note_id: created.id,
+          has_title: Boolean(title),
+          has_content: Boolean(content),
+        },
+      });
 
       return NextResponse.json({ data: toNotePayload(created) }, { status: 201 });
     },
