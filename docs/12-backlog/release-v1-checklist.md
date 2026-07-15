@@ -3,7 +3,7 @@
 ## Status
 
 - **Release target:** `Aproko AI Web V1`
-- **State:** Launch-ready pending `VERCEL_TOKEN` GitHub secret and final product sign-off
+- **State:** Launch-ready pending product sign-off and final manual validation
 
 ## Go-Live Gates
 
@@ -46,7 +46,7 @@
 ### 4) CI/CD and Deployment
 
 - [x] GitHub `CI` workflow green on main (latest run: `29406111644`, commit `7d60693`).
-- [ ] GitHub `Vercel Deploy` workflow performs real deploys (`VERCEL_TOKEN` secret not yet configured).
+- [x] GitHub `Vercel Deploy` workflow performs real deploys (`VERCEL_TOKEN` configured 2026-07-15).
 - [x] Vercel production deployment healthy and accessible (`https://aprokoai.vercel.app`, deployment `dpl_GAoVMYdj7PwfDipRBevnRHJkcKyJ`).
 - [x] Rollback path documented (see `docs/11-deployment/02-release-operations-runbook.md`).
 
@@ -88,6 +88,6 @@
 - GitHub CI run `29406111644` green after fix (lint, typecheck, build).
 - Production smoke test (2026-07-15): `/`, `/sign-in`, `/sign-up`, `/dashboard`, `/library`, `/chat`, `/memory`, `/study`, `/research`, `/billing`, `/settings`, `/admin`, `/sentry-example-page` all return `200`.
 - Sentry example API returns `500` in production (expected fault injection).
-- `VERCEL_TOKEN` GitHub secret still required for automated deploys on push; manual CLI deploy from repo root works.
+- `VERCEL_TOKEN` GitHub secret configured (2026-07-15); next push triggers real deploy pipeline.
 - Production deploy performed via Vercel CLI; deployment `dpl_GAoVMYdj7PwfDipRBevnRHJkcKyJ` aliased to `https://aprokoai.vercel.app`.
 - Release operations runbook available with explicit smoke/rollback/incident/data-handling procedures.
