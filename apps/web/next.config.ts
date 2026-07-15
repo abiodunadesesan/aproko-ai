@@ -21,9 +21,13 @@ const nextConfig: NextConfig = {
   },
 };
 
+const sentryOrg = process.env.SENTRY_ORG ?? 'calebsilvanus';
+const sentryProject = process.env.SENTRY_PROJECT ?? 'aproko-ai';
+
 const sentryWrappedConfig = withSentryConfig(nextConfig, {
-  ...(process.env.SENTRY_ORG ? { org: process.env.SENTRY_ORG } : {}),
-  ...(process.env.SENTRY_PROJECT ? { project: process.env.SENTRY_PROJECT } : {}),
+  org: sentryOrg,
+  project: sentryProject,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
   webpack: {
     treeshake: {

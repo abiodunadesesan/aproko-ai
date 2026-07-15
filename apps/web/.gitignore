@@ -9,3 +9,6 @@
 /playwright-report/
 /test-results/
 .vercel
+
+# Sentry Config File
+.env.sentry-build-plugin
