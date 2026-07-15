@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,23 +25,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: pnpm install --frozen-lockfile
 
       - name: Install Vercel CLI
         if: ${{ env.VERCEL_TOKEN != '' }}
         run: pnpm add -g vercel@latest
 
       - name: Pull Vercel environment
-        if: ${{ env.VERCEL_TOKEN != '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
         run: vercel pull --yes --token=${{ env.VERCEL_TOKEN }} --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
 
       - name: Build project artifacts
-        if: ${{ env.VERCEL_TOKEN != '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
         run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ env.VERCEL_TOKEN }}
 
       - name: Deploy prebuilt
-        if: ${{ env.VERCEL_TOKEN != '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
         run: vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ env.VERCEL_TOKEN }}
 
-      - name: Skip deploy (missing token)
-        if: ${{ env.VERCEL_TOKEN == '' }}
-        run: echo "VERCEL_TOKEN not configured; skipping deploy workflow."
+      - name: Skip deploy (missing configuration)
+        if: ${{ env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == '' }}
+        run: echo "VERCEL_TOKEN, VERCEL_ORG_ID, or VERCEL_PROJECT_ID not configured; skipping deploy workflow."

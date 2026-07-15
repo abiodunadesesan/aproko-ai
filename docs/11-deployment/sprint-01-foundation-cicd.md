@@ -8,8 +8,8 @@
 ## Required GitHub Secrets
 
 - `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+- `VERCEL_ORG_ID` (`team_XPrDJ8LPdaaxg5i2UCeUI8kx`)
+- `VERCEL_PROJECT_ID` (`prj_lW2ZJfO8hTyTtYrWh6cT6IVuZaKl` for `aproko-ai-web`)
 
 ## Pipeline Behavior
 
