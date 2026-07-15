@@ -24,16 +24,18 @@ const nextConfig: NextConfig = {
 const sentryOrg = process.env.SENTRY_ORG ?? 'calebsilvanus';
 const sentryProject = process.env.SENTRY_PROJECT ?? 'aproko-ai';
 
-const sentryWrappedConfig = withSentryConfig(nextConfig, {
+const sentryBuildOptions = {
   org: sentryOrg,
   project: sentryProject,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
   webpack: {
     treeshake: {
       removeDebugLogging: true,
     },
   },
-});
+  ...(process.env.SENTRY_AUTH_TOKEN ? { authToken: process.env.SENTRY_AUTH_TOKEN } : {}),
+};
+
+const sentryWrappedConfig = withSentryConfig(nextConfig, sentryBuildOptions);
 
 export default sentryEnabled ? sentryWrappedConfig : nextConfig;
