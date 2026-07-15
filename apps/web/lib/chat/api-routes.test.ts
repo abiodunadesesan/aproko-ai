@@ -8,7 +8,9 @@ test('chat sessions GET returns 401 when unauthenticated', async () => {
   const handlers = createChatSessionsRouteHandlers({
     auth: async () => ({ userId: null }),
     listChatSessions: async () => [],
-    createChatSession: async () => null,
+    createChatSession: async () => {
+      throw new Error('unused');
+    },
   });
 
   const response = await handlers.GET(new Request('http://localhost'), {

@@ -8,6 +8,15 @@ import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -100,16 +109,6 @@ function splitModel(model: string): { provider: string | null; name: string | nu
   return { provider, name: rest.join(':') || null };
 }
 
-function formatModelDisplay(message: ChatMessage): string | null {
-  if (message.model) {
-    return message.model;
-  }
-  if (message.modelProvider && message.modelName) {
-    return `${message.modelProvider}:${message.modelName}`;
-  }
-  return null;
-}
-
 function formatSessionModel(session: ChatSession): string | null {
   if (session.modelProvider && session.modelName) {
     return `${session.modelProvider}:${session.modelName}`;
@@ -163,10 +162,13 @@ export default function ChatPage() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isHistoryReady, setIsHistoryReady] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ChatModel>('openai:gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState<ChatModel>('groq:llama-3.1-8b-instant');
   const [error, setError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribingVoice, setIsTranscribingVoice] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<ChatSession | null>(null);
+  const [renameTitle, setRenameTitle] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -436,24 +438,44 @@ export default function ChatPage() {
       }),
     });
 
-    const payload = (await response.json()) as { data?: ChatSession; error?: string };
-    if (!response.ok || !payload.data) {
-      throw new Error(payload.error ?? 'Failed to create chat session');
+    const raw = await response.text();
+    let payload: { data?: ChatSession; error?: string } | null = null;
+    try {
+      payload = raw ? (JSON.parse(raw) as { data?: ChatSession; error?: string }) : null;
+    } catch {
+      throw new Error(
+        response.redirected || raw.trimStart().startsWith('<')
+          ? 'You need to sign in again before starting a chat.'
+          : `Failed to create chat session (${response.status})`,
+      );
+    }
+    if (!response.ok || !payload?.data) {
+      throw new Error(payload?.error ?? 'Failed to create chat session');
     }
 
     await loadSessions(payload.data.id);
     return payload.data.id;
   }
 
-  async function renameSession(session: ChatSession) {
-    const nextTitle = window.prompt('Rename session', session.title)?.trim() ?? '';
-    if (!nextTitle || nextTitle === session.title) {
+  function openRenameSession(session: ChatSession) {
+    setRenameTarget(session);
+    setRenameTitle(session.title);
+  }
+
+  async function confirmRenameSession() {
+    if (!renameTarget) {
+      return;
+    }
+    const nextTitle = renameTitle.trim();
+    if (!nextTitle || nextTitle === renameTarget.title) {
+      setRenameTarget(null);
       return;
     }
 
+    setIsRenaming(true);
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${session.id}`,
+        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${renameTarget.id}`,
         {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
@@ -464,11 +486,14 @@ export default function ChatPage() {
       if (!response.ok) {
         throw new Error(payload.error ?? 'Failed to rename chat session');
       }
-      await loadSessions(session.id);
+      await loadSessions(renameTarget.id);
+      setRenameTarget(null);
     } catch (renameError) {
       setError(
         renameError instanceof Error ? renameError.message : 'Failed to rename chat session',
       );
+    } finally {
+      setIsRenaming(false);
     }
   }
 
@@ -701,7 +726,7 @@ export default function ChatPage() {
 
   return (
     <AppPageShell pageId="chat">
-      <section className="grid gap-4 lg:grid-cols-[300px_1fr]">
+      <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <ChatSessionSidebar
           activeSessionId={activeSessionId}
           isLoading={isLoadingSessions}
@@ -710,40 +735,41 @@ export default function ChatPage() {
           }}
           onNewSession={() => setActiveSessionId(null)}
           onRenameSession={(session) => {
-            void renameSession(session as ChatSession);
+            openRenameSession(session as ChatSession);
           }}
           onSelectSession={setActiveSessionId}
           sessions={sessions}
         />
 
-        <Card className="flex min-h-[520px] flex-col border-zinc-200 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-900/60">
-          <CardHeader className="border-b border-zinc-200 pb-3 dark:border-zinc-800">
+        <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-zinc-200/80 bg-white p-0 dark:border-zinc-800 dark:bg-zinc-900/60">
+          <CardHeader className="border-b border-zinc-200/80 pb-3 dark:border-zinc-800">
             <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {activeSession?.title ?? 'New Chat'}
+              {activeSession?.title ?? 'New chat'}
             </CardTitle>
             <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              Workspace-scoped assistant · Session model:{' '}
-              {activeSession ? (formatSessionModel(activeSession) ?? 'not set') : 'not set'}
+              Grounded in your library · Model:{' '}
+              {activeSession ? (formatSessionModel(activeSession) ?? selectedModel) : selectedModel}
             </p>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col p-4 sm:p-6">
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {messages.length === 0 ? (
-                <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
-                  <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Hi!</p>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    How can I help you today?
+                <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 py-10 text-center dark:border-zinc-800 dark:bg-zinc-950/40">
+                  <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                    Hi — ask anything about your workspace
                   </p>
-                  <p className="mt-4 max-w-md text-xs text-zinc-500 dark:text-zinc-500">
-                    Ask about your documents, memory, or study materials. Your first message creates
-                    a session automatically.
+                  <p className="mt-2 max-w-md text-sm text-zinc-600 dark:text-zinc-400">
+                    Your first message creates a chat. Use rename and delete in the sidebar to
+                    manage conversations.
                   </p>
                 </div>
               ) : (
                 messages.map((message) => (
                   <article
-                    className={`rounded-md border px-3 py-2 transition-colors ${
-                      message.role === 'assistant' ? 'bg-muted/50' : 'bg-background'
+                    className={`rounded-xl border px-3 py-2.5 transition-colors ${
+                      message.role === 'assistant'
+                        ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/50'
+                        : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'
                     }`}
                     data-testid={
                       message.role === 'assistant' ? 'chat-assistant-message' : 'chat-user-message'
@@ -752,10 +778,6 @@ export default function ChatPage() {
                   >
                     <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
                       {message.role}
-                    </p>
-                    <p className="mb-2 text-xs text-muted-foreground">
-                      Model: {formatModelDisplay(message) ?? 'n/a'} | Transport:{' '}
-                      {message.responseTransport ?? 'n/a'} | Status: {message.status ?? 'n/a'}
                     </p>
                     {message.role === 'assistant' && message.memoryContext?.length ? (
                       <div className="mb-2 rounded-md border bg-background px-2 py-1.5">
@@ -803,7 +825,7 @@ export default function ChatPage() {
             </div>
 
             <form
-              className="mt-4 space-y-2 border-t pt-3"
+              className="mt-4 space-y-3 border-t border-zinc-200/80 pt-4 dark:border-zinc-800"
               onSubmit={(event) => {
                 event.preventDefault();
                 const textarea = event.currentTarget.querySelector(
@@ -813,7 +835,7 @@ export default function ChatPage() {
               }}
             >
               <Textarea
-                className="min-h-24"
+                className="min-h-24 rounded-xl"
                 data-testid="chat-input"
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask a question about your workspace..."
@@ -835,7 +857,7 @@ export default function ChatPage() {
                     }}
                     value={selectedModel}
                   >
-                    <SelectTrigger className="h-8 w-[230px]" id="chat-model-select">
+                    <SelectTrigger className="h-8 w-[230px] rounded-xl" id="chat-model-select">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -849,7 +871,7 @@ export default function ChatPage() {
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:justify-end">
                   <Button
-                    className="rounded-full"
+                    className="rounded-xl"
                     disabled={isSending || isTranscribingVoice}
                     onClick={() => void toggleVoiceInput()}
                     type="button"
@@ -868,7 +890,7 @@ export default function ChatPage() {
                     )}
                   </Button>
                   <Button
-                    className="rounded-full"
+                    className="rounded-xl"
                     data-testid="chat-send"
                     disabled={isSending || !input.trim()}
                     type="submit"
@@ -881,6 +903,45 @@ export default function ChatPage() {
           </CardContent>
         </Card>
       </section>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenameTarget(null);
+          }
+        }}
+        open={Boolean(renameTarget)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename chat</DialogTitle>
+            <DialogDescription>Update the conversation title in your sidebar.</DialogDescription>
+          </DialogHeader>
+          <Input
+            aria-label="Chat title"
+            onChange={(event) => setRenameTitle(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                void confirmRenameSession();
+              }
+            }}
+            value={renameTitle}
+          />
+          <DialogFooter>
+            <Button onClick={() => setRenameTarget(null)} type="button" variant="outline">
+              Cancel
+            </Button>
+            <Button
+              disabled={isRenaming || !renameTitle.trim()}
+              onClick={() => void confirmRenameSession()}
+              type="button"
+            >
+              {isRenaming ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppPageShell>
   );
 }

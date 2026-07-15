@@ -83,22 +83,26 @@ export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependenc
         return NextResponse.json({ error: 'Invalid context mode' }, { status: 400 });
       }
 
-      const session = await deps.createChatSession(
-        workspaceId,
-        userId,
-        title || 'New chat',
-        contextMode,
-      );
-      if (!session) {
-        return NextResponse.json({ error: 'Failed to create chat session' }, { status: 500 });
-      }
+      try {
+        const session = await deps.createChatSession(
+          workspaceId,
+          userId,
+          title || 'New chat',
+          contextMode,
+        );
 
-      return NextResponse.json(
-        {
-          data: toSessionPayload(session),
-        },
-        { status: 201 },
-      );
+        return NextResponse.json(
+          {
+            data: toSessionPayload(session),
+          },
+          { status: 201 },
+        );
+      } catch (createError) {
+        const message =
+          createError instanceof Error ? createError.message : 'Failed to create chat session';
+        const status = /not configured/i.test(message) ? 503 : 500;
+        return NextResponse.json({ error: message }, { status });
+      }
     },
   };
 }

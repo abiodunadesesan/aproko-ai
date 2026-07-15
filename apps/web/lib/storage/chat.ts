@@ -142,10 +142,12 @@ export async function createChatSession(
   clerkUserId: string,
   title: string,
   contextMode: ChatContextMode = 'workspace',
-): Promise<ChatSession | null> {
+): Promise<ChatSession> {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
-    return null;
+    throw new Error(
+      'Chat storage is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.',
+    );
   }
 
   const sessionTitle = title.trim() || 'New chat';
@@ -167,7 +169,11 @@ export async function createChatSession(
 
   if (error || !data) {
     console.warn('Unable to create chat session.', error?.message ?? 'unknown_error');
-    return null;
+    throw new Error(
+      error?.message
+        ? `Failed to create chat session: ${error.message}`
+        : 'Failed to create chat session',
+    );
   }
 
   return toSession(data as DbSessionRow);

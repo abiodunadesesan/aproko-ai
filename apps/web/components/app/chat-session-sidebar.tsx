@@ -1,15 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MessageSquare, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { MessageSquare, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -59,23 +53,19 @@ export function ChatSessionSidebar({
   }, [query, sessions]);
 
   return (
-    <aside className="flex h-full min-h-[520px] flex-col rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
-      <div className="space-y-3 border-b border-zinc-200 p-4 dark:border-zinc-800">
-        <Button
-          className="w-full rounded-full bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
-          onClick={onNewSession}
-          type="button"
-        >
+    <aside className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+      <div className="space-y-3 border-b border-zinc-200/80 p-4 dark:border-zinc-800">
+        <Button className="w-full rounded-xl" onClick={onNewSession} type="button">
           <Plus className="mr-1.5 h-4 w-4" />
-          New Chat
+          New chat
         </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
             aria-label="Search conversations"
-            className="h-9 rounded-full border-zinc-200 bg-zinc-50 pl-9 dark:border-zinc-700 dark:bg-zinc-950"
+            className="h-9 rounded-xl border-zinc-200 bg-white pl-9 dark:border-zinc-700 dark:bg-zinc-950"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search..."
+            placeholder="Search chats..."
             value={query}
           />
         </div>
@@ -84,9 +74,9 @@ export function ChatSessionSidebar({
       <div className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
           <div className="space-y-2 p-2">
-            <Skeleton className="h-14 w-full rounded-lg" />
-            <Skeleton className="h-14 w-full rounded-lg" />
-            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
           </div>
         ) : filteredSessions.length === 0 ? (
           <EmptyState
@@ -95,7 +85,7 @@ export function ChatSessionSidebar({
             description={
               query.trim()
                 ? 'Try a different search term.'
-                : 'Start a new chat to ask questions grounded in your library.'
+                : 'Send a message to create your first conversation.'
             }
             icon={MessageSquare}
             title={query.trim() ? 'No conversations found' : 'No conversations yet'}
@@ -107,10 +97,10 @@ export function ChatSessionSidebar({
               return (
                 <li key={session.id}>
                   <div
-                    className={`group flex items-start gap-1 rounded-lg border px-2 py-2 transition-colors ${
+                    className={`group flex items-start gap-1 rounded-xl border px-2 py-2 transition-colors ${
                       isActive
                         ? 'border-zinc-300 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/80'
-                        : 'border-transparent hover:border-zinc-200 hover:bg-zinc-50 dark:hover:border-zinc-800 dark:hover:bg-zinc-900'
+                        : 'border-transparent hover:border-zinc-200 hover:bg-white/80 dark:hover:border-zinc-800 dark:hover:bg-zinc-900'
                     }`}
                   >
                     <button
@@ -128,30 +118,28 @@ export function ChatSessionSidebar({
                         {formatSessionModel(session) ?? 'model pending'}
                       </p>
                     </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-label={`Session actions for ${session.title}`}
-                          className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100"
-                          size="icon"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => onRenameSession(session)}>
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onSelect={() => onDeleteSession(session)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex shrink-0 flex-col gap-0.5 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                      <Button
+                        aria-label={`Rename ${session.title}`}
+                        className="h-7 w-7"
+                        onClick={() => onRenameSession(session)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        aria-label={`Delete ${session.title}`}
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => onDeleteSession(session)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </li>
               );
