@@ -102,7 +102,7 @@ test('chat messages POST streams assistant response', async () => {
         content: role === 'user' ? 'Hello assistant' : assistantText,
         responseTransport: 'sse',
         modelProvider: 'anthropic',
-        modelName: 'claude-3-5-sonnet',
+        modelName: 'claude-sonnet-5',
         status: 'completed',
         metadata: {},
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -113,7 +113,7 @@ test('chat messages POST streams assistant response', async () => {
       new Request('http://localhost', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ content: 'Hello assistant', model: 'anthropic:claude-3-5-sonnet' }),
+        body: JSON.stringify({ content: 'Hello assistant', model: 'anthropic:claude-sonnet-5' }),
       }),
       { params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }) },
     );
@@ -126,7 +126,7 @@ test('chat messages POST streams assistant response', async () => {
     assert.match(body, /event: delta/);
     assert.match(body, /event: done/);
     assert.match(body, /"citations":\[/);
-    assert.match(body, /"model":"anthropic:claude-3-5-sonnet"/);
+    assert.match(body, /"model":"anthropic:claude-sonnet-5"/);
     assert.match(body, /"memoryContext":\[/);
     assert.match(body, /HTML is a markup languag/);
   } finally {
@@ -316,7 +316,7 @@ test('chat messages GET returns persisted history payload', async () => {
         content: 'Hello',
         responseTransport: 'sse',
         modelProvider: 'anthropic',
-        modelName: 'claude-3-5-sonnet',
+        modelName: 'claude-sonnet-5',
         status: 'completed',
         metadata: {},
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -329,7 +329,7 @@ test('chat messages GET returns persisted history payload', async () => {
         content: 'Hi there',
         responseTransport: 'sse',
         modelProvider: 'anthropic',
-        modelName: 'claude-3-5-sonnet',
+        modelName: 'claude-sonnet-5',
         status: 'completed',
         metadata: {},
         createdAt: '2026-01-01T00:00:01.000Z',

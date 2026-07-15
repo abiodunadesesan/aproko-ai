@@ -66,6 +66,7 @@ export function createWritingPolishRouteHandlers(deps: WritingPolishRouteDepende
           properties: {
             workspace_id: workspaceId,
             mode: result.mode,
+            engine: result.engine,
             input_chars: text.length,
             output_chars: result.polished.length,
           },
@@ -76,6 +77,7 @@ export function createWritingPolishRouteHandlers(deps: WritingPolishRouteDepende
             data: {
               polished: result.polished,
               mode: result.mode,
+              engine: result.engine,
             },
           },
           { status: 200 },

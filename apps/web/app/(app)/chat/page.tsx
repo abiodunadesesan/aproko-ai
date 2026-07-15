@@ -20,8 +20,9 @@ const WORKSPACE_ID = 'default-workspace';
 const LAST_SESSION_STORAGE_KEY = `aproko.chat.last-session.${WORKSPACE_ID}`;
 const CHAT_MODELS = [
   'openai:gpt-4o-mini',
-  'anthropic:claude-3-5-sonnet',
-  'google:gemini-1.5-pro',
+  'anthropic:claude-sonnet-5',
+  'google:gemini-3.5-flash',
+  'groq:llama-3.1-8b-instant',
 ] as const;
 type ChatModel = (typeof CHAT_MODELS)[number];
 

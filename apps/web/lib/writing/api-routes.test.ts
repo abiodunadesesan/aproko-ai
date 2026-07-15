@@ -11,7 +11,7 @@ test('isWritingPolishMode accepts supported modes only', () => {
 test('writing polish POST returns 401 when unauthenticated', async () => {
   const handlers = createWritingPolishRouteHandlers({
     auth: async () => ({ userId: null }),
-    polishWriting: async () => ({ polished: 'unused', mode: 'clarity' }),
+    polishWriting: async () => ({ polished: 'unused', mode: 'clarity', engine: 'llm' }),
   });
 
   const response = await handlers.POST(
@@ -29,7 +29,7 @@ test('writing polish POST returns 401 when unauthenticated', async () => {
 test('writing polish POST validates empty text', async () => {
   const handlers = createWritingPolishRouteHandlers({
     auth: async () => ({ userId: 'user-1' }),
-    polishWriting: async () => ({ polished: 'unused', mode: 'clarity' }),
+    polishWriting: async () => ({ polished: 'unused', mode: 'clarity', engine: 'llm' }),
   });
 
   const response = await handlers.POST(
@@ -50,6 +50,7 @@ test('writing polish POST returns polished text', async () => {
     polishWriting: async ({ mode }) => ({
       polished: 'Clearer sentence about HTML.',
       mode,
+      engine: 'llm',
     }),
   });
 
@@ -64,14 +65,14 @@ test('writing polish POST returns polished text', async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    data: { polished: 'Clearer sentence about HTML.', mode: 'clarity' },
+    data: { polished: 'Clearer sentence about HTML.', mode: 'clarity', engine: 'llm' },
   });
 });
 
 test('writing polish POST rejects unsupported mode', async () => {
   const handlers = createWritingPolishRouteHandlers({
     auth: async () => ({ userId: 'user-1' }),
-    polishWriting: async () => ({ polished: 'unused', mode: 'clarity' }),
+    polishWriting: async () => ({ polished: 'unused', mode: 'clarity', engine: 'llm' }),
   });
 
   const response = await handlers.POST(

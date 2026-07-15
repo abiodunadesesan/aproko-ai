@@ -46,6 +46,35 @@ function formatPercent(value: number | null): string {
   return `${Math.round(value * 100)}%`;
 }
 
+/**
+ * Safari reports "The string did not match the expected pattern" when `.json()` is
+ * called on an HTML redirect (e.g. Clerk sent us to /sign-in). Parse safely.
+ */
+async function readApiJson<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get('content-type') ?? '';
+  const raw = await response.text();
+  const looksLikeHtml =
+    raw.trimStart().startsWith('<!DOCTYPE') ||
+    raw.trimStart().startsWith('<html') ||
+    contentType.includes('text/html');
+
+  if (looksLikeHtml || response.redirected) {
+    throw new Error('You need to sign in again. Open /sign-in, then retry on Writing.');
+  }
+
+  if (!raw.trim()) {
+    throw new Error(`Empty response (${response.status}). Try refreshing the page.`);
+  }
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    throw new Error(
+      `Unexpected server response (${response.status}). Sign in again if this persists.`,
+    );
+  }
+}
+
 export default function WritingPage() {
   const [draft, setDraft] = useState('');
   const [polished, setPolished] = useState('');
@@ -78,16 +107,22 @@ export default function WritingPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text: draft, mode }),
       });
-      const payload = (await response.json()) as {
-        data?: { polished?: string; mode?: string };
+      const payload = await readApiJson<{
+        data?: { polished?: string; mode?: string; engine?: 'llm' | 'heuristic' };
         error?: string;
-      };
+      }>(response);
       if (!response.ok || !payload.data?.polished) {
         throw new Error(payload.error ?? 'Failed to polish writing');
       }
 
       setPolished(payload.data.polished);
-      setNotice(`Polished for ${payload.data.mode ?? mode}.`);
+      if (payload.data.engine === 'heuristic') {
+        setNotice(
+          'Light cleanup only — no LLM API key is set. Add GROQ_API_KEY (free), GOOGLE_GENERATIVE_AI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY to apps/web/.env.local, then restart pnpm dev.',
+        );
+      } else {
+        setNotice(`Polished for ${payload.data.mode ?? mode}.`);
+      }
     } catch (polishError) {
       setError(polishError instanceof Error ? polishError.message : 'Failed to polish writing');
     } finally {
@@ -112,10 +147,10 @@ export default function WritingPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text, source: checkTarget }),
       });
-      const payload = (await response.json()) as {
+      const payload = await readApiJson<{
         data?: { gptzero?: DetectorCheckResult; turnitin?: DetectorCheckResult };
         error?: string;
-      };
+      }>(response);
       if (!response.ok || !payload.data?.gptzero || !payload.data.turnitin) {
         throw new Error(payload.error ?? 'Failed to run detector check');
       }
