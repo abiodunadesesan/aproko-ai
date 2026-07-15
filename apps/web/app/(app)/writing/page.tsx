@@ -108,7 +108,13 @@ export default function WritingPage() {
         body: JSON.stringify({ text: draft, mode }),
       });
       const payload = await readApiJson<{
-        data?: { polished?: string; mode?: string; engine?: 'llm' | 'heuristic' };
+        data?: {
+          polished?: string;
+          mode?: string;
+          engine?: 'llm' | 'heuristic';
+          reason?: 'no_keys' | 'providers_failed' | null;
+          detail?: string | null;
+        };
         error?: string;
       }>(response);
       if (!response.ok || !payload.data?.polished) {
@@ -117,9 +123,15 @@ export default function WritingPage() {
 
       setPolished(payload.data.polished);
       if (payload.data.engine === 'heuristic') {
-        setNotice(
-          'Light cleanup only — no LLM API key is set. Add GROQ_API_KEY (free), GOOGLE_GENERATIVE_AI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY to apps/web/.env.local, then restart pnpm dev.',
-        );
+        if (payload.data.reason === 'providers_failed') {
+          setNotice(
+            `AI providers failed — used light cleanup. ${payload.data.detail ?? 'Check API keys/billing and try again.'}`,
+          );
+        } else {
+          setNotice(
+            'Light cleanup only — no LLM API key is loaded. Confirm GROQ_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY in apps/web/.env.local, then restart pnpm dev.',
+          );
+        }
       } else {
         setNotice(`Polished for ${payload.data.mode ?? mode}.`);
       }

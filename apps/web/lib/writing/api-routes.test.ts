@@ -65,7 +65,13 @@ test('writing polish POST returns polished text', async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    data: { polished: 'Clearer sentence about HTML.', mode: 'clarity', engine: 'llm' },
+    data: {
+      polished: 'Clearer sentence about HTML.',
+      mode: 'clarity',
+      engine: 'llm',
+      reason: null,
+      detail: null,
+    },
   });
 });
 

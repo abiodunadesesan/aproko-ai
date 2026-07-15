@@ -30,10 +30,21 @@ function resolvePolishModels(): ChatModel[] {
 
 function isRetryableProviderError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /quota|billing|credits|rate limit|429|402|401|403|invalid api key|insufficient/i.test(
+  return /quota|billing|credits|rate limit|429|402|401|403|invalid api key|insufficient|not found|no longer available|timeout|ECONN|fetch failed|Connect Timeout|overloaded|unavailable/i.test(
     message,
   );
 }
+
+export type PolishEngine = 'llm' | 'heuristic';
+export type PolishFallbackReason = 'no_keys' | 'providers_failed';
+
+export type PolishWritingResult = {
+  polished: string;
+  mode: WritingPolishMode;
+  engine: PolishEngine;
+  reason?: PolishFallbackReason;
+  detail?: string;
+};
 
 const MODE_INSTRUCTIONS: Record<WritingPolishMode, string> = {
   clarity:
@@ -64,7 +75,7 @@ function lightHeuristicPolish(text: string, mode: WritingPolishMode): string {
 export async function polishWriting(input: {
   text: string;
   mode: WritingPolishMode;
-}): Promise<{ polished: string; mode: WritingPolishMode; engine: 'llm' | 'heuristic' }> {
+}): Promise<PolishWritingResult> {
   const text = input.text.trim();
   if (!text) {
     throw new Error('Text is required');
@@ -81,6 +92,7 @@ export async function polishWriting(input: {
       polished: lightHeuristicPolish(truncated, input.mode),
       mode: input.mode,
       engine: 'heuristic',
+      reason: 'no_keys',
     };
   }
 
@@ -109,16 +121,23 @@ export async function polishWriting(input: {
       return { polished, mode: input.mode, engine: 'llm' };
     } catch (error) {
       lastError = error;
+      console.warn(`Polish provider failed (${polishModel})`, error);
       if (!isRetryableProviderError(error)) {
         throw error;
       }
     }
   }
 
-  console.warn('All polish providers failed; falling back to heuristic', lastError);
+  const detail =
+    lastError instanceof Error
+      ? lastError.message.slice(0, 240)
+      : 'All configured providers failed';
+
   return {
     polished: lightHeuristicPolish(truncated, input.mode),
     mode: input.mode,
     engine: 'heuristic',
+    reason: 'providers_failed',
+    detail,
   };
 }
