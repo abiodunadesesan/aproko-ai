@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createBillingCheckoutRouteHandlers } from '../../app/api/v1/billing/checkout/route';
 
+const resolveAuthUserId = async (clerkAuth: () => Promise<{ userId: string | null }>) =>
+  (await clerkAuth()).userId;
+
 test('billing checkout POST returns 401 when unauthenticated', async () => {
   const handlers = createBillingCheckoutRouteHandlers({
     auth: async () => ({ userId: null }),
@@ -12,6 +15,7 @@ test('billing checkout POST returns 401 when unauthenticated', async () => {
       provider: null,
       message: 'pending',
     }),
+    resolveAuthUserId,
   });
 
   const response = await handlers.POST(
@@ -36,6 +40,7 @@ test('billing checkout POST validates paid plan code', async () => {
       provider: null,
       message: 'pending',
     }),
+    resolveAuthUserId,
   });
 
   const response = await handlers.POST(
@@ -60,6 +65,7 @@ test('billing checkout POST returns checkout payload', async () => {
       provider: null,
       message: `Checkout pending for ${userId} in ${workspaceId}`,
     }),
+    resolveAuthUserId,
   });
 
   const response = await handlers.POST(

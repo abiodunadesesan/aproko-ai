@@ -35,6 +35,7 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 ## Success Metrics
 
 ### Product Metrics
+
 - Weekly active users (WAU)
 - D30 retention by workspace type
 - % of sessions with citation-backed responses
@@ -42,21 +43,37 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 - Time-to-first-value (upload -> first useful answer)
 
 ### Quality Metrics
+
 - Retrieval precision@k (internal evals)
 - Answer grounding rate (responses with valid citations)
 - OCR processing success rate
 - P95 API latency by endpoint class
 
 ### Business Metrics
+
 - Free -> paid conversion
 - Paid churn
 - Average revenue per account
 
 `TODO`: Define target numeric thresholds for each KPI after baseline instrumentation.
 
+**V1 baseline targets (instrument after launch):**
+
+| Metric                       | Initial target                              |
+| ---------------------------- | ------------------------------------------- |
+| Time-to-first-value          | < 10 minutes (sign-up → first cited answer) |
+| Citation-backed session rate | > 60% of chat sessions with retrieval       |
+| D7 retention                 | > 25% for activated users                   |
+| Free → paid conversion       | > 3% within 30 days                         |
+
+`TODO`: Confirm compliance targets (SOC 2, GDPR, HIPAA scope).
+
+**V1 scope decision:** GDPR-ready privacy controls and data deletion flows are in scope. SOC 2 Type I and HIPAA are post-V1 unless a customer contract requires earlier review.
+
 ## Functional Requirements
 
 ### Core Knowledge Workflows
+
 1. User can create and manage workspaces.
 2. User can upload files: PDF, DOCX, PPTX, TXT, Markdown, images, and audio.
 3. System extracts text, metadata, and OCR content.
@@ -68,6 +85,7 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 9. User has timeline view of key memory events.
 
 ### Account & Administration
+
 10. User can authenticate via Clerk (email + Google sign-in + password reset).
 11. User can manage profile and settings.
 12. Billing plans and subscription state are enforced in feature gates.
@@ -144,6 +162,8 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 
 `TODO`: Confirm whether Viewer can generate artifacts (flashcards/quizzes) in V1.
 
+**V1 decision:** Viewers can run chat and search but cannot create or edit artifacts (notes, flashcards, quizzes, uploads). Editors and Owners retain full mutation access.
+
 ## Pricing
 
 - Plan tiers: Free, Pro, Team (initial structure)
@@ -155,6 +175,16 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 
 `TODO`: Define final prices, limits, and overage policy.
 
+**V1 pricing defaults (from `apps/web/lib/pricing-plans.ts`):**
+
+| Plan        | Price       | Key limits                             |
+| ----------- | ----------- | -------------------------------------- |
+| Free        | $0          | 100 AI queries, core library & memory  |
+| Teams       | $12/seat/mo | 500 AI queries/seat, shared workspace  |
+| Pro Monthly | $20/mo      | Unlimited AI queries, all Pro features |
+| Pro Yearly  | $160/yr     | Same as Pro Monthly at ~$13.33/mo      |
+
+Overage policy for V1: soft limits with upgrade prompts; hard enforcement deferred to billing meters integration.
 
 ## Out of Scope (V1)
 
@@ -167,7 +197,6 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 - Voice assistant
 - AI phone calls
 - Browser automation
-
 
 ## Future Roadmap (Post-V1)
 
@@ -186,7 +215,7 @@ Reduce cognitive load in knowledge work by turning fragmented information into a
 
 ## Technical Constraints
 
-- Frontend: Next.js 15 + React 19 + TypeScript + Tailwind + shadcn/ui
+- Frontend: Next.js 16 + React 19 + TypeScript + Tailwind + shadcn/ui
 - Backend: FastAPI (Python)
 - Data: Supabase PostgreSQL + Supabase Storage + Qdrant
 - AI gateway: LiteLLM routing to OpenAI/Anthropic/Gemini/Perplexity

@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createBillingSubscriptionRouteHandlers } from '../../app/api/v1/billing/subscription/route';
 
+const resolveAuthUserId = async (clerkAuth: () => Promise<{ userId: string | null }>) =>
+  (await clerkAuth()).userId;
+
 test('billing subscription GET returns 401 when unauthenticated', async () => {
   const handlers = createBillingSubscriptionRouteHandlers({
     auth: async () => ({ userId: null }),
@@ -14,6 +17,7 @@ test('billing subscription GET returns 401 when unauthenticated', async () => {
       currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
     }),
+    resolveAuthUserId,
   });
 
   const response = await handlers.GET(new Request('http://localhost/api/v1/billing/subscription'));
@@ -33,6 +37,7 @@ test('billing subscription GET returns subscription payload', async () => {
       currentPeriodEnd: '2026-02-01T00:00:00.000Z',
       cancelAtPeriodEnd: false,
     }),
+    resolveAuthUserId,
   });
 
   const response = await handlers.GET(

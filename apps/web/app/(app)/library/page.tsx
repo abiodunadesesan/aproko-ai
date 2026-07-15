@@ -664,6 +664,8 @@ export default function LibraryPage() {
     setError(null);
     setNotice(null);
 
+    const form = event.currentTarget;
+
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -684,9 +686,7 @@ export default function LibraryPage() {
       }
 
       setFile(null);
-      const fileInput = event.currentTarget.querySelector(
-        'input[type=file]',
-      ) as HTMLInputElement | null;
+      const fileInput = form.querySelector('input[type=file]') as HTMLInputElement | null;
       if (fileInput) {
         fileInput.value = '';
       }

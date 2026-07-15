@@ -1,4 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
+import { resolveAuthUserId } from '@/lib/auth/e2e-auth';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { getBillingSubscription, type BillingSubscription } from '@/lib/storage/billing';
 import { captureServerError } from '@/lib/observability/server';
 import { withPerformanceHeaders } from '@/lib/perf/http';
@@ -8,6 +10,7 @@ type AuthDependency = () => Promise<{ userId: string | null }>;
 type BillingSubscriptionRouteDependencies = {
   auth: AuthDependency;
   getBillingSubscription: typeof getBillingSubscription;
+  resolveAuthUserId: (clerkAuth: AuthDependency, request: Request) => Promise<string | null>;
 };
 
 function toBillingSubscriptionPayload(subscription: BillingSubscription) {
@@ -27,12 +30,21 @@ export function createBillingSubscriptionRouteHandlers(deps: BillingSubscription
     GET: async (request: Request) => {
       const startedAtMs = Date.now();
       try {
-        const { userId } = await deps.auth();
+        const userId = await deps.resolveAuthUserId(deps.auth, request);
         if (!userId) {
           return withPerformanceHeaders(
             Response.json({ error: 'Unauthorized' }, { status: 401 }),
             startedAtMs,
           );
+        }
+
+        const rateLimitResponse = await enforceRateLimit({
+          request,
+          userId,
+          policy: rateLimitPolicies.billingSubscriptionRead,
+        });
+        if (rateLimitResponse) {
+          return withPerformanceHeaders(rateLimitResponse, startedAtMs);
         }
 
         const url = new URL(request.url);
@@ -65,4 +77,5 @@ export const { GET } = createBillingSubscriptionRouteHandlers({
     return { userId };
   },
   getBillingSubscription,
+  resolveAuthUserId,
 });

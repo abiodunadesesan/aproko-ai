@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { isAdminUser } from '@/lib/auth/admin';
 import {
   getProfileByClerkUserId,
@@ -61,6 +62,15 @@ export function createMeRouteHandlers(deps: MeRouteDependencies) {
         const { userId } = await deps.auth();
         if (!userId) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const rateLimitResponse = await enforceRateLimit({
+          request,
+          userId,
+          policy: rateLimitPolicies.meWrite,
+        });
+        if (rateLimitResponse) {
+          return rateLimitResponse;
         }
 
         const rawBody = (await request.json().catch(() => null)) as { full_name?: string } | null;

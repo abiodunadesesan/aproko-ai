@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
@@ -163,6 +163,7 @@ export default function ChatPage() {
   const [isHistoryReady, setIsHistoryReady] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ChatModel>('openai:gpt-4o-mini');
   const [error, setError] = useState<string | null>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
@@ -300,8 +301,8 @@ export default function ChatPage() {
     }
   }
 
-  async function sendMessage() {
-    const trimmed = input.trim();
+  async function sendMessage(contentOverride?: string) {
+    const trimmed = (contentOverride ?? chatInputRef.current?.value ?? input).trim();
     if (!trimmed || isSending) {
       return;
     }
@@ -596,7 +597,10 @@ export default function ChatPage() {
               className="mt-4 space-y-2 border-t pt-3"
               onSubmit={(event) => {
                 event.preventDefault();
-                void sendMessage();
+                const textarea = event.currentTarget.querySelector(
+                  '[data-testid="chat-input"]',
+                ) as HTMLTextAreaElement | null;
+                void sendMessage(textarea?.value);
               }}
             >
               <Textarea
@@ -604,6 +608,7 @@ export default function ChatPage() {
                 data-testid="chat-input"
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask a question about your workspace..."
+                ref={chatInputRef}
                 value={input}
               />
               {error ? <p className="text-sm text-destructive">{error}</p> : null}

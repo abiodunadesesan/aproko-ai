@@ -22,6 +22,13 @@ test.describe('Critical user journeys', () => {
 
     await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 
+    await expect(page.getByTestId('library-upload-project')).toHaveValue('proj-e2e', {
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId('library-upload-folder')).toHaveValue('folder-e2e', {
+      timeout: 30_000,
+    });
+
     const fileInput = page.getByTestId('library-upload-file');
     await fileInput.setInputFiles({
       name: 'e2e-upload.txt',
@@ -33,7 +40,9 @@ test.describe('Critical user journeys', () => {
     await page.getByTestId('library-upload-folder').selectOption('folder-e2e');
     await page.getByTestId('library-upload-submit').click();
 
-    await expect(page.getByText(/Uploaded "e2e-upload.txt" successfully/i)).toBeVisible();
+    await expect(page.getByText(/Uploaded "e2e-upload.txt" successfully/i)).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByTestId('library-sources-table')).toContainText('e2e-upload.txt');
   });
 
@@ -43,13 +52,36 @@ test.describe('Critical user journeys', () => {
     await installWorkspaceMocks(page);
     await page.goto('/chat', { waitUntil: 'commit', timeout: 90_000 });
 
-    await expect(page.getByRole('heading', { name: 'Chat' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'AI Chat' })).toBeVisible();
 
-    await page.getByTestId('chat-input').fill('What is object-oriented programming?');
+    const chatInput = page.getByTestId('chat-input');
+    await chatInput.click();
+    await chatInput.pressSequentially('What is object-oriented programming?', { delay: 25 });
+
+    const sessionResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/chat/sessions') &&
+        response.request().method() === 'POST' &&
+        !response.url().includes('/messages'),
+      { timeout: 60_000 },
+    );
+    const messageResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/chat/sessions/') &&
+        response.url().includes('/messages') &&
+        response.request().method() === 'POST',
+      { timeout: 60_000 },
+    );
+
+    await expect(page.getByTestId('chat-send')).toBeEnabled({ timeout: 15_000 });
     await page.getByTestId('chat-send').click();
+
+    expect((await sessionResponse).ok()).toBeTruthy();
+    expect((await messageResponse).ok()).toBeTruthy();
 
     await expect(page.getByTestId('chat-assistant-message')).toContainText(
       /object-oriented programming/i,
+      { timeout: 30_000 },
     );
     await expect(page.getByTestId('chat-citation')).toContainText('OOP Lecture Notes.pdf');
   });

@@ -94,6 +94,10 @@ function getUpstashClient(): Redis | null {
 }
 
 export async function enforceRateLimit(input: RateLimitInput): Promise<Response | null> {
+  if (process.env.E2E_MOCK_AUTH === 'true') {
+    return null;
+  }
+
   const redis = getUpstashClient();
   if (!redis) {
     return enforceInMemoryRateLimit(input);
@@ -189,6 +193,21 @@ export const rateLimitPolicies = {
   },
   sourcesWrite: {
     bucket: 'v1:sources:write',
+    windowMs: 60_000,
+    maxRequests: 20,
+  },
+  billingCheckoutWrite: {
+    bucket: 'v1:billing:checkout:post',
+    windowMs: 60_000,
+    maxRequests: 10,
+  },
+  billingSubscriptionRead: {
+    bucket: 'v1:billing:subscription:get',
+    windowMs: 60_000,
+    maxRequests: 60,
+  },
+  meWrite: {
+    bucket: 'v1:me:patch',
     windowMs: 60_000,
     maxRequests: 20,
   },

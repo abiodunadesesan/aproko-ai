@@ -32,7 +32,7 @@ export async function installWorkspaceMocks(page: Page): Promise<void> {
     messages: [],
   };
 
-  await page.route(`**/api/v1/workspaces/${WORKSPACE_ID}/projects`, async (route) => {
+  await page.route(/\/api\/v1\/workspaces\/default-workspace\/projects$/, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: { data: [MOCK_PROJECT] } });
       return;
@@ -41,7 +41,7 @@ export async function installWorkspaceMocks(page: Page): Promise<void> {
   });
 
   await page.route(
-    `**/api/v1/workspaces/${WORKSPACE_ID}/projects/${MOCK_PROJECT.id}/folders**`,
+    /\/api\/v1\/workspaces\/default-workspace\/projects\/[^/]+\/folders/,
     async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({ json: { data: [MOCK_FOLDER] } });
@@ -51,7 +51,7 @@ export async function installWorkspaceMocks(page: Page): Promise<void> {
     },
   );
 
-  await page.route(`**/api/v1/workspaces/${WORKSPACE_ID}/sources**`, async (route) => {
+  await page.route(/\/api\/v1\/workspaces\/default-workspace\/sources/, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({ json: { data: state.sources } });
       return;
@@ -76,7 +76,7 @@ export async function installWorkspaceMocks(page: Page): Promise<void> {
     await route.continue();
   });
 
-  await page.route(`**/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions**`, async (route) => {
+  await page.route(/\/api\/v1\/workspaces\/default-workspace\/chat\/sessions/, async (route) => {
     const url = route.request().url();
     const isMessagesRoute = url.includes('/messages');
 
@@ -192,9 +192,16 @@ export async function installWorkspaceMocks(page: Page): Promise<void> {
 }
 
 export async function installBillingMocks(page: Page): Promise<void> {
-  await page.route('**/api/v1/billing/subscription**', async (route) => {
+  await page.route(/\/api\/v1\/billing\/subscription/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+
     await route.fulfill({
-      json: {
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
         data: {
           workspaceId: WORKSPACE_ID,
           planCode: 'free',
@@ -204,18 +211,20 @@ export async function installBillingMocks(page: Page): Promise<void> {
           currentPeriodEnd: null,
           cancelAtPeriodEnd: false,
         },
-      },
+      }),
     });
   });
 
-  await page.route('**/api/v1/billing/checkout', async (route) => {
+  await page.route(/\/api\/v1\/billing\/checkout/, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue();
       return;
     }
 
     await route.fulfill({
-      json: {
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
         data: {
           status: 'pending_provider',
           planCode: 'pro_monthly',
@@ -223,7 +232,7 @@ export async function installBillingMocks(page: Page): Promise<void> {
           provider: 'stripe',
           message: 'Stripe checkout is pending in staging.',
         },
-      },
+      }),
     });
   });
 }

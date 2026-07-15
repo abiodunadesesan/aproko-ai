@@ -14,12 +14,14 @@
 - [ ] Navigation and responsive behavior spot-checked on desktop and mobile web breakpoints.
 - [ ] Final copy and labels reviewed for consistency and clarity.
 
+**Engineering status (2026-07-14):** E2E suite covers auth shell, library upload, chat citations, billing checkout, and smoke routes. Run `pnpm e2e:install` once per machine, then `pnpm test:e2e:web`.
+
 ### 2) Quality and Stability
 
 - [x] `pnpm --filter web lint` passes.
 - [x] `pnpm --filter web typecheck` passes.
 - [x] `pnpm --filter web test` passes.
-- [x] `pnpm test:e2e:web` passes.
+- [x] `pnpm test:e2e:web` passes (run `pnpm e2e:install` once per machine, then `pnpm test:e2e:web`).
 - [x] `pnpm --filter web build` passes.
 
 ### 3) Infrastructure and Environment
@@ -28,6 +30,17 @@
 - [x] Supabase migrations applied and confirmed (`supabase db push` in linked project).
 - [ ] Clerk production settings verified (redirect URLs, OAuth providers, session settings).
 - [ ] Storage bucket policies and CORS validated for production behavior.
+
+**Required production env vars** (see `apps/web/.env.example`):
+
+| Group         | Variables                                                                   |
+| ------------- | --------------------------------------------------------------------------- |
+| Auth          | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`                     |
+| Data          | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`                     |
+| Rate limits   | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`                        |
+| Observability | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `POSTHOG_API_KEY`                   |
+| Billing       | `BILLING_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs |
+| Deploy        | `VERCEL_TOKEN` (GitHub Actions), `NEXT_PUBLIC_APP_URL`                      |
 
 ### 4) CI/CD and Deployment
 
@@ -48,6 +61,7 @@
 - [ ] Auth-protected routes and admin routes manually verified in production.
 - [x] Secrets are not committed and are sourced from environment providers only (tracked file/pattern scan completed).
 - [ ] Public API endpoints reviewed for auth/validation/rate-limit posture.
+- [x] Rate limiting added to billing checkout/subscription and profile mutation routes; workspace write routes already covered (see `apps/web/lib/api/rate-limit.ts`).
 - [x] Data retention and deletion behavior documented for user-facing support (see `docs/11-deployment/02-release-operations-runbook.md`).
 
 ### 7) Launch Execution

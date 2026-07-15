@@ -1,5 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
+import { resolveAuthUserId } from '@/lib/auth/e2e-auth';
 import { createCheckoutSession, parseCheckoutPlanCode } from '@/lib/billing/checkout';
+import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { captureServerError } from '@/lib/observability/server';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 
@@ -8,6 +10,7 @@ type AuthDependency = () => Promise<{ userId: string | null }>;
 type BillingCheckoutRouteDependencies = {
   auth: AuthDependency;
   createCheckoutSession: typeof createCheckoutSession;
+  resolveAuthUserId: (clerkAuth: AuthDependency, request: Request) => Promise<string | null>;
 };
 
 export function createBillingCheckoutRouteHandlers(deps: BillingCheckoutRouteDependencies) {
@@ -15,12 +18,21 @@ export function createBillingCheckoutRouteHandlers(deps: BillingCheckoutRouteDep
     POST: async (request: Request) => {
       const startedAtMs = Date.now();
       try {
-        const { userId } = await deps.auth();
+        const userId = await deps.resolveAuthUserId(deps.auth, request);
         if (!userId) {
           return withPerformanceHeaders(
             Response.json({ error: 'Unauthorized' }, { status: 401 }),
             startedAtMs,
           );
+        }
+
+        const rateLimitResponse = await enforceRateLimit({
+          request,
+          userId,
+          policy: rateLimitPolicies.billingCheckoutWrite,
+        });
+        if (rateLimitResponse) {
+          return withPerformanceHeaders(rateLimitResponse, startedAtMs);
         }
 
         const rawBody = (await request.json().catch(() => null)) as {
@@ -75,4 +87,5 @@ export const { POST } = createBillingCheckoutRouteHandlers({
     return { userId };
   },
   createCheckoutSession,
+  resolveAuthUserId,
 });
