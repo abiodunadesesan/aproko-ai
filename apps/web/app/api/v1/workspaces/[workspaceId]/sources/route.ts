@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { listLibrarySources, uploadLibraryFile } from '@/lib/storage/library';
 import { getWorkspaceFolderById, getWorkspaceProjectById } from '@/lib/storage/workspace-taxonomy';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -79,6 +80,19 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
         projectId,
         folderId,
       );
+
+      await trackServerEvent({
+        event: 'source_uploaded',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          file_name: file.name,
+          file_type: file.type,
+          file_size: file.size,
+          project_id: projectId ?? null,
+          folder_id: folderId ?? null,
+        },
+      });
 
       return Response.json({ source }, { status: 201 });
     } catch (error) {

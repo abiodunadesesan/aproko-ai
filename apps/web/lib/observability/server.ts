@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { PostHog } from 'posthog-node';
 
 type EventProperties = Record<string, unknown>;
 
@@ -8,39 +9,56 @@ type TrackServerEventInput = {
   properties?: EventProperties;
 };
 
-const DEFAULT_POSTHOG_HOST = 'https://us.i.posthog.com';
+const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 
-function getPosthogConfig() {
+function createPosthogClient(): PostHog | null {
   const apiKey = process.env.POSTHOG_API_KEY?.trim();
   if (!apiKey) {
     return null;
   }
 
   const host = process.env.POSTHOG_HOST?.trim() || DEFAULT_POSTHOG_HOST;
-  return { apiKey, host };
+  return new PostHog(apiKey, {
+    host,
+    flushAt: 1,
+    flushInterval: 0,
+    enableExceptionAutocapture: true,
+  });
 }
 
 export async function trackServerEvent(input: TrackServerEventInput): Promise<void> {
-  const config = getPosthogConfig();
-  if (!config) {
+  const client = createPosthogClient();
+  if (!client) {
     return;
   }
 
   try {
-    await fetch(`${config.host}/capture/`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        api_key: config.apiKey,
-        event: input.event,
-        distinct_id: input.distinctId,
-        properties: input.properties ?? {},
-      }),
+    client.capture({
+      distinctId: input.distinctId,
+      event: input.event,
+      properties: input.properties ?? {},
     });
+    await client.flush();
   } catch (error) {
     console.error('Failed to track analytics event', error);
+  } finally {
+    await client.shutdown();
+  }
+}
+
+export async function identifyUser(distinctId: string, properties: EventProperties): Promise<void> {
+  const client = createPosthogClient();
+  if (!client) {
+    return;
+  }
+
+  try {
+    client.identify({ distinctId, properties });
+    await client.flush();
+  } catch (error) {
+    console.error('Failed to identify user', error);
+  } finally {
+    await client.shutdown();
   }
 }
 
@@ -54,6 +72,13 @@ export function captureServerError(error: unknown, context?: EventProperties) {
     });
   } else {
     Sentry.captureException(error);
+  }
+
+  const client = createPosthogClient();
+  if (client) {
+    const distinctId = (context?.userId as string) ?? 'server';
+    client.captureException(error, distinctId, context);
+    void client.flush().finally(() => client.shutdown());
   }
 
   console.error('Captured server error', error);

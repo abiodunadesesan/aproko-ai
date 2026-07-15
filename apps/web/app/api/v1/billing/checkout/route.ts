@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { resolveAuthUserId } from '@/lib/auth/e2e-auth';
 import { createCheckoutSession, parseCheckoutPlanCode } from '@/lib/billing/checkout';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
-import { captureServerError } from '@/lib/observability/server';
+import { captureServerError, trackServerEvent } from '@/lib/observability/server';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
@@ -54,6 +54,16 @@ export function createBillingCheckoutRouteHandlers(deps: BillingCheckoutRouteDep
           workspaceId,
           planCode,
           userId,
+        });
+
+        await trackServerEvent({
+          event: 'checkout_started',
+          distinctId: userId,
+          properties: {
+            plan_code: planCode,
+            workspace_id: workspaceId,
+            checkout_status: session.status,
+          },
         });
 
         return withPerformanceHeaders(

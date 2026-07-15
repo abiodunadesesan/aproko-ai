@@ -8,6 +8,7 @@ import {
 } from '@/lib/storage/chat';
 import { listMemoryItems, type MemoryItem } from '@/lib/storage/memory';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -256,6 +257,17 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       if (!assistantMessage) {
         return NextResponse.json({ error: 'Failed to save assistant message' }, { status: 500 });
       }
+
+      await trackServerEvent({
+        event: 'chat_message_sent',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          session_id: sessionId,
+          model: modelRaw,
+          memory_context_count: memoryContext.length,
+        },
+      });
 
       return new Response(
         streamAssistantResponse(assistantTextWithMemory, citations, modelRaw, memoryContext),
