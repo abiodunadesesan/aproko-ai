@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cookies, headers } from 'next/headers';
 import { Suspense } from 'react';
 import { ClerkProviderShell } from '@/components/auth/clerk-provider-shell';
+import { PostHogProvider } from '@/components/observability/posthog-provider';
 import { ObservabilityProvider } from '@/components/observability-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { isClerkEnabled } from '@/lib/auth/post-auth-redirect';
@@ -15,10 +16,14 @@ type LocaleRootLayoutProps = {
 };
 
 function LocaleRootLayoutFallback({ children }: LocaleRootLayoutProps) {
-  const body = isClerkEnabled() ? (
-    <ClerkProviderShell locale="en">{children}</ClerkProviderShell>
-  ) : (
-    children
+  const body = (
+    <PostHogProvider>
+      {isClerkEnabled() ? (
+        <ClerkProviderShell locale="en">{children}</ClerkProviderShell>
+      ) : (
+        children
+      )}
+    </PostHogProvider>
   );
 
   return (
@@ -44,13 +49,13 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
   });
 
   const appContent = (
-    <>
+    <PostHogProvider>
       <Suspense fallback={null}>
         <ObservabilityProvider />
       </Suspense>
       <Toaster />
       {children}
-    </>
+    </PostHogProvider>
   );
 
   return (
