@@ -85,24 +85,32 @@ export function streamAssistantGeneration(input: ChatGenerationInput): ChatGener
     ],
   });
 
+  // Consume textStream only once. Awaiting result.text in parallel double-reads the
+  // underlying stream and can throw AI_NoOutputGeneratedError ("No output generated").
+  let resolveFullText: ((value: string) => void) | null = null;
+  let rejectFullText: ((reason: Error) => void) | null = null;
+  const fullText = new Promise<string>((resolve, reject) => {
+    resolveFullText = resolve;
+    rejectFullText = reject;
+  });
+
   async function* guardedTextStream(): AsyncIterable<string> {
+    let accumulated = '';
     try {
       for await (const chunk of result.textStream) {
+        accumulated += chunk;
         yield chunk;
       }
+      resolveFullText?.(accumulated);
     } catch (error) {
-      throw formatGenerationError(error);
+      const formatted = formatGenerationError(error);
+      rejectFullText?.(formatted);
+      throw formatted;
     }
   }
 
   return {
     textStream: guardedTextStream(),
-    fullText: (async () => {
-      try {
-        return await result.text;
-      } catch (error) {
-        throw formatGenerationError(error);
-      }
-    })(),
+    fullText,
   };
 }
