@@ -48,9 +48,18 @@ export default async function LibrarySourcePage({
   return (
     <AppPageShell
       headerAction={
-        <Button asChild size="sm" variant="outline">
-          <Link href="/library">Back to library</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/library">Back to library</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link
+              href={`/chat?new=1&sourceId=${encodeURIComponent(source.id)}&sourceName=${encodeURIComponent(source.name)}`}
+            >
+              Ask about this
+            </Link>
+          </Button>
+        </div>
       }
       pageId="librarySource"
       subtitle={`Project: ${source.project} · Folder: ${source.folder}`}

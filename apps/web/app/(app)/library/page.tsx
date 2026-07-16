@@ -1810,6 +1810,12 @@ export default function LibraryPage() {
                             <Link className="text-sm underline" href={`/library/${source.id}`}>
                               View
                             </Link>
+                            <Link
+                              className="text-sm underline"
+                              href={`/chat?new=1&sourceId=${encodeURIComponent(source.id)}&sourceName=${encodeURIComponent(source.name)}`}
+                            >
+                              Ask
+                            </Link>
                             <button
                               aria-label={`Rename ${source.name}`}
                               className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -1,5 +1,9 @@
 import type { MemoryItem } from '@/lib/storage/memory';
-import { listTranscriptSources, readLibrarySourceText } from '@/lib/storage/library';
+import {
+  getLibrarySource,
+  listTranscriptSources,
+  readLibrarySourceText,
+} from '@/lib/storage/library';
 import { searchWorkspace } from '@/lib/storage/search';
 
 export type ChatCitation = {
@@ -161,16 +165,50 @@ async function supplementWithRecentTranscripts(
 export async function buildWorkspaceContext(
   workspaceId: string,
   query: string,
+  options?: { preferredSourceId?: string },
 ): Promise<WorkspaceContextItem[]> {
-  const results = await searchWorkspace(workspaceId, query, { limit: 8 });
-  const mapped: WorkspaceContextItem[] = results.map((result) => ({
-    id: result.id,
-    title: result.title,
-    snippet: result.snippet,
-    type: result.type,
-  }));
+  const preferredSourceId = options?.preferredSourceId?.trim();
+  const pinned: WorkspaceContextItem[] = [];
 
-  const withTranscripts = await supplementWithRecentTranscripts(workspaceId, mapped, query);
+  if (preferredSourceId) {
+    try {
+      const source = await readLibrarySourceText(workspaceId, preferredSourceId);
+      if (source?.content) {
+        pinned.push({
+          id: source.sourceId,
+          title: source.title,
+          snippet: bestExcerpt(source.content, query) || source.content.slice(0, 420),
+          type: source.title.toLowerCase().includes('transcript') ? 'transcript' : 'source',
+        });
+      }
+    } catch {
+      // Non-text files (PDF/etc.) still get a pinned stub so the model knows the focus doc.
+      const meta = await getLibrarySource(workspaceId, preferredSourceId).catch(() => null);
+      pinned.push({
+        id: preferredSourceId,
+        title: meta?.name ?? 'Focused library document',
+        snippet:
+          'The user asked about this library document. Prefer it over other sources when answering. Text extraction was unavailable for this file type.',
+        type: 'source',
+      });
+    }
+  }
+
+  const results = await searchWorkspace(workspaceId, query, { limit: 8 });
+  const mapped: WorkspaceContextItem[] = results
+    .filter((result) => result.id !== preferredSourceId)
+    .map((result) => ({
+      id: result.id,
+      title: result.title,
+      snippet: result.snippet,
+      type: result.type,
+    }));
+
+  const withTranscripts = await supplementWithRecentTranscripts(
+    workspaceId,
+    [...pinned, ...mapped],
+    query,
+  );
   return hydrateSourceSnippets(workspaceId, withTranscripts, query);
 }
 

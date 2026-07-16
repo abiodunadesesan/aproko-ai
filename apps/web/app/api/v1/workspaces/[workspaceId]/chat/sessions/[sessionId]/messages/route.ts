@@ -181,9 +181,11 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       const rawBody = (await request.json().catch(() => null)) as {
         content?: string;
         model?: string;
+        sourceId?: string;
       } | null;
       const content = rawBody?.content?.trim() ?? '';
       const modelRaw = rawBody?.model?.trim() ?? DEFAULT_CHAT_MODEL;
+      const preferredSourceId = rawBody?.sourceId?.trim() || undefined;
 
       if (!content) {
         return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
@@ -208,6 +210,7 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
         status: 'completed',
         metadata: {
           source: 'user',
+          ...(preferredSourceId ? { preferredSourceId } : {}),
         },
       });
       if (!userMessage) {
@@ -215,7 +218,11 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       }
 
       const memoryContext = selectMemoryContext(await deps.listMemoryItems(workspaceId));
-      const workspaceContext = await deps.buildWorkspaceContext(workspaceId, content);
+      const workspaceContext = await deps.buildWorkspaceContext(
+        workspaceId,
+        content,
+        preferredSourceId ? { preferredSourceId } : undefined,
+      );
       const citations = workspaceContextToCitations(workspaceContext);
       const priorMessages = await deps.listChatMessages(workspaceId, userId, sessionId);
       const history = priorMessages

@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 
 const WORKSPACE_ID = 'default-workspace';
 const LAST_SESSION_STORAGE_KEY = `aproko.chat.last-session.${WORKSPACE_ID}`;
+const FOCUS_SOURCE_STORAGE_KEY = `aproko.chat.focus-source.${WORKSPACE_ID}`;
 const CHAT_MODELS = [
   'openai:gpt-4o-mini',
   'anthropic:claude-sonnet-5',
@@ -178,6 +179,8 @@ export default function ChatPage() {
   const [renameTarget, setRenameTarget] = useState<ChatSession | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
+  const [focusSourceId, setFocusSourceId] = useState<string | null>(null);
+  const [focusSourceName, setFocusSourceName] = useState<string | null>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
@@ -604,7 +607,11 @@ export default function ChatPage() {
           headers: {
             'content-type': 'application/json',
           },
-          body: JSON.stringify({ content: trimmed, model: selectedModel }),
+          body: JSON.stringify({
+            content: trimmed,
+            model: selectedModel,
+            ...(focusSourceId ? { sourceId: focusSourceId } : {}),
+          }),
         },
       );
 
@@ -710,9 +717,52 @@ export default function ChatPage() {
       typeof window !== 'undefined' ? window.localStorage.getItem(LAST_SESSION_STORAGE_KEY) : null;
     const preferredSessionId = wantsNewChat ? null : (searchSessionId ?? storedSessionId);
 
+    const sourceIdFromUrl = params?.get('sourceId')?.trim() || null;
+    const sourceNameFromUrl = params?.get('sourceName')?.trim() || null;
+    let resolvedSourceId = sourceIdFromUrl;
+    let resolvedSourceName = sourceNameFromUrl;
+
+    if (!resolvedSourceId && typeof window !== 'undefined' && !wantsNewChat) {
+      try {
+        const raw = window.sessionStorage.getItem(FOCUS_SOURCE_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { id?: string; name?: string };
+          resolvedSourceId = parsed.id?.trim() || null;
+          resolvedSourceName = parsed.name?.trim() || null;
+        }
+      } catch {
+        // Ignore corrupt session storage.
+      }
+    }
+
+    if (wantsNewChat && !sourceIdFromUrl && typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+      resolvedSourceId = null;
+      resolvedSourceName = null;
+    }
+
+    if (resolvedSourceId) {
+      setFocusSourceId(resolvedSourceId);
+      setFocusSourceName(resolvedSourceName);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(
+          FOCUS_SOURCE_STORAGE_KEY,
+          JSON.stringify({ id: resolvedSourceId, name: resolvedSourceName }),
+        );
+      }
+      const seeded = resolvedSourceName
+        ? `Summarize the key points from "${resolvedSourceName}" and answer my questions about it.`
+        : 'Summarize the key points from this document and answer my questions about it.';
+      setInput((current) => (current.trim() ? current : seeded));
+    } else {
+      setFocusSourceId(null);
+      setFocusSourceName(null);
+    }
+
     void loadSessions(preferredSessionId, { preferEmpty: Boolean(wantsNewChat) }).finally(() => {
       setIsHistoryReady(true);
       if (wantsNewChat) {
+        // Drop new/source query params after capturing them into state/sessionStorage.
         router.replace('/chat');
       }
     });
@@ -725,6 +775,8 @@ export default function ChatPage() {
 
     const params = new URLSearchParams(window.location.search);
     params.delete('new');
+    params.delete('sourceId');
+    params.delete('sourceName');
 
     if (activeSessionId) {
       params.set('session', activeSessionId);
@@ -774,11 +826,25 @@ export default function ChatPage() {
           onDeleteSession={(session) => {
             void removeSession(session as ChatSession);
           }}
-          onNewSession={() => setActiveSessionId(null)}
+          onNewSession={() => {
+            setActiveSessionId(null);
+            setFocusSourceId(null);
+            setFocusSourceName(null);
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+            }
+          }}
           onRenameSession={(session) => {
             openRenameSession(session as ChatSession);
           }}
-          onSelectSession={setActiveSessionId}
+          onSelectSession={(sessionId) => {
+            setActiveSessionId(sessionId);
+            setFocusSourceId(null);
+            setFocusSourceName(null);
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+            }
+          }}
           sessions={sessions}
         />
 
@@ -797,6 +863,7 @@ export default function ChatPage() {
                 <SelectTrigger
                   className="h-8 w-auto min-w-[10rem] border-none bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0"
                   id="chat-model-select"
+                  data-testid="chat-model-select"
                 >
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
@@ -811,6 +878,14 @@ export default function ChatPage() {
               <p className="truncate px-2 text-[11px] text-zinc-500">
                 {activeSession?.title ?? 'New chat'} · grounded in your library
               </p>
+              {focusSourceId ? (
+                <p
+                  className="mt-1 truncate rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                  data-testid="chat-focus-source"
+                >
+                  Asking about: {focusSourceName ?? 'selected document'}
+                </p>
+              ) : null}
             </div>
           </header>
 
