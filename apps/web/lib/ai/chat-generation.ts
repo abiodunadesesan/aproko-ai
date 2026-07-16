@@ -55,6 +55,16 @@ function formatGenerationError(error: unknown): Error {
       'Chat model authentication failed. Check GROQ_API_KEY (or the selected provider key) on the server.',
     );
   }
+  if (/credit balance is too low|purchase credits|plans & billing/i.test(joined)) {
+    return new Error(
+      'Anthropic has no API credits. Add billing at console.anthropic.com, or switch to Groq.',
+    );
+  }
+  if (/exceeded your current quota|insufficient_quota|429/i.test(joined)) {
+    return new Error(
+      'OpenAI quota exceeded. Add billing/credits at platform.openai.com, or switch to Groq.',
+    );
+  }
 
   return new Error(joined);
 }
