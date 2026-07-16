@@ -11,7 +11,7 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowUp, FolderOpen, Globe, Mic, PenLine, Square } from 'lucide-react';
+import { ArrowUp, FolderOpen, Globe, History, Mic, PenLine, Square } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
@@ -179,6 +180,7 @@ export default function ChatPage() {
   const [renameTarget, setRenameTarget] = useState<ChatSession | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [focusSourceId, setFocusSourceId] = useState<string | null>(null);
   const [focusSourceName, setFocusSourceName] = useState<string | null>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -830,6 +832,7 @@ export default function ChatPage() {
             setActiveSessionId(null);
             setFocusSourceId(null);
             setFocusSourceName(null);
+            setHistoryOpen(false);
             if (typeof window !== 'undefined') {
               window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
             }
@@ -841,6 +844,7 @@ export default function ChatPage() {
             setActiveSessionId(sessionId);
             setFocusSourceId(null);
             setFocusSourceName(null);
+            setHistoryOpen(false);
             if (typeof window !== 'undefined') {
               window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
             }
@@ -848,44 +852,94 @@ export default function ChatPage() {
           sessions={sessions}
         />
 
+        <Sheet onOpenChange={setHistoryOpen} open={historyOpen}>
+          <SheetContent className="w-[min(100vw,320px)] p-0 sm:max-w-[320px]" side="left">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Chat history</SheetTitle>
+            </SheetHeader>
+            <ChatSessionSidebar
+              activeSessionId={activeSessionId}
+              className="h-full min-h-0 border-r-0"
+              isLoading={isLoadingSessions}
+              onDeleteSession={(session) => {
+                void removeSession(session as ChatSession);
+              }}
+              onNewSession={() => {
+                setActiveSessionId(null);
+                setFocusSourceId(null);
+                setFocusSourceName(null);
+                setHistoryOpen(false);
+                if (typeof window !== 'undefined') {
+                  window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+                }
+              }}
+              onRenameSession={(session) => {
+                openRenameSession(session as ChatSession);
+              }}
+              onSelectSession={(sessionId) => {
+                setActiveSessionId(sessionId);
+                setFocusSourceId(null);
+                setFocusSourceName(null);
+                setHistoryOpen(false);
+                if (typeof window !== 'undefined') {
+                  window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+                }
+              }}
+              sessions={sessions}
+            />
+          </SheetContent>
+        </Sheet>
+
         <div className="relative flex min-h-[calc(100svh-3rem)] flex-col bg-white dark:bg-[#212121]">
           <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6">
-            <div className="min-w-0">
-              <Select
-                disabled={isSending}
-                onValueChange={(value) => {
-                  if (isChatModel(value)) {
-                    setSelectedModel(value);
-                  }
-                }}
-                value={selectedModel}
+            <div className="flex min-w-0 items-start gap-2">
+              <Button
+                aria-label="Open chat history"
+                className="mt-0.5 h-10 w-10 shrink-0 rounded-full lg:hidden"
+                onClick={() => setHistoryOpen(true)}
+                size="icon"
+                type="button"
+                variant="ghost"
               >
-                <SelectTrigger
-                  className="h-8 w-auto min-w-[10rem] border-none bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0"
-                  id="chat-model-select"
-                  data-testid="chat-model-select"
+                <History className="h-4 w-4" />
+              </Button>
+              <div className="min-w-0">
+                <Select
+                  disabled={isSending}
+                  onValueChange={(value) => {
+                    if (isChatModel(value)) {
+                      setSelectedModel(value);
+                    }
+                  }}
+                  value={selectedModel}
                 >
-                  <SelectValue placeholder="Model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHAT_MODELS.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="truncate px-2 text-[11px] text-zinc-500">
-                {activeSession?.title ?? 'New chat'} · grounded in your library
-              </p>
-              {focusSourceId ? (
-                <p
-                  className="mt-1 truncate rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                  data-testid="chat-focus-source"
-                >
-                  Asking about: {focusSourceName ?? 'selected document'}
+                  <SelectTrigger
+                    className="h-8 w-auto max-w-[min(100%,14rem)] min-w-0 border-none bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0"
+                    id="chat-model-select"
+                    data-testid="chat-model-select"
+                  >
+                    <SelectValue placeholder="Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHAT_MODELS.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="truncate px-2 text-[11px] text-zinc-500">
+                  {activeSession?.title ?? 'New chat'} · grounded in your library
                 </p>
-              ) : null}
+                {focusSourceId ? (
+                  <p
+                    className="mt-1 truncate rounded-full bg-zinc-100 px-3 py-1 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    data-testid="chat-focus-source"
+                  >
+                    Asking about: {focusSourceName ?? 'selected document'}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </header>
 
@@ -1126,7 +1180,7 @@ function Composer({
         <div className="flex shrink-0 items-center gap-1 pb-1">
           <Button
             aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-            className="h-9 w-9 rounded-full text-zinc-600 dark:text-zinc-300"
+            className="h-11 w-11 rounded-full text-zinc-600 sm:h-9 sm:w-9 dark:text-zinc-300"
             disabled={isSending || isTranscribingVoice}
             onClick={onToggleVoice}
             size="icon"
@@ -1138,7 +1192,7 @@ function Composer({
           <Button
             aria-label="Send message"
             className={cn(
-              'h-9 w-9 rounded-full',
+              'h-11 w-11 rounded-full sm:h-9 sm:w-9',
               canSend
                 ? 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200'
                 : 'bg-zinc-200 text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500',

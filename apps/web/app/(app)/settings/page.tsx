@@ -164,7 +164,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-3">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">
-                Baseline preferences stored in this browser for current workspace.
+                Preferences for this workspace are saved in this browser.
               </p>
             </div>
 

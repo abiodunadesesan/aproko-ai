@@ -998,7 +998,7 @@ export default function StudyPage() {
             {generationSource === 'transcript' ? (
               <select
                 aria-label="Transcript source"
-                className="h-10 min-w-[240px] flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 min-w-0 w-full flex-1 rounded-md border border-input bg-background px-3 text-sm sm:w-auto"
                 onChange={(event) => setSelectedTranscriptId(event.target.value || null)}
                 value={selectedTranscriptId ?? ''}
               >
@@ -1048,7 +1048,9 @@ export default function StudyPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Notes</CardTitle>
-            <p className="text-xs text-muted-foreground">NOTE-001 baseline</p>
+            <p className="text-xs text-muted-foreground">
+              Write notes, then generate cards, quizzes, and summaries.
+            </p>
           </CardHeader>
           <CardContent className="space-y-3">
             <Input
@@ -1068,7 +1070,7 @@ export default function StudyPage() {
               ) : filteredNotes.length === 0 ? (
                 <EmptyState
                   compact
-                  description="Create a note or upload a document in chat to generate study material."
+                  description="Create a note here, or pick a transcript above, then generate study material."
                   icon={StickyNote}
                   title="No notes yet"
                 />
@@ -1155,7 +1157,9 @@ export default function StudyPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Flashcards</CardTitle>
-              <p className="text-xs text-muted-foreground">FLASH-001 baseline</p>
+              <p className="text-xs text-muted-foreground">
+                Build decks from a note or transcript.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-2 md:grid-cols-[1fr_auto]">
@@ -1281,7 +1285,9 @@ export default function StudyPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Quiz</CardTitle>
-              <p className="text-xs text-muted-foreground">QUIZ-001 baseline</p>
+              <p className="text-xs text-muted-foreground">
+                Generate questions and track attempts.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid gap-2 md:grid-cols-[1fr_auto]">
@@ -1307,7 +1313,7 @@ export default function StudyPage() {
               ) : filteredQuizzes.length === 0 ? (
                 <EmptyState
                   compact
-                  description="Upload notes or documents in chat and ask to create a quiz."
+                  description="Create a quiz, select a note or transcript, then generate questions."
                   icon={GraduationCap}
                   title="No quizzes yet"
                 />
@@ -1413,7 +1419,9 @@ export default function StudyPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">AI Study Summaries</CardTitle>
-              <p className="text-xs text-muted-foreground">STUDY-001 baseline</p>
+              <p className="text-xs text-muted-foreground">
+                Summaries and slide outlines from your sources.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap gap-2">
@@ -1433,8 +1441,7 @@ export default function StudyPage() {
                   {studyGenerateButtonLabel('outline', isGeneratingOutline, hasSlideOutlines)}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Uses the Generation source above (note or transcript). LLM when OPENAI_API_KEY is
-                  set.
+                  Uses the Generation source above (note or transcript).
                 </p>
               </div>
               {isGeneratingSummary || isGeneratingOutline ? (
@@ -1472,7 +1479,7 @@ export default function StudyPage() {
                       {studyGenerateButtonLabel('summary', isGeneratingSummary, hasStudySummaries)}
                     </Button>
                   }
-                  description="Generate a summary from your active note or workspace notes."
+                  description="Generate a summary from your selected note or transcript."
                   icon={ScrollText}
                   title="No study summaries yet"
                 />

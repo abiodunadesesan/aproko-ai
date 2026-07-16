@@ -7,6 +7,7 @@ import {
   type WorkspaceWritingDraft,
 } from '@/lib/storage/writing-drafts';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { trackServerEvent } from '@/lib/observability/server';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -93,6 +94,16 @@ export function createWritingDraftByIdRouteHandlers(deps: WritingDraftByIdRouteD
         return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
       }
 
+      await trackServerEvent({
+        event: 'writing_draft_updated',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          draft_id: updated.id,
+          mode: updated.mode,
+        },
+      });
+
       return NextResponse.json({ data: toDraftPayload(updated) });
     },
 
@@ -115,6 +126,15 @@ export function createWritingDraftByIdRouteHandlers(deps: WritingDraftByIdRouteD
       if (!deleted) {
         return NextResponse.json({ error: 'Draft not found or delete failed' }, { status: 404 });
       }
+
+      await trackServerEvent({
+        event: 'writing_draft_deleted',
+        distinctId: userId,
+        properties: {
+          workspace_id: workspaceId,
+          draft_id: draftId,
+        },
+      });
 
       return NextResponse.json({ ok: true });
     },

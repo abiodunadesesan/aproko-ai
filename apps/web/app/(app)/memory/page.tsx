@@ -206,7 +206,9 @@ export default function MemoryPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Capture Memory</CardTitle>
-            <p className="text-xs text-muted-foreground">MEM-001 baseline contract</p>
+            <p className="text-xs text-muted-foreground">
+              Save facts and preferences your chat can use later.
+            </p>
           </CardHeader>
           <CardContent>
             <form className="space-y-3" onSubmit={onSubmit}>
@@ -363,7 +365,7 @@ export default function MemoryPage() {
                     <Link href="/chat">Go to Chat</Link>
                   </Button>
                 }
-                description="Say &ldquo;remember this&rdquo; in chat or capture memory items from your workspace."
+                description='Say "remember this" in chat or capture memory items from your workspace.'
                 icon={Brain}
                 title="No remembered items yet"
               />

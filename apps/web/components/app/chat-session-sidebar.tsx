@@ -33,6 +33,7 @@ export function ChatSessionSidebar({
   activeSessionId,
   isLoading,
   onSelectSession,
+  onNewSession,
   onRenameSession,
   onDeleteSession,
   className,
@@ -55,11 +56,14 @@ export function ChatSessionSidebar({
       )}
     >
       <div className="space-y-2 p-3">
+        <Button className="h-10 w-full rounded-full" onClick={onNewSession} type="button">
+          New chat
+        </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
           <Input
             aria-label="Search conversations"
-            className="h-9 rounded-full border-zinc-200/80 bg-white pl-9 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="h-10 rounded-full border-zinc-200/80 bg-white pl-9 text-sm dark:border-zinc-700 dark:bg-zinc-900 sm:h-9"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
             value={query}
@@ -105,7 +109,7 @@ export function ChatSessionSidebar({
                     )}
                   >
                     <button
-                      className="min-w-0 flex-1 truncate text-left text-[13px] text-zinc-800 dark:text-zinc-200"
+                      className="min-h-11 min-w-0 flex-1 truncate py-2 text-left text-[13px] text-zinc-800 sm:min-h-0 sm:py-0 dark:text-zinc-200"
                       onClick={() => onSelectSession(session.id)}
                       type="button"
                     >
@@ -114,7 +118,7 @@ export function ChatSessionSidebar({
                     <div className="flex shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                       <Button
                         aria-label={`Rename ${session.title}`}
-                        className="h-7 w-7 text-zinc-500"
+                        className="h-9 w-9 text-zinc-500 sm:h-7 sm:w-7"
                         onClick={() => onRenameSession(session)}
                         size="icon"
                         type="button"
@@ -124,7 +128,7 @@ export function ChatSessionSidebar({
                       </Button>
                       <Button
                         aria-label={`Delete ${session.title}`}
-                        className="h-7 w-7 text-zinc-500 hover:text-red-500"
+                        className="h-9 w-9 text-zinc-500 hover:text-red-500 sm:h-7 sm:w-7"
                         onClick={() => onDeleteSession(session)}
                         size="icon"
                         type="button"

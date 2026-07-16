@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Copy, Pencil, PenLine, Plus, ScanSearch, Sparkles, Trash2 } from 'lucide-react';
+import { Copy, History, Pencil, PenLine, Plus, ScanSearch, Sparkles, Trash2 } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import {
   clearLocalWritingDrafts,
@@ -127,6 +128,7 @@ export default function WritingPage() {
   const [turnitin, setTurnitin] = useState<DetectorCheckResult | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameTitle, setRenameTitle] = useState('');
+  const [draftsOpen, setDraftsOpen] = useState(false);
 
   async function migrateLocalDraftsIfNeeded(): Promise<number> {
     if (hasMigratedLocalWritingDrafts()) {
@@ -478,7 +480,7 @@ export default function WritingPage() {
   return (
     <AppPageShell pageId="writing">
       <section className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+        <aside className="hidden min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 lg:flex lg:min-h-[560px] dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
           <div className="space-y-3 border-b border-zinc-200/80 p-4 dark:border-zinc-800">
             <Button className="w-full rounded-xl" onClick={startNewDraft} type="button">
               <Plus className="mr-1.5 h-4 w-4" />
@@ -507,7 +509,7 @@ export default function WritingPage() {
               </p>
             ) : drafts.length === 0 ? (
               <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                Saved drafts appear here. Polish or Save to keep them on your account.
+                No drafts yet — polish or save to keep work across devices.
               </p>
             ) : (
               <ul className="space-y-1">
@@ -534,7 +536,7 @@ export default function WritingPage() {
                         </button>
                         <Button
                           aria-label={`Delete ${item.title}`}
-                          className="h-7 w-7 text-destructive"
+                          className="h-9 w-9 text-destructive sm:h-7 sm:w-7"
                           onClick={() => void removeDraft(item.id)}
                           size="icon"
                           type="button"
@@ -551,7 +553,127 @@ export default function WritingPage() {
           </div>
         </aside>
 
+        <Sheet onOpenChange={setDraftsOpen} open={draftsOpen}>
+          <SheetContent className="w-[min(100vw,320px)] p-0 sm:max-w-[320px]" side="left">
+            <SheetHeader className="border-b px-4 py-3 text-left">
+              <SheetTitle>Drafts</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-3 border-b p-4">
+              <Button
+                className="w-full rounded-xl"
+                onClick={() => {
+                  startNewDraft();
+                  setDraftsOpen(false);
+                }}
+                type="button"
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                New draft
+              </Button>
+              <Button
+                className="w-full rounded-xl"
+                disabled={isSaving}
+                onClick={() => {
+                  void saveCurrentDraft().then((saved) => {
+                    if (saved) {
+                      setNotice('Draft saved to your account.');
+                      setDraftsOpen(false);
+                    }
+                  });
+                }}
+                type="button"
+                variant="outline"
+              >
+                {isSaving ? 'Saving…' : 'Save current'}
+              </Button>
+            </div>
+            <div className="overflow-y-auto p-2">
+              {isLoadingDrafts ? (
+                <p className="px-3 py-6 text-center text-xs text-muted-foreground" role="status">
+                  Loading drafts…
+                </p>
+              ) : drafts.length === 0 ? (
+                <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  No drafts yet — polish or save to keep work across devices.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {drafts.map((item) => {
+                    const isActive = item.id === draftId;
+                    return (
+                      <li key={item.id}>
+                        <div
+                          className={`group flex items-start gap-1 rounded-xl border px-2 py-2 ${
+                            isActive
+                              ? 'border-zinc-300 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/80'
+                              : 'border-transparent hover:bg-white/80 dark:hover:bg-zinc-900'
+                          }`}
+                        >
+                          <button
+                            className="min-h-11 min-w-0 flex-1 text-left"
+                            onClick={() => {
+                              loadDraft(item);
+                              setDraftsOpen(false);
+                            }}
+                            type="button"
+                          >
+                            <p className="truncate text-sm font-medium">{item.title}</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
+                              {new Date(item.updatedAt).toLocaleString()}
+                            </p>
+                          </button>
+                          <Button
+                            aria-label={`Delete ${item.title}`}
+                            className="h-9 w-9 text-destructive"
+                            onClick={() => void removeDraft(item.id)}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
         <div className="space-y-4">
+          <div className="flex gap-2 lg:hidden">
+            <Button
+              aria-label="Open drafts"
+              className="rounded-xl"
+              onClick={() => setDraftsOpen(true)}
+              type="button"
+              variant="outline"
+            >
+              <History className="mr-1.5 h-4 w-4" />
+              Drafts
+            </Button>
+            <Button className="flex-1 rounded-xl" onClick={startNewDraft} type="button">
+              <Plus className="mr-1.5 h-4 w-4" />
+              New
+            </Button>
+            <Button
+              className="flex-1 rounded-xl"
+              disabled={isSaving}
+              onClick={() => {
+                void saveCurrentDraft().then((saved) => {
+                  if (saved) {
+                    setNotice('Draft saved to your account.');
+                  }
+                });
+              }}
+              type="button"
+              variant="outline"
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
           <Card className="overflow-hidden rounded-2xl border-zinc-200/80 dark:border-zinc-800">
             <CardHeader className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -578,7 +700,10 @@ export default function WritingPage() {
                   }}
                   value={mode}
                 >
-                  <SelectTrigger aria-label="Polish mode" className="w-[160px] rounded-xl">
+                  <SelectTrigger
+                    aria-label="Polish mode"
+                    className="w-full rounded-xl sm:w-[160px]"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -607,7 +732,10 @@ export default function WritingPage() {
                   }}
                   value={checkTarget}
                 >
-                  <SelectTrigger aria-label="Text to check" className="w-[140px] rounded-xl">
+                  <SelectTrigger
+                    aria-label="Text to check"
+                    className="w-full rounded-xl sm:w-[140px]"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -1712,143 +1712,145 @@ export default function LibraryPage() {
                     Page {currentPage} of {totalPages}
                   </p>
                 </div>
-                <Table data-testid="library-sources-table">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <input
-                          aria-label="Select all sources on page"
-                          checked={allPageSelected}
-                          onChange={(event) => {
-                            if (event.target.checked) {
-                              setSelectedSourceIds((current) =>
-                                Array.from(new Set([...current, ...paginatedSourceIds])),
-                              );
-                              return;
-                            }
-
-                            setSelectedSourceIds((current) =>
-                              current.filter((id) => !paginatedSourceIds.includes(id)),
-                            );
-                          }}
-                          type="checkbox"
-                        />
-                      </TableHead>
-                      <TableHead>
-                        <button
-                          className="font-medium"
-                          aria-label={`Sort by name${sortField === 'name' ? `, currently ${sortDirection}` : ''}`}
-                          onClick={() => applySort('name')}
-                          type="button"
-                        >
-                          Name
-                        </button>
-                      </TableHead>
-                      <TableHead>
-                        <button
-                          className="font-medium"
-                          aria-label={`Sort by project${sortField === 'project' ? `, currently ${sortDirection}` : ''}`}
-                          onClick={() => applySort('project')}
-                          type="button"
-                        >
-                          Project
-                        </button>
-                      </TableHead>
-                      <TableHead>
-                        <button
-                          className="font-medium"
-                          aria-label={`Sort by folder${sortField === 'folder' ? `, currently ${sortDirection}` : ''}`}
-                          onClick={() => applySort('folder')}
-                          type="button"
-                        >
-                          Folder
-                        </button>
-                      </TableHead>
-                      <TableHead>
-                        <button
-                          className="font-medium"
-                          aria-label={`Sort by size${sortField === 'size' ? `, currently ${sortDirection}` : ''}`}
-                          onClick={() => applySort('size')}
-                          type="button"
-                        >
-                          Size
-                        </button>
-                      </TableHead>
-                      <TableHead>
-                        <button
-                          className="font-medium"
-                          aria-label={`Sort by updated time${sortField === 'updatedAt' ? `, currently ${sortDirection}` : ''}`}
-                          onClick={() => applySort('updatedAt')}
-                          type="button"
-                        >
-                          Updated
-                        </button>
-                      </TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedSources.map((source) => (
-                      <TableRow className="transition-colors hover:bg-muted/40" key={source.id}>
-                        <TableCell>
+                <div className="w-full overflow-x-auto">
+                  <Table data-testid="library-sources-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10">
                           <input
-                            aria-label={`Select ${source.name}`}
-                            checked={selectedSourceIds.includes(source.id)}
-                            onChange={() => toggleSourceSelection(source.id)}
+                            aria-label="Select all sources on page"
+                            checked={allPageSelected}
+                            onChange={(event) => {
+                              if (event.target.checked) {
+                                setSelectedSourceIds((current) =>
+                                  Array.from(new Set([...current, ...paginatedSourceIds])),
+                                );
+                                return;
+                              }
+
+                              setSelectedSourceIds((current) =>
+                                current.filter((id) => !paginatedSourceIds.includes(id)),
+                              );
+                            }}
                             type="checkbox"
                           />
-                        </TableCell>
-                        <TableCell>{source.name}</TableCell>
-                        <TableCell>{source.project}</TableCell>
-                        <TableCell>{source.folder}</TableCell>
-                        <TableCell>{formatBytes(source.size)}</TableCell>
-                        <TableCell>
-                          {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-2">
-                            <Link className="text-sm underline" href={`/library/${source.id}`}>
-                              View
-                            </Link>
-                            <Link
-                              className="text-sm underline"
-                              href={`/chat?new=1&sourceId=${encodeURIComponent(source.id)}&sourceName=${encodeURIComponent(source.name)}`}
-                            >
-                              Ask
-                            </Link>
-                            <button
-                              aria-label={`Rename ${source.name}`}
-                              className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              disabled={mutatingSourceId === source.id || isBulkProcessing}
-                              onClick={() => openRenameSourceEditor(source)}
-                              type="button"
-                            >
-                              Rename
-                            </button>
-                            <button
-                              aria-label={`Move ${source.name}`}
-                              className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              disabled={mutatingSourceId === source.id || isBulkProcessing}
-                              onClick={() => void openMoveSourceEditor(source)}
-                              type="button"
-                            >
-                              Move
-                            </button>
-                            <button
-                              aria-label={`Delete ${source.name}`}
-                              className="text-sm text-destructive underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              disabled={mutatingSourceId === source.id || isBulkProcessing}
-                              onClick={() => void handleDeleteSource(source)}
-                              type="button"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </TableCell>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="font-medium"
+                            aria-label={`Sort by name${sortField === 'name' ? `, currently ${sortDirection}` : ''}`}
+                            onClick={() => applySort('name')}
+                            type="button"
+                          >
+                            Name
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="font-medium"
+                            aria-label={`Sort by project${sortField === 'project' ? `, currently ${sortDirection}` : ''}`}
+                            onClick={() => applySort('project')}
+                            type="button"
+                          >
+                            Project
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="font-medium"
+                            aria-label={`Sort by folder${sortField === 'folder' ? `, currently ${sortDirection}` : ''}`}
+                            onClick={() => applySort('folder')}
+                            type="button"
+                          >
+                            Folder
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="font-medium"
+                            aria-label={`Sort by size${sortField === 'size' ? `, currently ${sortDirection}` : ''}`}
+                            onClick={() => applySort('size')}
+                            type="button"
+                          >
+                            Size
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="font-medium"
+                            aria-label={`Sort by updated time${sortField === 'updatedAt' ? `, currently ${sortDirection}` : ''}`}
+                            onClick={() => applySort('updatedAt')}
+                            type="button"
+                          >
+                            Updated
+                          </button>
+                        </TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedSources.map((source) => (
+                        <TableRow className="transition-colors hover:bg-muted/40" key={source.id}>
+                          <TableCell>
+                            <input
+                              aria-label={`Select ${source.name}`}
+                              checked={selectedSourceIds.includes(source.id)}
+                              onChange={() => toggleSourceSelection(source.id)}
+                              type="checkbox"
+                            />
+                          </TableCell>
+                          <TableCell>{source.name}</TableCell>
+                          <TableCell>{source.project}</TableCell>
+                          <TableCell>{source.folder}</TableCell>
+                          <TableCell>{formatBytes(source.size)}</TableCell>
+                          <TableCell>
+                            {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-2">
+                              <Link className="text-sm underline" href={`/library/${source.id}`}>
+                                View
+                              </Link>
+                              <Link
+                                className="text-sm underline"
+                                href={`/chat?new=1&sourceId=${encodeURIComponent(source.id)}&sourceName=${encodeURIComponent(source.name)}`}
+                              >
+                                Ask
+                              </Link>
+                              <button
+                                aria-label={`Rename ${source.name}`}
+                                className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                disabled={mutatingSourceId === source.id || isBulkProcessing}
+                                onClick={() => openRenameSourceEditor(source)}
+                                type="button"
+                              >
+                                Rename
+                              </button>
+                              <button
+                                aria-label={`Move ${source.name}`}
+                                className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                disabled={mutatingSourceId === source.id || isBulkProcessing}
+                                onClick={() => void openMoveSourceEditor(source)}
+                                type="button"
+                              >
+                                Move
+                              </button>
+                              <button
+                                aria-label={`Delete ${source.name}`}
+                                className="text-sm text-destructive underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                disabled={mutatingSourceId === source.id || isBulkProcessing}
+                                onClick={() => void handleDeleteSource(source)}
+                                type="button"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
                 <div className="flex items-center justify-end gap-2">
                   <button
                     className={buttonSecondaryClass}
