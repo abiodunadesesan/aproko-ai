@@ -3,6 +3,10 @@
     "shadcn": {
       "command": "npx",
       "args": ["shadcn@latest", "mcp", "--cwd", "apps/web"]
+    },
+    "cult-ui": {
+      "command": "npx",
+      "args": ["-y", "cult-ui-mcp"]
     }
   }
 }
