@@ -4,6 +4,21 @@ import { createChatSessionsRouteHandlers } from '../../app/api/v1/workspaces/[wo
 import { createChatSessionByIdRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/chat/sessions/[sessionId]/route';
 import { createChatMessagesRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/chat/sessions/[sessionId]/messages/route';
 
+const memoryCaptureDeps = {
+  createMemoryItem: async () => null,
+  getProfileByClerkUserId: async () => ({
+    clerk_user_id: 'user-1',
+    email: null,
+    full_name: null,
+    avatar_url: null,
+    preferences: {
+      defaultChatModel: 'groq:llama-3.1-8b-instant' as const,
+      autoMemoryCapture: true,
+    },
+  }),
+  captureChatMemoriesFromMessage: async () => 0,
+};
+
 test('chat sessions GET returns 401 when unauthenticated', async () => {
   const handlers = createChatSessionsRouteHandlers({
     auth: async () => ({ userId: null }),
@@ -89,6 +104,7 @@ test('chat messages POST streams assistant response', async () => {
       }),
       listChatMessages: async () => [],
       listMemoryItems: async () => [],
+      ...memoryCaptureDeps,
       buildWorkspaceContext: async () => [],
       streamAssistantGeneration: () => ({
         textStream: (async function* () {
@@ -161,6 +177,7 @@ test('chat messages POST returns 503 when model provider is not configured', asy
       }),
       listChatMessages: async () => [],
       listMemoryItems: async () => [],
+      ...memoryCaptureDeps,
       buildWorkspaceContext: async () => [],
       streamAssistantGeneration: () => ({
         textStream: (async function* () {
@@ -207,6 +224,7 @@ test('chat messages POST returns 400 when message is empty', async () => {
     }),
     listChatMessages: async () => [],
     listMemoryItems: async () => [],
+    ...memoryCaptureDeps,
     buildWorkspaceContext: async () => [],
     streamAssistantGeneration: () => ({
       textStream: (async function* () {
@@ -247,6 +265,7 @@ test('chat messages POST returns 400 when model is unsupported', async () => {
     }),
     listChatMessages: async () => [],
     listMemoryItems: async () => [],
+    ...memoryCaptureDeps,
     buildWorkspaceContext: async () => [],
     streamAssistantGeneration: () => ({
       textStream: (async function* () {
@@ -276,6 +295,7 @@ test('chat messages GET returns 404 when session does not exist', async () => {
     getChatSessionById: async () => null,
     listChatMessages: async () => [],
     listMemoryItems: async () => [],
+    ...memoryCaptureDeps,
     buildWorkspaceContext: async () => [],
     streamAssistantGeneration: () => ({
       textStream: (async function* () {
@@ -338,6 +358,7 @@ test('chat messages GET returns persisted history payload', async () => {
       },
     ],
     listMemoryItems: async () => [],
+    ...memoryCaptureDeps,
     buildWorkspaceContext: async () => [],
     streamAssistantGeneration: () => ({
       textStream: (async function* () {
@@ -359,6 +380,94 @@ test('chat messages GET returns persisted history payload', async () => {
   assert.equal(payload.data.length, 2);
   assert.equal(payload.data[0]?.id, 'm-1');
   assert.equal(payload.data[1]?.role, 'assistant');
+});
+
+test('chat messages POST captures memories using profile autoMemoryCapture', async () => {
+  const previousAnthropicKey = process.env.ANTHROPIC_API_KEY;
+  process.env.ANTHROPIC_API_KEY = 'test-key';
+  const captureCalls: Array<{ content: string; autoMemoryCapture: boolean }> = [];
+
+  try {
+    const handlers = createChatMessagesRouteHandlers({
+      auth: async () => ({ userId: 'user-1' }),
+      getChatSessionById: async () => ({
+        id: 'session-1',
+        workspaceId: 'ws-1',
+        clerkUserId: 'user-1',
+        title: 'Research',
+        contextMode: 'workspace',
+        modelProvider: null,
+        modelName: null,
+        lastMessageAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+      listChatMessages: async () => [],
+      listMemoryItems: async () => [],
+      createMemoryItem: async () => null,
+      getProfileByClerkUserId: async () => ({
+        clerk_user_id: 'user-1',
+        email: null,
+        full_name: null,
+        avatar_url: null,
+        preferences: {
+          defaultChatModel: 'anthropic:claude-sonnet-5',
+          autoMemoryCapture: false,
+        },
+      }),
+      captureChatMemoriesFromMessage: async (input) => {
+        captureCalls.push({
+          content: input.content,
+          autoMemoryCapture: input.autoMemoryCapture,
+        });
+        return 0;
+      },
+      buildWorkspaceContext: async () => [],
+      streamAssistantGeneration: () => ({
+        textStream: (async function* () {
+          yield 'ok';
+        })(),
+        fullText: Promise.resolve('ok'),
+      }),
+      createChatMessage: async (_workspaceId, _sessionId, role) => ({
+        id: role === 'user' ? 'msg-user' : 'msg-assistant',
+        workspaceId: 'ws-1',
+        sessionId: 'session-1',
+        role,
+        content: role === 'user' ? 'I prefer short answers.' : 'ok',
+        responseTransport: 'sse',
+        modelProvider: 'anthropic',
+        modelName: 'claude-sonnet-5',
+        status: 'completed',
+        metadata: {},
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    });
+
+    const response = await handlers.POST(
+      new Request('http://localhost', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          content: 'I prefer short answers.',
+          model: 'anthropic:claude-sonnet-5',
+        }),
+      }),
+      { params: Promise.resolve({ workspaceId: 'ws-1', sessionId: 'session-1' }) },
+    );
+
+    assert.equal(response.status, 200);
+    await response.text();
+    assert.equal(captureCalls.length, 1);
+    assert.equal(captureCalls[0]?.autoMemoryCapture, false);
+    assert.equal(captureCalls[0]?.content, 'I prefer short answers.');
+  } finally {
+    if (previousAnthropicKey) {
+      process.env.ANTHROPIC_API_KEY = previousAnthropicKey;
+    } else {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+  }
 });
 
 test('chat session PATCH updates title', async () => {

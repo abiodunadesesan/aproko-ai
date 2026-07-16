@@ -20,7 +20,10 @@ import {
   listChatMessages,
   type ChatMessage,
 } from '@/lib/storage/chat';
-import { listMemoryItems } from '@/lib/storage/memory';
+import { createMemoryItem, listMemoryItems } from '@/lib/storage/memory';
+import { getProfileByClerkUserId } from '@/lib/auth/profile-sync';
+import { captureChatMemoriesFromMessage } from '@/lib/memory/chat-capture';
+import { normalizeUserPreferences } from '@/lib/settings/preferences';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
 
@@ -32,6 +35,9 @@ type ChatMessagesRouteDependencies = {
   listChatMessages: typeof listChatMessages;
   createChatMessage: typeof createChatMessage;
   listMemoryItems: typeof listMemoryItems;
+  createMemoryItem: typeof createMemoryItem;
+  getProfileByClerkUserId: typeof getProfileByClerkUserId;
+  captureChatMemoriesFromMessage: typeof captureChatMemoriesFromMessage;
   buildWorkspaceContext: typeof buildWorkspaceContext;
   streamAssistantGeneration: (input: ChatGenerationInput) => ChatGenerationStream;
 };
@@ -217,6 +223,32 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
         return NextResponse.json({ error: 'Failed to save user message' }, { status: 500 });
       }
 
+      try {
+        const profile = await deps.getProfileByClerkUserId(userId);
+        const autoMemoryCapture = normalizeUserPreferences(profile?.preferences).autoMemoryCapture;
+        const capturedCount = await deps.captureChatMemoriesFromMessage({
+          workspaceId,
+          messageId: userMessage.id,
+          content,
+          autoMemoryCapture,
+          createMemoryItem: deps.createMemoryItem,
+        });
+        if (capturedCount > 0) {
+          await trackServerEvent({
+            event: 'chat_memory_captured',
+            distinctId: userId,
+            properties: {
+              workspace_id: workspaceId,
+              session_id: sessionId,
+              captured_count: capturedCount,
+              auto_memory_capture: autoMemoryCapture,
+            },
+          });
+        }
+      } catch (captureError) {
+        console.warn('Chat memory capture skipped due to error.', captureError);
+      }
+
       const memoryContext = selectMemoryContext(await deps.listMemoryItems(workspaceId));
       const workspaceContext = await deps.buildWorkspaceContext(
         workspaceId,
@@ -306,6 +338,9 @@ export const { GET, POST } = createChatMessagesRouteHandlers({
   listChatMessages,
   createChatMessage,
   listMemoryItems,
+  createMemoryItem,
+  getProfileByClerkUserId,
+  captureChatMemoriesFromMessage,
   buildWorkspaceContext,
   streamAssistantGeneration,
 });

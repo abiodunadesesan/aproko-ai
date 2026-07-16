@@ -215,7 +215,10 @@ export default function SettingsPage() {
                 onChange={(event) => setAutoMemoryCapture(event.target.checked)}
                 type="checkbox"
               />
-              <span>Auto-capture memory signals from chats</span>
+              <span>
+                Auto-capture preference and fact signals from chats. Explicit “remember that…”
+                requests still save even when this is off.
+              </span>
             </label>
 
             <Button
