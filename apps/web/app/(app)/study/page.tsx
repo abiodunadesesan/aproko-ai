@@ -9,6 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  isSlideOutlineTitle,
+  isStudySummaryTitle,
+  studyGenerateButtonLabel,
+  studyGenerateSourceDescription,
+  studyGenerateStatusMessage,
+  type StudyGenerateAction,
+} from '@/lib/study/generation-ux';
 
 const WORKSPACE_ID = 'default-workspace';
 
@@ -155,6 +163,7 @@ export default function StudyPage() {
   const [quizAnswerDrafts, setQuizAnswerDrafts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lastFailedGenerate, setLastFailedGenerate] = useState<StudyGenerateAction | null>(null);
 
   const activeNote = useMemo(
     () => notes.find((note) => note.id === activeNoteId) ?? null,
@@ -208,6 +217,78 @@ export default function StudyPage() {
       `${summary.title} ${summary.content}`.toLowerCase().includes(normalized),
     );
   }, [summaryQuery, summaries]);
+
+  const hasStudySummaries = useMemo(
+    () => summaries.some((summary) => isStudySummaryTitle(summary.title)),
+    [summaries],
+  );
+  const hasSlideOutlines = useMemo(
+    () => summaries.some((summary) => isSlideOutlineTitle(summary.title)),
+    [summaries],
+  );
+
+  const selectedTranscript = useMemo(
+    () => transcripts.find((item) => item.id === selectedTranscriptId) ?? null,
+    [selectedTranscriptId, transcripts],
+  );
+
+  const generationSourceDescription = useMemo(
+    () =>
+      studyGenerateSourceDescription({
+        generationSource,
+        noteTitle: activeNote?.title ?? null,
+        transcriptName: selectedTranscript?.name ?? null,
+      }),
+    [activeNote?.title, generationSource, selectedTranscript?.name],
+  );
+
+  const activeGenerateAction = useMemo((): StudyGenerateAction | null => {
+    if (isGeneratingSummary) {
+      return 'summary';
+    }
+    if (isGeneratingOutline) {
+      return 'outline';
+    }
+    if (isGeneratingCards) {
+      return 'cards';
+    }
+    if (isGeneratingQuiz) {
+      return 'quiz';
+    }
+    return null;
+  }, [isGeneratingCards, isGeneratingOutline, isGeneratingQuiz, isGeneratingSummary]);
+
+  function beginGenerate() {
+    setLastFailedGenerate(null);
+    setError(null);
+    setNotice(null);
+  }
+
+  function failGenerate(action: StudyGenerateAction, message: string) {
+    setLastFailedGenerate(action);
+    setError(message);
+  }
+
+  function retryLastGenerate() {
+    if (!lastFailedGenerate) {
+      return;
+    }
+
+    switch (lastFailedGenerate) {
+      case 'summary':
+        void generateStudySummary();
+        break;
+      case 'outline':
+        void generateSlideOutline();
+        break;
+      case 'cards':
+        void generateCardsFromNote();
+        break;
+      case 'quiz':
+        void generateQuizFromNote();
+        break;
+    }
+  }
 
   async function loadNotes() {
     setIsLoading(true);
@@ -521,9 +602,8 @@ export default function StudyPage() {
       return;
     }
 
+    beginGenerate();
     setIsGeneratingCards(true);
-    setError(null);
-    setNotice(null);
 
     try {
       const body = buildGenerationBody();
@@ -545,7 +625,8 @@ export default function StudyPage() {
         `Generated ${payload.data.length} flashcard${payload.data.length === 1 ? '' : 's'}.`,
       );
     } catch (generateError) {
-      setError(
+      failGenerate(
+        'cards',
         generateError instanceof Error ? generateError.message : 'Failed to generate flashcards',
       );
     } finally {
@@ -636,9 +717,8 @@ export default function StudyPage() {
       return;
     }
 
+    beginGenerate();
     setIsGeneratingQuiz(true);
-    setError(null);
-    setNotice(null);
 
     try {
       const body = buildGenerationBody();
@@ -661,7 +741,10 @@ export default function StudyPage() {
         `Generated ${payload.data.length} quiz question${payload.data.length === 1 ? '' : 's'}.`,
       );
     } catch (generateError) {
-      setError(generateError instanceof Error ? generateError.message : 'Failed to generate quiz');
+      failGenerate(
+        'quiz',
+        generateError instanceof Error ? generateError.message : 'Failed to generate quiz',
+      );
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -723,9 +806,8 @@ export default function StudyPage() {
   }
 
   async function generateStudySummary() {
+    beginGenerate();
     setIsGeneratingSummary(true);
-    setError(null);
-    setNotice(null);
 
     try {
       const body = buildGenerationBody();
@@ -743,7 +825,8 @@ export default function StudyPage() {
       setSummaries((current) => [payload.data as StudySummary, ...current]);
       setNotice('Study summary generated.');
     } catch (generateError) {
-      setError(
+      failGenerate(
+        'summary',
         generateError instanceof Error ? generateError.message : 'Failed to generate study summary',
       );
     } finally {
@@ -752,9 +835,8 @@ export default function StudyPage() {
   }
 
   async function generateSlideOutline() {
+    beginGenerate();
     setIsGeneratingOutline(true);
-    setError(null);
-    setNotice(null);
 
     try {
       const body = buildGenerationBody();
@@ -772,7 +854,8 @@ export default function StudyPage() {
       setSummaries((current) => [payload.data as StudySummary, ...current]);
       setNotice('Slide outline generated.');
     } catch (generateError) {
-      setError(
+      failGenerate(
+        'outline',
         generateError instanceof Error ? generateError.message : 'Failed to generate slide outline',
       );
     } finally {
@@ -937,8 +1020,29 @@ export default function StudyPage() {
             )}
           </CardContent>
         </Card>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {notice ? <p className="text-sm text-emerald-700 dark:text-emerald-400">{notice}</p> : null}
+        {error ? (
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            role="alert"
+          >
+            <p className="flex-1">{error}</p>
+            {lastFailedGenerate ? (
+              <Button onClick={() => retryLastGenerate()} size="sm" type="button" variant="outline">
+                Try again
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        {notice ? (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400" role="status">
+            {notice}
+          </p>
+        ) : null}
+        {activeGenerateAction ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {studyGenerateStatusMessage(activeGenerateAction, generationSourceDescription)}
+          </p>
+        ) : null}
       </div>
       <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <Card>
@@ -1111,7 +1215,7 @@ export default function StudyPage() {
                       onClick={() => void generateCardsFromNote()}
                       type="button"
                     >
-                      {isGeneratingCards ? 'Generating...' : 'Generate from source'}
+                      {studyGenerateButtonLabel('cards', isGeneratingCards, cards.length > 0)}
                     </Button>
                     <Button
                       disabled={isDeletingDeck}
@@ -1122,6 +1226,11 @@ export default function StudyPage() {
                       {isDeletingDeck ? 'Deleting...' : 'Delete Deck'}
                     </Button>
                   </div>
+                  {isGeneratingCards ? (
+                    <p className="text-xs text-muted-foreground" role="status">
+                      {studyGenerateStatusMessage('cards', generationSourceDescription)}
+                    </p>
+                  ) : null}
 
                   <div className="grid gap-2">
                     <Input
@@ -1231,7 +1340,7 @@ export default function StudyPage() {
                       onClick={() => void generateQuizFromNote()}
                       type="button"
                     >
-                      {isGeneratingQuiz ? 'Generating...' : 'Generate from source'}
+                      {studyGenerateButtonLabel('quiz', isGeneratingQuiz, quizQuestions.length > 0)}
                     </Button>
                     <Button
                       disabled={isSubmittingQuiz || quizQuestions.length === 0}
@@ -1242,6 +1351,11 @@ export default function StudyPage() {
                       {isSubmittingQuiz ? 'Submitting...' : 'Submit Attempt'}
                     </Button>
                   </div>
+                  {isGeneratingQuiz ? (
+                    <p className="text-xs text-muted-foreground" role="status">
+                      {studyGenerateStatusMessage('quiz', generationSourceDescription)}
+                    </p>
+                  ) : null}
 
                   {quizQuestions.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No quiz questions yet.</p>
@@ -1308,7 +1422,7 @@ export default function StudyPage() {
                   onClick={() => void generateStudySummary()}
                   type="button"
                 >
-                  {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
+                  {studyGenerateButtonLabel('summary', isGeneratingSummary, hasStudySummaries)}
                 </Button>
                 <Button
                   disabled={isGeneratingOutline}
@@ -1316,13 +1430,21 @@ export default function StudyPage() {
                   type="button"
                   variant="outline"
                 >
-                  {isGeneratingOutline ? 'Generating...' : 'Generate Slide Outline'}
+                  {studyGenerateButtonLabel('outline', isGeneratingOutline, hasSlideOutlines)}
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   Uses the Generation source above (note or transcript). LLM when OPENAI_API_KEY is
                   set.
                 </p>
               </div>
+              {isGeneratingSummary || isGeneratingOutline ? (
+                <p className="text-xs text-muted-foreground" role="status">
+                  {studyGenerateStatusMessage(
+                    isGeneratingSummary ? 'summary' : 'outline',
+                    generationSourceDescription,
+                  )}
+                </p>
+              ) : null}
 
               <Input
                 aria-label="Search generated study summaries"
@@ -1347,7 +1469,7 @@ export default function StudyPage() {
                       type="button"
                       variant="outline"
                     >
-                      {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
+                      {studyGenerateButtonLabel('summary', isGeneratingSummary, hasStudySummaries)}
                     </Button>
                   }
                   description="Generate a summary from your active note or workspace notes."
