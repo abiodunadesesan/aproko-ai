@@ -196,6 +196,11 @@ export const rateLimitPolicies = {
     windowMs: 60_000,
     maxRequests: 20,
   },
+  writingDraftsWrite: {
+    bucket: 'v1:writing:drafts:write',
+    windowMs: 60_000,
+    maxRequests: 40,
+  },
   researchWrite: {
     bucket: 'v1:research:write',
     windowMs: 60_000,

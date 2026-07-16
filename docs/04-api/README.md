@@ -157,6 +157,9 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 - `POST /api/v1/workspaces/{workspace_id}/transcripts` — multipart `file`/`audio`; text stored directly; audio transcribed via Whisper when `OPENAI_API_KEY` is set
 - `POST /api/v1/workspaces/{workspace_id}/writing/polish` — `{ text, mode: "clarity"|"concise"|"professional"|"academic" }` → polished draft (clarity/tone only; not detector evasion)
 - `POST /api/v1/workspaces/{workspace_id}/writing/detect` — `{ text, source?: "draft"|"polished" }` → transparency report (`gptzero` live when `GPTZERO_API_KEY` is set; `turnitin` always returns unavailable + institution-portal guidance)
+- `GET /api/v1/workspaces/{workspace_id}/writing/drafts` — list current user's writing drafts (scoped by Clerk user)
+- `POST /api/v1/workspaces/{workspace_id}/writing/drafts` — `{ title?, draft?, polished?, mode? }` → create draft
+- `GET|PATCH|DELETE /api/v1/workspaces/{workspace_id}/writing/drafts/{draft_id}` — read / update / delete a draft
 - `POST /api/v1/workspaces/{workspace_id}/summaries/generate` — `{ noteId? | sourceId?, kind?: "summary" | "outline" }`
 - Chat grounding hydrates transcript/source text excerpts into prompts + citations (`note` | `transcript` | `workspace-source` | `memory`)
 - `POST /api/v1/workspaces/{workspace_id}/chat/voice` — multipart audio → `{ data: { text } }` for chat voice-to-text (Whisper; Web Speech preferred in UI when available)

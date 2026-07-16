@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'aproko.writing.drafts.v1';
+const MIGRATED_KEY = 'aproko.writing.drafts.migrated.v1';
 
 export type WritingDraftRecord = {
   id: string;
@@ -7,13 +8,14 @@ export type WritingDraftRecord = {
   polished: string;
   mode: string;
   updatedAt: string;
+  createdAt?: string;
 };
 
 function canUseStorage(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
-export function listWritingDrafts(): WritingDraftRecord[] {
+export function listLocalWritingDrafts(): WritingDraftRecord[] {
   if (!canUseStorage()) {
     return [];
   }
@@ -34,35 +36,31 @@ export function listWritingDrafts(): WritingDraftRecord[] {
   }
 }
 
-function persist(drafts: WritingDraftRecord[]): void {
+/** @deprecated Prefer listLocalWritingDrafts — kept for any residual callers. */
+export function listWritingDrafts(): WritingDraftRecord[] {
+  return listLocalWritingDrafts();
+}
+
+export function clearLocalWritingDrafts(): void {
   if (!canUseStorage()) {
     return;
   }
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts.slice(0, 40)));
+  window.localStorage.removeItem(STORAGE_KEY);
 }
 
-export function upsertWritingDraft(
-  input: Omit<WritingDraftRecord, 'updatedAt'> & { updatedAt?: string },
-): WritingDraftRecord {
-  const record: WritingDraftRecord = {
-    ...input,
-    title: input.title.trim() || 'Untitled draft',
-    updatedAt: input.updatedAt ?? new Date().toISOString(),
-  };
-  const existing = listWritingDrafts().filter((item) => item.id !== record.id);
-  persist([record, ...existing]);
-  return record;
-}
-
-export function deleteWritingDraft(id: string): void {
-  persist(listWritingDrafts().filter((item) => item.id !== id));
-}
-
-export function createWritingDraftId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
+export function hasMigratedLocalWritingDrafts(): boolean {
+  if (!canUseStorage()) {
+    return true;
   }
-  return `draft-${Date.now()}`;
+  return window.localStorage.getItem(MIGRATED_KEY) === '1';
+}
+
+export function markLocalWritingDraftsMigrated(): void {
+  if (!canUseStorage()) {
+    return;
+  }
+  window.localStorage.setItem(MIGRATED_KEY, '1');
+  clearLocalWritingDrafts();
 }
 
 export function deriveWritingTitle(text: string): string {

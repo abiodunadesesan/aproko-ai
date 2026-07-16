@@ -23,15 +23,16 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  createWritingDraftId,
-  deleteWritingDraft,
+  clearLocalWritingDrafts,
   deriveWritingTitle,
-  listWritingDrafts,
-  upsertWritingDraft,
+  hasMigratedLocalWritingDrafts,
+  listLocalWritingDrafts,
+  markLocalWritingDraftsMigrated,
   type WritingDraftRecord,
 } from '@/lib/writing/draft-history';
 
 const WORKSPACE_ID = 'default-workspace';
+const DRAFTS_API = `/api/v1/workspaces/${WORKSPACE_ID}/writing/drafts`;
 
 const MODES = [
   { value: 'clarity', label: 'Clarity' },
@@ -88,8 +89,28 @@ async function readApiJson<T>(response: Response): Promise<T> {
   }
 }
 
+function toDraftRecord(payload: {
+  id: string;
+  title: string;
+  draft: string;
+  polished: string;
+  mode: string;
+  updatedAt: string;
+  createdAt?: string;
+}): WritingDraftRecord {
+  return {
+    id: payload.id,
+    title: payload.title,
+    draft: payload.draft,
+    polished: payload.polished,
+    mode: payload.mode,
+    updatedAt: payload.updatedAt,
+    createdAt: payload.createdAt,
+  };
+}
+
 export default function WritingPage() {
-  const [draftId, setDraftId] = useState(() => createWritingDraftId());
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('Untitled draft');
   const [drafts, setDrafts] = useState<WritingDraftRecord[]>([]);
   const [draft, setDraft] = useState('');
@@ -98,6 +119,8 @@ export default function WritingPage() {
   const [checkTarget, setCheckTarget] = useState<'draft' | 'polished'>('draft');
   const [isPolishing, setIsPolishing] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [gptzero, setGptzero] = useState<DetectorCheckResult | null>(null);
@@ -105,20 +128,97 @@ export default function WritingPage() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameTitle, setRenameTitle] = useState('');
 
-  useEffect(() => {
-    setDrafts(listWritingDrafts());
-  }, []);
+  async function migrateLocalDraftsIfNeeded(): Promise<number> {
+    if (hasMigratedLocalWritingDrafts()) {
+      return 0;
+    }
 
-  function refreshDrafts() {
-    setDrafts(listWritingDrafts());
+    const localDrafts = listLocalWritingDrafts();
+    if (localDrafts.length === 0) {
+      markLocalWritingDraftsMigrated();
+      return 0;
+    }
+
+    let imported = 0;
+    for (const item of localDrafts) {
+      const response = await fetch(DRAFTS_API, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: item.title,
+          draft: item.draft,
+          polished: item.polished,
+          mode: item.mode,
+        }),
+      });
+      if (response.ok) {
+        imported += 1;
+      }
+    }
+
+    markLocalWritingDraftsMigrated();
+    clearLocalWritingDrafts();
+    return imported;
   }
+
+  async function loadDraftsFromServer(): Promise<WritingDraftRecord[]> {
+    const response = await fetch(DRAFTS_API, { cache: 'no-store' });
+    const payload = await readApiJson<{ data?: WritingDraftRecord[]; error?: string }>(response);
+    if (!response.ok || !payload.data) {
+      throw new Error(payload.error ?? 'Failed to load writing drafts');
+    }
+    return payload.data.map(toDraftRecord);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      setIsLoadingDrafts(true);
+      setError(null);
+      try {
+        let records = await loadDraftsFromServer();
+        if (records.length === 0) {
+          const imported = await migrateLocalDraftsIfNeeded();
+          if (imported > 0) {
+            records = await loadDraftsFromServer();
+            if (!cancelled) {
+              setNotice(
+                `Imported ${imported} local draft${imported === 1 ? '' : 's'} to your account.`,
+              );
+            }
+          }
+        } else if (!hasMigratedLocalWritingDrafts()) {
+          markLocalWritingDraftsMigrated();
+        }
+
+        if (!cancelled) {
+          setDrafts(records);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load drafts');
+          setDrafts([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingDrafts(false);
+        }
+      }
+    }
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function selectedCheckText(): string {
     return (checkTarget === 'polished' ? polished : draft).trim();
   }
 
   function startNewDraft() {
-    setDraftId(createWritingDraftId());
+    setDraftId(null);
     setDraftTitle('Untitled draft');
     setDraft('');
     setPolished('');
@@ -139,17 +239,49 @@ export default function WritingPage() {
     setNotice(`Loaded “${record.title}”.`);
   }
 
-  function saveCurrentDraft(nextTitle = draftTitle) {
-    const record = upsertWritingDraft({
-      id: draftId,
-      title: nextTitle.trim() || deriveWritingTitle(draft || polished),
-      draft,
-      polished,
-      mode,
-    });
-    setDraftTitle(record.title);
-    refreshDrafts();
-    return record;
+  async function saveCurrentDraft(nextTitle = draftTitle, options?: { polishedText?: string }) {
+    const polishedText = options?.polishedText ?? polished;
+    const title = nextTitle.trim() || deriveWritingTitle(draft || polishedText);
+    if (!title.trim() && !draft.trim() && !polishedText.trim()) {
+      setError('Add some text before saving.');
+      return null;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const body = {
+        title,
+        draft,
+        polished: polishedText,
+        mode,
+      };
+
+      const response = await fetch(draftId ? `${DRAFTS_API}/${draftId}` : DRAFTS_API, {
+        method: draftId ? 'PATCH' : 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const payload = await readApiJson<{ data?: WritingDraftRecord; error?: string }>(response);
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.error ?? 'Failed to save writing draft');
+      }
+
+      const record = toDraftRecord(payload.data);
+      setDraftId(record.id);
+      setDraftTitle(record.title);
+      setDrafts((current) => {
+        const without = current.filter((item) => item.id !== record.id);
+        return [record, ...without].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      });
+      return record;
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to save writing draft');
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function openRename() {
@@ -157,15 +289,17 @@ export default function WritingPage() {
     setRenameOpen(true);
   }
 
-  function confirmRename() {
+  async function confirmRename() {
     const next = renameTitle.trim() || 'Untitled draft';
     setDraftTitle(next);
-    saveCurrentDraft(next);
-    setRenameOpen(false);
-    setNotice('Draft renamed.');
+    const saved = await saveCurrentDraft(next);
+    if (saved) {
+      setRenameOpen(false);
+      setNotice('Draft renamed.');
+    }
   }
 
-  function removeDraft(id: string) {
+  async function removeDraft(id: string) {
     const target = drafts.find((item) => item.id === id);
     if (!target) {
       return;
@@ -174,12 +308,23 @@ export default function WritingPage() {
     if (!confirmed) {
       return;
     }
-    deleteWritingDraft(id);
-    refreshDrafts();
-    if (draftId === id) {
-      startNewDraft();
+
+    setError(null);
+    try {
+      const response = await fetch(`${DRAFTS_API}/${id}`, { method: 'DELETE' });
+      const payload = await readApiJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to delete draft');
+      }
+
+      setDrafts((current) => current.filter((item) => item.id !== id));
+      if (draftId === id) {
+        startNewDraft();
+      }
+      setNotice('Draft deleted.');
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete draft');
     }
-    setNotice('Draft deleted.');
   }
 
   async function handlePolish() {
@@ -213,15 +358,11 @@ export default function WritingPage() {
       }
 
       setPolished(payload.data.polished);
-      const saved = upsertWritingDraft({
-        id: draftId,
-        title: draftTitle.trim() || deriveWritingTitle(draft),
-        draft,
-        polished: payload.data.polished,
-        mode: payload.data.mode ?? mode,
-      });
-      setDraftTitle(saved.title);
-      refreshDrafts();
+      if (payload.data.mode && MODES.some((item) => item.value === payload.data?.mode)) {
+        setMode(payload.data.mode as PolishMode);
+      }
+
+      const saved = await saveCurrentDraft(draftTitle, { polishedText: payload.data.polished });
 
       if (payload.data.engine === 'heuristic') {
         if (payload.data.reason === 'providers_failed') {
@@ -231,8 +372,8 @@ export default function WritingPage() {
         } else {
           setNotice('Light cleanup only — no LLM API key is loaded on the server.');
         }
-      } else {
-        setNotice(`Polished for ${payload.data.mode ?? mode} and saved to history.`);
+      } else if (saved) {
+        setNotice(`Polished for ${payload.data.mode ?? mode} and saved to your account.`);
       }
     } catch (polishError) {
       setError(polishError instanceof Error ? polishError.message : 'Failed to polish writing');
@@ -345,17 +486,28 @@ export default function WritingPage() {
             </Button>
             <Button
               className="w-full rounded-xl"
-              onClick={() => saveCurrentDraft()}
+              disabled={isSaving}
+              onClick={() => {
+                void saveCurrentDraft().then((saved) => {
+                  if (saved) {
+                    setNotice('Draft saved to your account.');
+                  }
+                });
+              }}
               type="button"
               variant="outline"
             >
-              Save current
+              {isSaving ? 'Saving…' : 'Save current'}
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
-            {drafts.length === 0 ? (
+            {isLoadingDrafts ? (
+              <p className="px-3 py-6 text-center text-xs text-muted-foreground" role="status">
+                Loading drafts…
+              </p>
+            ) : drafts.length === 0 ? (
               <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                Saved drafts appear here. Polish or Save to keep history.
+                Saved drafts appear here. Polish or Save to keep them on your account.
               </p>
             ) : (
               <ul className="space-y-1">
@@ -383,7 +535,7 @@ export default function WritingPage() {
                         <Button
                           aria-label={`Delete ${item.title}`}
                           className="h-7 w-7 text-destructive"
-                          onClick={() => removeDraft(item.id)}
+                          onClick={() => void removeDraft(item.id)}
                           size="icon"
                           type="button"
                           variant="ghost"
@@ -613,7 +765,7 @@ export default function WritingPage() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                confirmRename();
+                void confirmRename();
               }
             }}
             value={renameTitle}
@@ -622,8 +774,8 @@ export default function WritingPage() {
             <Button onClick={() => setRenameOpen(false)} type="button" variant="outline">
               Cancel
             </Button>
-            <Button onClick={confirmRename} type="button">
-              Save
+            <Button disabled={isSaving} onClick={() => void confirmRename()} type="button">
+              {isSaving ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
