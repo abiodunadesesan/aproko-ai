@@ -5,28 +5,36 @@ import { AppPageShell } from '@/components/app/app-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  getChatModelLabel,
+  isChatModel,
+  listChatModels,
+  type ChatModel,
+} from '@/lib/ai/chat-models';
+import { DEFAULT_USER_PREFERENCES, type UserPreferences } from '@/lib/settings/preferences';
 
-type MeProfile = {
+type MeResponse = {
   clerk_user_id: string;
   profile: {
     email: string | null;
     full_name: string | null;
     avatar_url: string | null;
+    preferences?: UserPreferences | null;
   } | null;
+  preferences?: UserPreferences;
 };
 
-const STORAGE_KEYS = {
-  defaultChatModel: 'aproko.settings.defaultChatModel',
-  autoMemoryCapture: 'aproko.settings.autoMemoryCapture',
-} as const;
+const CHAT_MODEL_OPTIONS = listChatModels();
 
 export default function SettingsPage() {
-  const [me, setMe] = useState<MeProfile | null>(null);
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [fullNameDraft, setFullNameDraft] = useState('');
-  const [defaultChatModel, setDefaultChatModel] = useState<'gpt-4.1-mini' | 'claude-3.5-sonnet'>(
-    'gpt-4.1-mini',
+  const [defaultChatModel, setDefaultChatModel] = useState<ChatModel>(
+    DEFAULT_USER_PREFERENCES.defaultChatModel,
   );
-  const [autoMemoryCapture, setAutoMemoryCapture] = useState(true);
+  const [autoMemoryCapture, setAutoMemoryCapture] = useState(
+    DEFAULT_USER_PREFERENCES.autoMemoryCapture,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
@@ -35,18 +43,29 @@ export default function SettingsPage() {
 
   const emailText = useMemo(() => me?.profile?.email ?? 'Not available', [me]);
 
+  function applyPreferences(preferences: UserPreferences | null | undefined) {
+    const next = preferences ?? DEFAULT_USER_PREFERENCES;
+    setDefaultChatModel(
+      isChatModel(next.defaultChatModel)
+        ? next.defaultChatModel
+        : DEFAULT_USER_PREFERENCES.defaultChatModel,
+    );
+    setAutoMemoryCapture(Boolean(next.autoMemoryCapture));
+  }
+
   async function loadMe() {
     setIsLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/v1/me');
-      const payload = (await response.json()) as MeProfile | { error?: string };
+      const payload = (await response.json()) as MeResponse | { error?: string };
       if (!response.ok || !('clerk_user_id' in payload)) {
         throw new Error((payload as { error?: string }).error ?? 'Failed to load profile');
       }
 
       setMe(payload);
       setFullNameDraft(payload.profile?.full_name ?? '');
+      applyPreferences(payload.preferences ?? payload.profile?.preferences ?? null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load profile');
       setMe(null);
@@ -66,7 +85,7 @@ export default function SettingsPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ full_name: fullNameDraft }),
       });
-      const payload = (await response.json()) as MeProfile | { error?: string };
+      const payload = (await response.json()) as MeResponse | { error?: string };
       if (!response.ok || !('clerk_user_id' in payload)) {
         throw new Error((payload as { error?: string }).error ?? 'Failed to update profile');
       }
@@ -80,40 +99,39 @@ export default function SettingsPage() {
     }
   }
 
-  function loadPreferenceDefaults() {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const storedModel = window.localStorage.getItem(STORAGE_KEYS.defaultChatModel);
-    if (storedModel === 'gpt-4.1-mini' || storedModel === 'claude-3.5-sonnet') {
-      setDefaultChatModel(storedModel);
-    }
-
-    const storedAutoMemoryCapture = window.localStorage.getItem(STORAGE_KEYS.autoMemoryCapture);
-    if (storedAutoMemoryCapture === 'true' || storedAutoMemoryCapture === 'false') {
-      setAutoMemoryCapture(storedAutoMemoryCapture === 'true');
-    }
-  }
-
-  function savePreferences() {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+  async function savePreferences() {
     setIsSavingPrefs(true);
     setError(null);
     setNotice(null);
 
-    window.localStorage.setItem(STORAGE_KEYS.defaultChatModel, defaultChatModel);
-    window.localStorage.setItem(STORAGE_KEYS.autoMemoryCapture, String(autoMemoryCapture));
-    setNotice('AI preferences saved locally.');
-    setIsSavingPrefs(false);
+    try {
+      const response = await fetch('/api/v1/me', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          preferences: {
+            defaultChatModel,
+            autoMemoryCapture,
+          },
+        }),
+      });
+      const payload = (await response.json()) as MeResponse | { error?: string };
+      if (!response.ok || !('clerk_user_id' in payload)) {
+        throw new Error((payload as { error?: string }).error ?? 'Failed to save preferences');
+      }
+
+      setMe(payload);
+      applyPreferences(payload.preferences ?? payload.profile?.preferences ?? null);
+      setNotice('AI preferences saved to your account.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to save preferences');
+    } finally {
+      setIsSavingPrefs(false);
+    }
   }
 
   useEffect(() => {
     void loadMe();
-    loadPreferenceDefaults();
   }, []);
 
   return (
@@ -164,7 +182,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-3">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">
-                Preferences for this workspace are saved in this browser.
+                Saved to your account and used as the default model for new chats.
               </p>
             </div>
 
@@ -175,13 +193,18 @@ export default function SettingsPage() {
               <select
                 aria-labelledby="default-model-label"
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                onChange={(event) =>
-                  setDefaultChatModel(event.target.value as 'gpt-4.1-mini' | 'claude-3.5-sonnet')
-                }
+                onChange={(event) => {
+                  if (isChatModel(event.target.value)) {
+                    setDefaultChatModel(event.target.value);
+                  }
+                }}
                 value={defaultChatModel}
               >
-                <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-                <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                {CHAT_MODEL_OPTIONS.map((model) => (
+                  <option key={model} value={model}>
+                    {getChatModelLabel(model)}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -197,8 +220,8 @@ export default function SettingsPage() {
 
             <Button
               className="transition-transform hover:-translate-y-0.5"
-              disabled={isSavingPrefs}
-              onClick={savePreferences}
+              disabled={isLoading || isSavingPrefs}
+              onClick={() => void savePreferences()}
               type="button"
             >
               {isSavingPrefs ? 'Saving...' : 'Save AI Preferences'}

@@ -8,6 +8,12 @@ import {
 } from '@/lib/auth/profile-sync';
 import { captureServerError } from '@/lib/observability/server';
 import { withPerformanceHeaders } from '@/lib/perf/http';
+import {
+  DEFAULT_USER_PREFERENCES,
+  normalizeUserPreferences,
+  parsePreferencesPatch,
+  type UserPreferences,
+} from '@/lib/settings/preferences';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -19,9 +25,19 @@ type MeRouteDependencies = {
 };
 
 function toMePayload(userId: string, profile: AppProfile | null, isAdmin: boolean) {
+  const preferences: UserPreferences = profile?.preferences
+    ? normalizeUserPreferences(profile.preferences)
+    : DEFAULT_USER_PREFERENCES;
+
   return {
     clerk_user_id: userId,
-    profile,
+    profile: profile
+      ? {
+          ...profile,
+          preferences,
+        }
+      : null,
+    preferences,
     isAdmin,
   };
 }
@@ -73,13 +89,36 @@ export function createMeRouteHandlers(deps: MeRouteDependencies) {
           return rateLimitResponse;
         }
 
-        const rawBody = (await request.json().catch(() => null)) as { full_name?: string } | null;
-        if (!rawBody || !Object.hasOwn(rawBody, 'full_name')) {
-          return Response.json({ error: 'full_name is required' }, { status: 400 });
+        const rawBody = (await request.json().catch(() => null)) as {
+          full_name?: string;
+          preferences?: unknown;
+        } | null;
+
+        if (!rawBody) {
+          return Response.json({ error: 'Request body is required' }, { status: 400 });
+        }
+
+        const hasFullName = Object.hasOwn(rawBody, 'full_name');
+        const hasPreferences = Object.hasOwn(rawBody, 'preferences');
+        if (!hasFullName && !hasPreferences) {
+          return Response.json(
+            { error: 'Provide full_name and/or preferences to update' },
+            { status: 400 },
+          );
+        }
+
+        let preferences: UserPreferences | undefined;
+        if (hasPreferences) {
+          const parsed = parsePreferencesPatch(rawBody.preferences);
+          if (!parsed.ok) {
+            return Response.json({ error: parsed.error }, { status: 400 });
+          }
+          preferences = parsed.preferences;
         }
 
         const profile = await deps.updateProfileByClerkUserId(userId, {
-          full_name: rawBody.full_name ?? null,
+          ...(hasFullName ? { full_name: rawBody.full_name ?? null } : {}),
+          ...(preferences ? { preferences } : {}),
         });
 
         if (!profile) {

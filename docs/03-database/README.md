@@ -61,6 +61,7 @@ erDiagram
 - `email text unique not null`
 - `full_name text`
 - `avatar_url text`
+- `preferences jsonb not null default '{}'` — AI prefs (`defaultChatModel`, `autoMemoryCapture`); migration `202607161400_profiles_preferences.sql`
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`
 

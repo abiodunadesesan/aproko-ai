@@ -1,5 +1,6 @@
 import type { User } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import { normalizeUserPreferences, type UserPreferences } from '@/lib/settings/preferences';
 
 export type AppProfile = {
   id?: string;
@@ -7,12 +8,14 @@ export type AppProfile = {
   email: string | null;
   full_name: string | null;
   avatar_url: string | null;
+  preferences?: UserPreferences | Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };
 
 export type UpdateProfileInput = {
   full_name?: string | null;
+  preferences?: UserPreferences;
 };
 
 type SupabaseErrorLike = {
@@ -33,6 +36,13 @@ function isMissingProfilesTableError(error: unknown): boolean {
   );
 }
 
+function withNormalizedPreferences(profile: AppProfile): AppProfile {
+  return {
+    ...profile,
+    preferences: normalizeUserPreferences(profile.preferences),
+  };
+}
+
 export async function syncProfileFromClerkUser(user: User): Promise<AppProfile | null> {
   const supabase = getSupabaseAdminClient();
 
@@ -43,7 +53,7 @@ export async function syncProfileFromClerkUser(user: User): Promise<AppProfile |
 
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null;
 
-  const profilePayload: AppProfile = {
+  const profilePayload = {
     clerk_user_id: user.id,
     email: user.primaryEmailAddress?.emailAddress ?? null,
     full_name: fullName,
@@ -66,7 +76,7 @@ export async function syncProfileFromClerkUser(user: User): Promise<AppProfile |
     throw error;
   }
 
-  return data as AppProfile;
+  return withNormalizedPreferences(data as AppProfile);
 }
 
 export async function getProfileByClerkUserId(clerkUserId: string): Promise<AppProfile | null> {
@@ -87,7 +97,11 @@ export async function getProfileByClerkUserId(clerkUserId: string): Promise<AppP
     throw error;
   }
 
-  return (data as AppProfile | null) ?? null;
+  if (!data) {
+    return null;
+  }
+
+  return withNormalizedPreferences(data as AppProfile);
 }
 
 export async function updateProfileByClerkUserId(
@@ -101,10 +115,22 @@ export async function updateProfileByClerkUserId(
     return null;
   }
 
-  const updatePayload: { full_name?: string | null } = {};
+  const updatePayload: {
+    full_name?: string | null;
+    preferences?: UserPreferences;
+  } = {};
+
   if (Object.hasOwn(input, 'full_name')) {
     const normalizedName = input.full_name?.trim() ?? null;
     updatePayload.full_name = normalizedName || null;
+  }
+
+  if (Object.hasOwn(input, 'preferences') && input.preferences) {
+    updatePayload.preferences = normalizeUserPreferences(input.preferences);
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return getProfileByClerkUserId(clerkUserId);
   }
 
   const { data, error } = await supabase
@@ -118,5 +144,9 @@ export async function updateProfileByClerkUserId(
     throw error;
   }
 
-  return (data as AppProfile | null) ?? null;
+  if (!data) {
+    return null;
+  }
+
+  return withNormalizedPreferences(data as AppProfile);
 }

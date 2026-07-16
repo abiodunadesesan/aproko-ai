@@ -175,8 +175,8 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 
 ### Settings and Billing
 
-- `GET /v1/me`
-- `PATCH /v1/me/settings`
+- `GET /v1/me` — profile + `preferences` (`defaultChatModel`, `autoMemoryCapture`)
+- `PATCH /v1/me` — `{ full_name? }` and/or `{ preferences?: { defaultChatModel, autoMemoryCapture } }`
 - `GET /v1/billing/subscription`
 - `POST /v1/billing/checkout`
 - `POST /v1/billing/webhooks`

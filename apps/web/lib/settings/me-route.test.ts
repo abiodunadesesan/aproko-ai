@@ -15,7 +15,7 @@ test('me GET returns 401 when unauthenticated', async () => {
   assert.deepEqual(await response.json(), { error: 'Unauthorized' });
 });
 
-test('me GET returns profile payload', async () => {
+test('me GET returns profile payload with preferences', async () => {
   const handlers = createMeRouteHandlers({
     auth: async () => ({ userId: 'user_1' }),
     getProfileByClerkUserId: async () => ({
@@ -23,6 +23,10 @@ test('me GET returns profile payload', async () => {
       email: 'user@example.com',
       full_name: 'Aproko User',
       avatar_url: null,
+      preferences: {
+        defaultChatModel: 'openai:gpt-4o-mini',
+        autoMemoryCapture: false,
+      },
     }),
     updateProfileByClerkUserId: async () => null,
     isAdminUser: () => false,
@@ -33,14 +37,17 @@ test('me GET returns profile payload', async () => {
   const payload = (await response.json()) as {
     clerk_user_id: string;
     profile: { full_name: string };
+    preferences: { defaultChatModel: string; autoMemoryCapture: boolean };
     isAdmin: boolean;
   };
   assert.equal(payload.clerk_user_id, 'user_1');
   assert.equal(payload.profile.full_name, 'Aproko User');
+  assert.equal(payload.preferences.defaultChatModel, 'openai:gpt-4o-mini');
+  assert.equal(payload.preferences.autoMemoryCapture, false);
   assert.equal(payload.isAdmin, false);
 });
 
-test('me PATCH validates required full_name key', async () => {
+test('me PATCH requires full_name or preferences', async () => {
   const handlers = createMeRouteHandlers({
     auth: async () => ({ userId: 'user_1' }),
     getProfileByClerkUserId: async () => null,
@@ -57,7 +64,29 @@ test('me PATCH validates required full_name key', async () => {
   );
 
   assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), { error: 'full_name is required' });
+  assert.deepEqual(await response.json(), {
+    error: 'Provide full_name and/or preferences to update',
+  });
+});
+
+test('me PATCH rejects invalid defaultChatModel', async () => {
+  const handlers = createMeRouteHandlers({
+    auth: async () => ({ userId: 'user_1' }),
+    getProfileByClerkUserId: async () => null,
+    updateProfileByClerkUserId: async () => null,
+    isAdminUser: () => false,
+  });
+
+  const response = await handlers.PATCH(
+    new Request('http://localhost', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ preferences: { defaultChatModel: 'gpt-4.1-mini' } }),
+    }),
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'defaultChatModel is invalid' });
 });
 
 test('me PATCH returns updated profile', async () => {
@@ -84,4 +113,42 @@ test('me PATCH returns updated profile', async () => {
   assert.equal(response.status, 200);
   const payload = (await response.json()) as { profile: { full_name: string } };
   assert.equal(payload.profile.full_name, 'Updated Name');
+});
+
+test('me PATCH saves preferences', async () => {
+  const handlers = createMeRouteHandlers({
+    auth: async () => ({ userId: 'user_1' }),
+    getProfileByClerkUserId: async () => null,
+    updateProfileByClerkUserId: async (_userId, input) => ({
+      clerk_user_id: 'user_1',
+      email: 'user@example.com',
+      full_name: 'Aproko User',
+      avatar_url: null,
+      preferences: input.preferences ?? {
+        defaultChatModel: 'groq:llama-3.1-8b-instant',
+        autoMemoryCapture: true,
+      },
+    }),
+    isAdminUser: () => false,
+  });
+
+  const response = await handlers.PATCH(
+    new Request('http://localhost', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        preferences: {
+          defaultChatModel: 'anthropic:claude-sonnet-5',
+          autoMemoryCapture: false,
+        },
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  const payload = (await response.json()) as {
+    preferences: { defaultChatModel: string; autoMemoryCapture: boolean };
+  };
+  assert.equal(payload.preferences.defaultChatModel, 'anthropic:claude-sonnet-5');
+  assert.equal(payload.preferences.autoMemoryCapture, false);
 });

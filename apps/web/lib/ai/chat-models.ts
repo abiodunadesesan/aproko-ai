@@ -17,12 +17,25 @@ const CHAT_MODELS: ChatModel[] = [
   'groq:llama-3.1-8b-instant',
 ];
 
+export const DEFAULT_CHAT_MODEL: ChatModel = 'groq:llama-3.1-8b-instant';
+
+const CHAT_MODEL_LABELS: Record<ChatModel, string> = {
+  'openai:gpt-4o-mini': 'GPT-4o Mini',
+  'anthropic:claude-sonnet-5': 'Claude Sonnet 5',
+  'google:gemini-3.5-flash': 'Gemini 3.5 Flash',
+  'groq:llama-3.1-8b-instant': 'Llama 3.1 8B (Groq)',
+};
+
 export function isChatModel(value: string): value is ChatModel {
   return CHAT_MODELS.includes(value as ChatModel);
 }
 
 export function listChatModels(): ChatModel[] {
   return [...CHAT_MODELS];
+}
+
+export function getChatModelLabel(model: ChatModel): string {
+  return CHAT_MODEL_LABELS[model] ?? model;
 }
 
 export function getConfiguredChatModels(): ChatModel[] {

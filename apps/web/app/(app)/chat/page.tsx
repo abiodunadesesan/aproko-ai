@@ -33,18 +33,19 @@ import {
 } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DEFAULT_CHAT_MODEL,
+  getChatModelLabel,
+  isChatModel,
+  listChatModels,
+  type ChatModel,
+} from '@/lib/ai/chat-models';
 import { cn } from '@/lib/utils';
 
 const WORKSPACE_ID = 'default-workspace';
 const LAST_SESSION_STORAGE_KEY = `aproko.chat.last-session.${WORKSPACE_ID}`;
 const FOCUS_SOURCE_STORAGE_KEY = `aproko.chat.focus-source.${WORKSPACE_ID}`;
-const CHAT_MODELS = [
-  'openai:gpt-4o-mini',
-  'anthropic:claude-sonnet-5',
-  'google:gemini-3.5-flash',
-  'groq:llama-3.1-8b-instant',
-] as const;
-type ChatModel = (typeof CHAT_MODELS)[number];
+const CHAT_MODELS = listChatModels();
 
 type ChatSession = {
   id: string;
@@ -103,10 +104,6 @@ type ParsedSseEvent = {
     memoryContext?: ChatMemoryContext[];
   };
 };
-
-function isChatModel(value: string): value is ChatModel {
-  return CHAT_MODELS.includes(value as ChatModel);
-}
 
 function deriveSessionTitle(content: string): string {
   return content.trim().slice(0, 50) || 'New chat';
@@ -173,7 +170,8 @@ export default function ChatPage() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isHistoryReady, setIsHistoryReady] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ChatModel>('groq:llama-3.1-8b-instant');
+  const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
+  const [preferredDefaultModel, setPreferredDefaultModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
   const [error, setError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribingVoice, setIsTranscribingVoice] = useState(false);
@@ -198,13 +196,45 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!activeSession) {
+      setSelectedModel(preferredDefaultModel);
       return;
     }
     const model = formatSessionModel(activeSession);
     if (model && isChatModel(model)) {
       setSelectedModel(model);
+    } else {
+      setSelectedModel(preferredDefaultModel);
     }
-  }, [activeSession]);
+  }, [activeSession, preferredDefaultModel]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreferredModel() {
+      try {
+        const response = await fetch('/api/v1/me', { cache: 'no-store' });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as {
+          preferences?: { defaultChatModel?: string };
+        };
+        const next = payload.preferences?.defaultChatModel;
+        if (!next || !isChatModel(next) || cancelled) {
+          return;
+        }
+        setPreferredDefaultModel(next);
+        setSelectedModel((current) => (current === DEFAULT_CHAT_MODEL ? next : current));
+      } catch {
+        // Preferences are optional for chat; keep DEFAULT_CHAT_MODEL.
+      }
+    }
+
+    void loadPreferredModel();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadSessions = useCallback(
     async (nextSessionId?: string | null, options?: { preferEmpty?: boolean }) => {
@@ -923,7 +953,7 @@ export default function ChatPage() {
                   <SelectContent>
                     {CHAT_MODELS.map((model) => (
                       <SelectItem key={model} value={model}>
-                        {model}
+                        {getChatModelLabel(model)}
                       </SelectItem>
                     ))}
                   </SelectContent>
