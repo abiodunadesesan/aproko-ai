@@ -21,8 +21,7 @@ type DbSubscriptionRow = {
   updated_at: string | null;
 };
 
-const DEFAULT_SUBSCRIPTION: BillingSubscription = {
-  workspaceId: 'default-workspace',
+const DEFAULT_SUBSCRIPTION: Omit<BillingSubscription, 'workspaceId'> = {
   planCode: 'free',
   status: 'active',
   provider: null,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,8 @@ type BillingSubscription = {
   cancelAtPeriodEnd: boolean;
 };
 
-const WORKSPACE_ID = 'default-workspace';
-
 export default function BillingPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [subscription, setSubscription] = useState<BillingSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
@@ -46,7 +46,7 @@ export default function BillingPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/billing/subscription?workspaceId=${WORKSPACE_ID}`);
+      const response = await fetch(`/api/v1/billing/subscription?workspaceId=${workspaceId}`);
       const payload = (await response.json()) as { data?: BillingSubscription; error?: string };
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? 'Failed to load billing subscription');
@@ -81,7 +81,7 @@ export default function BillingPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          workspaceId: WORKSPACE_ID,
+          workspaceId: workspaceId,
           planCode: code,
         }),
       });
@@ -111,8 +111,11 @@ export default function BillingPage() {
   }
 
   useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
     void loadSubscription();
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -126,6 +129,16 @@ export default function BillingPage() {
       setNotice('Checkout was cancelled. No changes were made to your plan.');
     }
   }, []);
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="billing">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
+  }
 
   return (
     <AppPageShell pageId="billing">
@@ -203,7 +216,7 @@ export default function BillingPage() {
                 billing increment.
               </p>
               <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-                <li>Current workspace: {subscription?.workspaceId ?? WORKSPACE_ID}</li>
+                <li>Current workspace: {subscription?.workspaceId ?? workspaceId}</li>
                 <li>Model usage counters: pending integration</li>
                 <li>Storage usage counters: pending integration</li>
               </ul>

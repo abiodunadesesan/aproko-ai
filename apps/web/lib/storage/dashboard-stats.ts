@@ -2,8 +2,6 @@ import { listChatSessions } from '@/lib/storage/chat';
 import { listLibrarySources } from '@/lib/storage/library';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
-const WORKSPACE_ID = 'default-workspace';
-
 export type DashboardActivityStatus = 'Indexed' | 'Synced' | 'Ranked' | 'Active';
 
 export type DashboardActivityItem = {
@@ -96,7 +94,7 @@ function computeStudyStreak(dates: string[]): number {
 }
 
 export async function getWorkspaceDashboardStats(
-  workspaceId: string = WORKSPACE_ID,
+  workspaceId: string,
   clerkUserId: string | null,
 ): Promise<DashboardStats> {
   const supabase = getSupabaseAdminClient();

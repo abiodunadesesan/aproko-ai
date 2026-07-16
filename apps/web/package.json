@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test \"lib/**/*.test.ts\"",
+    "test": "APROKO_TEST_BYPASS_WORKSPACE_ACCESS=1 tsx --test \"lib/**/*.test.ts\"",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:ui": "playwright test --ui",

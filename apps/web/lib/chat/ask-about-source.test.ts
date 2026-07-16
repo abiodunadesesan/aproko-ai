@@ -54,6 +54,9 @@ test('chat messages POST forwards preferred sourceId into workspace context', as
         metadata: {},
         createdAt: '2026-01-01T00:00:00.000Z',
       }),
+      createMemoryItem: async () => null,
+      getProfileByClerkUserId: async () => null,
+      captureChatMemoriesFromMessage: async () => 0,
     });
 
     const response = await handlers.POST(

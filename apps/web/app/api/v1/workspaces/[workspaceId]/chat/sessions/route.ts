@@ -7,6 +7,7 @@ import {
   type ChatSession,
 } from '@/lib/storage/chat';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -49,6 +50,10 @@ export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependenc
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const sessions = await deps.listChatSessions(workspaceId, userId);
 
       return NextResponse.json({
@@ -71,6 +76,10 @@ export function createChatSessionsRouteHandlers(deps: ChatSessionsRouteDependenc
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         contextMode?: ChatContextMode;

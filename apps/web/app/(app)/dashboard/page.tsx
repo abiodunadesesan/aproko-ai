@@ -17,6 +17,7 @@ import {
   type DashboardActivityStatus,
 } from '@/lib/storage/dashboard-stats';
 import { syncProfileFromClerkUser } from '@/lib/auth/profile-sync';
+import { resolveWorkspaceForUser } from '@/lib/storage/workspaces';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { ArrowUpRight, FileText, MessageSquare, Sparkles } from 'lucide-react';
 
@@ -50,7 +51,18 @@ export default async function DashboardPage() {
 
   let stats;
   try {
-    stats = await getWorkspaceDashboardStats('default-workspace', userId);
+    const workspace = userId ? await resolveWorkspaceForUser(userId) : null;
+    stats = workspace
+      ? await getWorkspaceDashboardStats(workspace.workspaceId, userId)
+      : {
+          sourceCount: 0,
+          sourcesThisWeek: 0,
+          memoryCount: 0,
+          studyItemCount: 0,
+          chatSessionCount: 0,
+          studyStreakDays: 0,
+          recentActivity: [],
+        };
   } catch (error) {
     console.error('Dashboard stats load failed', error);
     stats = {

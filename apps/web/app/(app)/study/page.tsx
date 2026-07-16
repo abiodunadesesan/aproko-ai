@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { GraduationCap, ScrollText, StickyNote } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
@@ -17,8 +18,6 @@ import {
   studyGenerateStatusMessage,
   type StudyGenerateAction,
 } from '@/lib/study/generation-ux';
-
-const WORKSPACE_ID = 'default-workspace';
 
 type Note = {
   id: string;
@@ -122,6 +121,7 @@ type TranscriptSource = {
 };
 
 export default function StudyPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [notes, setNotes] = useState<Note[]>([]);
   const [transcripts, setTranscripts] = useState<TranscriptSource[]>([]);
   const [generationSource, setGenerationSource] = useState<'note' | 'transcript'>('note');
@@ -295,7 +295,7 @@ export default function StudyPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/notes`);
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/notes`);
       const payload = (await response.json()) as NotesResponse;
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? 'Failed to load notes');
@@ -319,7 +319,7 @@ export default function StudyPage() {
 
   async function loadTranscripts() {
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/transcripts`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/transcripts`, {
         cache: 'no-store',
       });
       const payload = (await response.json()) as { data?: TranscriptSource[]; error?: string };
@@ -370,7 +370,7 @@ export default function StudyPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks`);
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/flashcards/decks`);
       const payload = (await response.json()) as FlashcardDecksResponse;
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? 'Failed to load flashcard decks');
@@ -395,7 +395,7 @@ export default function StudyPage() {
   async function loadDeckCards(deckId: string) {
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks/${deckId}/cards`,
+        `/api/v1/workspaces/${workspaceId}/flashcards/decks/${deckId}/cards`,
       );
       const payload = (await response.json()) as FlashcardsResponse;
       if (!response.ok || !payload.data) {
@@ -414,7 +414,7 @@ export default function StudyPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/quizzes`);
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/quizzes`);
       const payload = (await response.json()) as { data?: Quiz[]; error?: string };
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? 'Failed to load quizzes');
@@ -439,8 +439,8 @@ export default function StudyPage() {
   async function loadQuizDetails(quizId: string) {
     try {
       const [detailResponse, attemptsResponse] = await Promise.all([
-        fetch(`/api/v1/workspaces/${WORKSPACE_ID}/quizzes/${quizId}`),
-        fetch(`/api/v1/workspaces/${WORKSPACE_ID}/quizzes/${quizId}/attempts`),
+        fetch(`/api/v1/workspaces/${workspaceId}/quizzes/${quizId}`),
+        fetch(`/api/v1/workspaces/${workspaceId}/quizzes/${quizId}/attempts`),
       ]);
 
       const [detailPayload, attemptsPayload] = (await Promise.all([
@@ -474,7 +474,7 @@ export default function StudyPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/summaries`);
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/summaries`);
       const payload = (await response.json()) as { data?: StudySummary[]; error?: string };
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? 'Failed to load study summaries');
@@ -495,7 +495,7 @@ export default function StudyPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/notes`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/notes`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ title: 'New note', content: '' }),
@@ -526,7 +526,7 @@ export default function StudyPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/flashcards/decks`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -570,7 +570,7 @@ export default function StudyPage() {
 
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks/${activeDeck.id}/cards`,
+        `/api/v1/workspaces/${workspaceId}/flashcards/decks/${activeDeck.id}/cards`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -608,7 +608,7 @@ export default function StudyPage() {
     try {
       const body = buildGenerationBody();
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks/${activeDeck.id}/generate`,
+        `/api/v1/workspaces/${workspaceId}/flashcards/decks/${activeDeck.id}/generate`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -645,7 +645,7 @@ export default function StudyPage() {
 
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/flashcards/decks/${activeDeck.id}`,
+        `/api/v1/workspaces/${workspaceId}/flashcards/decks/${activeDeck.id}`,
         {
           method: 'DELETE',
         },
@@ -686,7 +686,7 @@ export default function StudyPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/quizzes`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/quizzes`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -723,7 +723,7 @@ export default function StudyPage() {
     try {
       const body = buildGenerationBody();
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/quizzes/${activeQuiz.id}/generate`,
+        `/api/v1/workspaces/${workspaceId}/quizzes/${activeQuiz.id}/generate`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -783,7 +783,7 @@ export default function StudyPage() {
 
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/quizzes/${activeQuiz.id}/attempts`,
+        `/api/v1/workspaces/${workspaceId}/quizzes/${activeQuiz.id}/attempts`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -811,7 +811,7 @@ export default function StudyPage() {
 
     try {
       const body = buildGenerationBody();
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/summaries/generate`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/summaries/generate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...body, kind: 'summary' }),
@@ -840,7 +840,7 @@ export default function StudyPage() {
 
     try {
       const body = buildGenerationBody();
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/summaries/generate`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/summaries/generate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...body, kind: 'outline' }),
@@ -879,7 +879,7 @@ export default function StudyPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/notes/${activeNote.id}`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/notes/${activeNote.id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -912,7 +912,7 @@ export default function StudyPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/notes/${activeNote.id}`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/notes/${activeNote.id}`, {
         method: 'DELETE',
       });
       const payload = (await response.json()) as { error?: string };
@@ -938,12 +938,15 @@ export default function StudyPage() {
   }
 
   useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
     void loadNotes();
     void loadTranscripts();
     void loadDecks();
     void loadQuizzes();
     void loadSummaries();
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!activeNote) {
@@ -975,6 +978,16 @@ export default function StudyPage() {
 
     void loadQuizDetails(activeQuizId);
   }, [activeQuizId]);
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="study">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
+  }
 
   return (
     <AppPageShell pageId="study">

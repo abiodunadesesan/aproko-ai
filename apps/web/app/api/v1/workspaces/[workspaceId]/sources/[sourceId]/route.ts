@@ -7,6 +7,7 @@ import {
 } from '@/lib/storage/library';
 import { getWorkspaceFolderById, getWorkspaceProjectById } from '@/lib/storage/workspace-taxonomy';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -33,6 +34,10 @@ export function createSourceByIdRouteHandlers(deps: SourceByIdRouteDependencies)
       }
 
       const { workspaceId, sourceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const source = await deps.getLibrarySource(workspaceId, sourceId);
 
       if (!source) {
@@ -68,6 +73,10 @@ export function createSourceByIdRouteHandlers(deps: SourceByIdRouteDependencies)
       }
 
       const { workspaceId, sourceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const body = (await request.json()) as {
         name?: string;
         project?: string;
@@ -124,6 +133,10 @@ export function createSourceByIdRouteHandlers(deps: SourceByIdRouteDependencies)
       }
 
       const { workspaceId, sourceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deleted = await deps.deleteLibrarySource(workspaceId, sourceId);
 
       if (!deleted) {

@@ -13,6 +13,7 @@ import {
   type LibrarySource,
 } from '@/lib/storage/library';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +42,10 @@ export function createTranscriptsRouteHandlers(deps: TranscriptsRouteDependencie
         }
 
         const { workspaceId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
         const data = await deps.listTranscriptSources(workspaceId);
         return Response.json({ data }, { status: 200 });
       } catch (error) {
@@ -66,6 +71,10 @@ export function createTranscriptsRouteHandlers(deps: TranscriptsRouteDependencie
         }
 
         const { workspaceId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
         const formData = await request.formData();
         const file = (formData.get('file') ?? formData.get('audio')) as File | null;
 

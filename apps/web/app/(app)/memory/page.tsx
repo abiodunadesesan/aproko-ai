@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { Brain } from 'lucide-react';
 import Link from 'next/link';
 import { AppPageShell } from '@/components/app/app-page-shell';
@@ -18,7 +19,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-const WORKSPACE_ID = 'default-workspace';
 const memoryTypes = [
   'fact',
   'preference',
@@ -65,6 +65,7 @@ type MemoryItemsResponse = {
 };
 
 export default function MemoryPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [items, setItems] = useState<MemoryItem[]>([]);
   const [memoryType, setMemoryType] = useState<MemoryType>('fact');
   const [summary, setSummary] = useState('');
@@ -83,7 +84,7 @@ export default function MemoryPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/memory/items?sort=ranked`);
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/memory/items?sort=ranked`);
       const payload = (await response.json()) as MemoryItemsResponse;
       if (!response.ok || !payload.data) {
         throw new Error(payload.error ?? 'Failed to load memory items');
@@ -129,7 +130,7 @@ export default function MemoryPage() {
           .map((value) => value.trim())
           .filter(Boolean);
 
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/memory/items`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/memory/items`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -173,7 +174,7 @@ export default function MemoryPage() {
 
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/memory/items/${itemId}/embed`,
+        `/api/v1/workspaces/${workspaceId}/memory/items/${itemId}/embed`,
         {
           method: 'POST',
           headers: {
@@ -199,6 +200,16 @@ export default function MemoryPage() {
   useEffect(() => {
     void loadItems();
   }, [loadItems]);
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="memory">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
+  }
 
   return (
     <AppPageShell pageId="memory">

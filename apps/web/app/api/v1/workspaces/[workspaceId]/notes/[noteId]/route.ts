@@ -7,6 +7,7 @@ import {
   type WorkspaceNote,
 } from '@/lib/storage/notes';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +42,10 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       }
 
       const { workspaceId, noteId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const note = await deps.getWorkspaceNoteById(workspaceId, noteId);
       if (!note) {
         return NextResponse.json({ error: 'Note not found' }, { status: 404 });
@@ -64,6 +69,10 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       }
 
       const { workspaceId, noteId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         content?: string;
@@ -98,6 +107,10 @@ export function createNoteByIdRouteHandlers(deps: NoteByIdRouteDependencies) {
       }
 
       const { workspaceId, noteId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deleted = await deps.deleteWorkspaceNote(workspaceId, noteId);
       if (!deleted) {
         return NextResponse.json({ error: 'Note not found or delete failed' }, { status: 404 });

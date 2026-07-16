@@ -26,6 +26,7 @@ import { captureChatMemoriesFromMessage } from '@/lib/memory/chat-capture';
 import { normalizeUserPreferences } from '@/lib/settings/preferences';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -152,6 +153,10 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       }
 
       const { workspaceId, sessionId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const session = await deps.getChatSessionById(workspaceId, userId, sessionId);
       if (!session) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -179,6 +184,10 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
       }
 
       const { workspaceId, sessionId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const session = await deps.getChatSessionById(workspaceId, userId, sessionId);
       if (!session) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });

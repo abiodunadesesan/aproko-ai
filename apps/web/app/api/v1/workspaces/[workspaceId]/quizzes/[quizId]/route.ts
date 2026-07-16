@@ -6,6 +6,7 @@ import {
   type Quiz,
   type QuizQuestion,
 } from '@/lib/storage/quizzes';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -53,6 +54,10 @@ export function createQuizByIdRouteHandlers(deps: QuizByIdRouteDependencies) {
       }
 
       const { workspaceId, quizId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const quiz = await deps.getQuizById(workspaceId, quizId);
       if (!quiz) {
         return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });

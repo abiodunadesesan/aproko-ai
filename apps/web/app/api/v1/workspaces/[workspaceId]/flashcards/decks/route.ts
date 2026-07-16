@@ -7,6 +7,7 @@ import {
 } from '@/lib/storage/flashcards';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -44,6 +45,10 @@ export function createFlashcardDecksRouteHandlers(deps: FlashcardDecksRouteDepen
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const decks = await deps.listFlashcardDecks(workspaceId);
       return withPerformanceHeaders(
         NextResponse.json({ data: decks.map(toDeckPayload) }),
@@ -69,6 +74,10 @@ export function createFlashcardDecksRouteHandlers(deps: FlashcardDecksRouteDepen
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         sourceNoteId?: string | null;

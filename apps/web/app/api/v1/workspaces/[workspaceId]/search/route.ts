@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { searchWorkspace } from '@/lib/storage/search';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -31,6 +32,10 @@ export function createWorkspaceSearchRouteHandlers(deps: WorkspaceSearchRouteDep
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const url = new URL(request.url);
       const q = url.searchParams.get('q')?.trim() ?? '';
       if (!q) {

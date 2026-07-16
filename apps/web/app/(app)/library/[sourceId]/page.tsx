@@ -4,8 +4,7 @@ import { AppPageShell } from '@/components/app/app-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getLibrarySignedUrl, getLibrarySource } from '@/lib/storage/library';
-
-const WORKSPACE_ID = 'default-workspace';
+import { resolveWorkspaceForUser } from '@/lib/storage/workspaces';
 
 export default async function LibrarySourcePage({
   params,
@@ -22,8 +21,17 @@ export default async function LibrarySourcePage({
     );
   }
 
+  const workspace = await resolveWorkspaceForUser(userId);
+  if (!workspace) {
+    return (
+      <main className="p-6">
+        <p className="text-sm text-destructive">Failed to resolve workspace.</p>
+      </main>
+    );
+  }
+
   const { sourceId } = await params;
-  const source = await getLibrarySource(WORKSPACE_ID, sourceId);
+  const source = await getLibrarySource(workspace.workspaceId, sourceId);
 
   if (!source) {
     return (

@@ -8,6 +8,7 @@ import {
 } from '@/lib/storage/quizzes';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -50,6 +51,10 @@ export function createQuizAttemptSubmitRouteHandlers(deps: QuizAttemptSubmitRout
       }
 
       const { workspaceId, quizId, attemptId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const quiz = await deps.getQuizById(workspaceId, quizId);
       if (!quiz) {
         return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });

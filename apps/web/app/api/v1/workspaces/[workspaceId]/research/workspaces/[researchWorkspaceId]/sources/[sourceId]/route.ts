@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { removeSourceFromResearchWorkspace } from '@/lib/storage/research';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -32,6 +33,10 @@ export function createResearchWorkspaceSourceByIdRouteHandlers(
       }
 
       const { workspaceId, researchWorkspaceId, sourceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const ok = await deps.removeSourceFromResearchWorkspace({
         workspaceId,
         researchWorkspaceId,

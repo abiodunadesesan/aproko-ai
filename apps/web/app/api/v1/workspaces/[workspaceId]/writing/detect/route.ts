@@ -7,6 +7,7 @@ import {
 } from '@/lib/ai/writing-detector-check';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -37,6 +38,10 @@ export function createWritingDetectRouteHandlers(deps: WritingDetectRouteDepende
         }
 
         const { workspaceId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
         const rawBody = (await request.json().catch(() => null)) as {
           text?: string;
           source?: 'draft' | 'polished';

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createQuiz, listQuizzes, type Quiz } from '@/lib/storage/quizzes';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -40,6 +41,10 @@ export function createQuizzesRouteHandlers(deps: QuizzesRouteDependencies) {
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const quizzes = await deps.listQuizzes(workspaceId);
       return withPerformanceHeaders(
         NextResponse.json({ data: quizzes.map(toQuizPayload) }),
@@ -73,6 +78,10 @@ export function createQuizzesRouteHandlers(deps: QuizzesRouteDependencies) {
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const quiz = await deps.createQuiz(workspaceId, title, rawBody?.sourceNoteId ?? null);
       if (!quiz) {
         return NextResponse.json({ error: 'Failed to create quiz' }, { status: 500 });

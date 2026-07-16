@@ -3,6 +3,7 @@ import { listLibrarySources, uploadLibraryFile } from '@/lib/storage/library';
 import { getWorkspaceFolderById, getWorkspaceProjectById } from '@/lib/storage/workspace-taxonomy';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -24,6 +25,10 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const data = await deps.listLibrarySources(workspaceId);
 
       return Response.json({ data }, { status: 200 });
@@ -50,6 +55,10 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const formData = await request.formData();
       const file = formData.get('file');
 

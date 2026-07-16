@@ -6,6 +6,7 @@ import {
   transcribeAudioFile,
 } from '@/lib/ai/transcription';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -35,7 +36,11 @@ export function createChatVoiceRouteHandlers(deps: ChatVoiceRouteDependencies) {
           return rateLimitResponse;
         }
 
-        await context.params;
+        const { workspaceId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
 
         if (!deps.isTranscriptionConfigured()) {
           return Response.json(

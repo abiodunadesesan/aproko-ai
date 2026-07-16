@@ -4,6 +4,7 @@ import {
   getWorkspaceProjectById,
   updateWorkspaceProject,
 } from '@/lib/storage/workspace-taxonomy';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -27,6 +28,10 @@ export function createProjectByIdRouteHandlers(deps: ProjectByIdRouteDependencie
       }
 
       const { workspaceId, projectId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const project = await deps.getWorkspaceProjectById(workspaceId, projectId);
 
       if (!project) {
@@ -52,6 +57,10 @@ export function createProjectByIdRouteHandlers(deps: ProjectByIdRouteDependencie
       }
 
       const { workspaceId, projectId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const body = (await request.json()) as { name?: string };
       const name = body.name?.trim() ?? '';
 
@@ -84,6 +93,10 @@ export function createProjectByIdRouteHandlers(deps: ProjectByIdRouteDependencie
       }
 
       const { workspaceId, projectId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deleted = await deps.deleteWorkspaceProject(workspaceId, projectId);
 
       if (!deleted) {

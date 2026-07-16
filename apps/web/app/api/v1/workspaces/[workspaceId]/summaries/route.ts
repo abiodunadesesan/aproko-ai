@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createStudySummary, listStudySummaries, type StudySummary } from '@/lib/storage/summaries';
 import { withPerformanceHeaders } from '@/lib/perf/http';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +42,10 @@ export function createStudySummariesRouteHandlers(deps: StudySummariesRouteDepen
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const summaries = await deps.listStudySummaries(workspaceId);
       return withPerformanceHeaders(
         NextResponse.json({ data: summaries.map(toSummaryPayload) }),
@@ -58,6 +63,10 @@ export function createStudySummariesRouteHandlers(deps: StudySummariesRouteDepen
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         content?: string;

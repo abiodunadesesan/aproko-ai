@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getMemoryItemById, queueMemoryItemEmbedding, type MemoryItem } from '@/lib/storage/memory';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -38,6 +39,10 @@ export function createMemoryEmbedRouteHandlers(deps: MemoryEmbedRouteDependencie
       }
 
       const { workspaceId, memoryItemId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const existing = await deps.getMemoryItemById(workspaceId, memoryItemId);
       if (!existing) {
         return NextResponse.json({ error: 'Memory item not found' }, { status: 404 });

@@ -9,6 +9,7 @@ import {
   type ComponentType,
   type RefObject,
 } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowUp, FolderOpen, Globe, History, Mic, PenLine, Square } from 'lucide-react';
@@ -42,9 +43,14 @@ import {
 } from '@/lib/ai/chat-models';
 import { cn } from '@/lib/utils';
 
-const WORKSPACE_ID = 'default-workspace';
-const LAST_SESSION_STORAGE_KEY = `aproko.chat.last-session.${WORKSPACE_ID}`;
-const FOCUS_SOURCE_STORAGE_KEY = `aproko.chat.focus-source.${WORKSPACE_ID}`;
+function lastSessionStorageKey(workspaceId: string) {
+  return `aproko.chat.last-session.${workspaceId}`;
+}
+
+function focusSourceStorageKey(workspaceId: string) {
+  return `aproko.chat.focus-source.${workspaceId}`;
+}
+
 const CHAT_MODELS = listChatModels();
 
 type ChatSession = {
@@ -162,6 +168,7 @@ function parseSseEventsFromBuffer(buffer: string): { events: ParsedSseEvent[]; r
 }
 
 export default function ChatPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -238,11 +245,16 @@ export default function ChatPage() {
 
   const loadSessions = useCallback(
     async (nextSessionId?: string | null, options?: { preferEmpty?: boolean }) => {
+      if (!workspaceId) {
+        setIsLoadingSessions(false);
+        return;
+      }
+
       setIsLoadingSessions(true);
       setError(null);
 
       try {
-        const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions`);
+        const response = await fetch(`/api/v1/workspaces/${workspaceId}/chat/sessions`);
         const payload = (await response.json()) as SessionsResponse;
         if (!response.ok) {
           throw new Error(payload.error ?? 'Failed to load chat sessions');
@@ -266,14 +278,14 @@ export default function ChatPage() {
         setIsLoadingSessions(false);
       }
     },
-    [],
+    [workspaceId],
   );
 
   async function loadMessages(sessionId: string) {
     setError(null);
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${sessionId}/messages`,
+        `/api/v1/workspaces/${workspaceId}/chat/sessions/${sessionId}/messages`,
       );
       const payload = (await response.json()) as MessagesResponse;
       if (!response.ok) {
@@ -424,7 +436,7 @@ export default function ChatPage() {
         try {
           const formData = new FormData();
           formData.append('audio', file);
-          const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/voice`, {
+          const response = await fetch(`/api/v1/workspaces/${workspaceId}/chat/voice`, {
             method: 'POST',
             body: formData,
           });
@@ -481,7 +493,7 @@ export default function ChatPage() {
   }, []);
 
   async function createSessionFromPrompt(prompt: string): Promise<string | null> {
-    const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions`, {
+    const response = await fetch(`/api/v1/workspaces/${workspaceId}/chat/sessions`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -529,7 +541,7 @@ export default function ChatPage() {
     setIsRenaming(true);
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${renameTarget.id}`,
+        `/api/v1/workspaces/${workspaceId}/chat/sessions/${renameTarget.id}`,
         {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
@@ -559,7 +571,7 @@ export default function ChatPage() {
 
     try {
       const response = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${session.id}`,
+        `/api/v1/workspaces/${workspaceId}/chat/sessions/${session.id}`,
         {
           method: 'DELETE',
         },
@@ -583,7 +595,7 @@ export default function ChatPage() {
 
   async function sendMessage(contentOverride?: string) {
     const trimmed = (contentOverride ?? chatInputRef.current?.value ?? input).trim();
-    if (!trimmed || isSending) {
+    if (!trimmed || isSending || !workspaceId) {
       return;
     }
 
@@ -599,7 +611,7 @@ export default function ChatPage() {
 
       const userMessage: ChatMessage = {
         id: `temp-user-${Date.now()}`,
-        workspaceId: WORKSPACE_ID,
+        workspaceId: workspaceId,
         sessionId: targetSessionId,
         role: 'user',
         content: trimmed,
@@ -618,7 +630,7 @@ export default function ChatPage() {
         userMessage,
         {
           id: assistantMessageId,
-          workspaceId: WORKSPACE_ID,
+          workspaceId: workspaceId,
           sessionId: targetSessionId,
           role: 'assistant',
           model: selectedModel,
@@ -633,7 +645,7 @@ export default function ChatPage() {
       ]);
 
       const streamResponse = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/chat/sessions/${targetSessionId}/messages`,
+        `/api/v1/workspaces/${workspaceId}/chat/sessions/${targetSessionId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -741,12 +753,18 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
+
     const params =
       typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const wantsNewChat = params?.get('new') === '1';
     const searchSessionId = params?.get('session') ?? null;
     const storedSessionId =
-      typeof window !== 'undefined' ? window.localStorage.getItem(LAST_SESSION_STORAGE_KEY) : null;
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem(lastSessionStorageKey(workspaceId))
+        : null;
     const preferredSessionId = wantsNewChat ? null : (searchSessionId ?? storedSessionId);
 
     const sourceIdFromUrl = params?.get('sourceId')?.trim() || null;
@@ -756,7 +774,7 @@ export default function ChatPage() {
 
     if (!resolvedSourceId && typeof window !== 'undefined' && !wantsNewChat) {
       try {
-        const raw = window.sessionStorage.getItem(FOCUS_SOURCE_STORAGE_KEY);
+        const raw = window.sessionStorage.getItem(focusSourceStorageKey(workspaceId));
         if (raw) {
           const parsed = JSON.parse(raw) as { id?: string; name?: string };
           resolvedSourceId = parsed.id?.trim() || null;
@@ -768,7 +786,7 @@ export default function ChatPage() {
     }
 
     if (wantsNewChat && !sourceIdFromUrl && typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+      window.sessionStorage.removeItem(focusSourceStorageKey(workspaceId));
       resolvedSourceId = null;
       resolvedSourceName = null;
     }
@@ -778,7 +796,7 @@ export default function ChatPage() {
       setFocusSourceName(resolvedSourceName);
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem(
-          FOCUS_SOURCE_STORAGE_KEY,
+          focusSourceStorageKey(workspaceId),
           JSON.stringify({ id: resolvedSourceId, name: resolvedSourceName }),
         );
       }
@@ -798,10 +816,10 @@ export default function ChatPage() {
         router.replace('/chat');
       }
     });
-  }, [loadSessions, router]);
+  }, [loadSessions, router, workspaceId]);
 
   useEffect(() => {
-    if (!isHistoryReady || typeof window === 'undefined') {
+    if (!isHistoryReady || typeof window === 'undefined' || !workspaceId) {
       return;
     }
 
@@ -812,10 +830,10 @@ export default function ChatPage() {
 
     if (activeSessionId) {
       params.set('session', activeSessionId);
-      window.localStorage.setItem(LAST_SESSION_STORAGE_KEY, activeSessionId);
+      window.localStorage.setItem(lastSessionStorageKey(workspaceId), activeSessionId);
     } else {
       params.delete('session');
-      window.localStorage.removeItem(LAST_SESSION_STORAGE_KEY);
+      window.localStorage.removeItem(lastSessionStorageKey(workspaceId));
     }
 
     const query = params.toString();
@@ -848,6 +866,16 @@ export default function ChatPage() {
     autoResizeComposer();
   }, [input]);
 
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="chat">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
+  }
+
   return (
     <AppPageShell immersive pageId="chat">
       <section className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -864,7 +892,7 @@ export default function ChatPage() {
             setFocusSourceName(null);
             setHistoryOpen(false);
             if (typeof window !== 'undefined') {
-              window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+              window.sessionStorage.removeItem(focusSourceStorageKey(workspaceId));
             }
           }}
           onRenameSession={(session) => {
@@ -876,7 +904,7 @@ export default function ChatPage() {
             setFocusSourceName(null);
             setHistoryOpen(false);
             if (typeof window !== 'undefined') {
-              window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+              window.sessionStorage.removeItem(focusSourceStorageKey(workspaceId));
             }
           }}
           sessions={sessions}
@@ -900,7 +928,7 @@ export default function ChatPage() {
                 setFocusSourceName(null);
                 setHistoryOpen(false);
                 if (typeof window !== 'undefined') {
-                  window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+                  window.sessionStorage.removeItem(focusSourceStorageKey(workspaceId));
                 }
               }}
               onRenameSession={(session) => {
@@ -912,7 +940,7 @@ export default function ChatPage() {
                 setFocusSourceName(null);
                 setHistoryOpen(false);
                 if (typeof window !== 'undefined') {
-                  window.sessionStorage.removeItem(FOCUS_SOURCE_STORAGE_KEY);
+                  window.sessionStorage.removeItem(focusSourceStorageKey(workspaceId));
                 }
               }}
               sessions={sessions}

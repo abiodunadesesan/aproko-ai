@@ -4,6 +4,7 @@ import { createWorkspaceNote, listWorkspaceNotes, type WorkspaceNote } from '@/l
 import { withPerformanceHeaders } from '@/lib/perf/http';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +42,10 @@ export function createNotesRouteHandlers(deps: NotesRouteDependencies) {
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const notes = await deps.listWorkspaceNotes(workspaceId);
       return withPerformanceHeaders(
         NextResponse.json({ data: notes.map(toNotePayload) }),
@@ -66,6 +71,10 @@ export function createNotesRouteHandlers(deps: NotesRouteDependencies) {
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         content?: string;

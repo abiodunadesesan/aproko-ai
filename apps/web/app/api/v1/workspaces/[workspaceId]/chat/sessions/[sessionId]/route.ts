@@ -6,6 +6,7 @@ import {
   updateChatSessionTitle,
   type ChatSession,
 } from '@/lib/storage/chat';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +42,10 @@ export function createChatSessionByIdRouteHandlers(deps: ChatSessionByIdRouteDep
       }
 
       const { workspaceId, sessionId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as { title?: string } | null;
       const title = rawBody?.title?.trim() ?? '';
       if (!title) {
@@ -67,6 +72,10 @@ export function createChatSessionByIdRouteHandlers(deps: ChatSessionByIdRouteDep
       }
 
       const { workspaceId, sessionId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const existing = await deps.getChatSessionById(workspaceId, userId, sessionId);
       if (!existing) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });

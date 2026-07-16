@@ -5,6 +5,7 @@ import {
   type ResearchWorkspace,
 } from '@/lib/storage/research';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -23,6 +24,10 @@ export function createResearchWorkspacesRouteHandlers(deps: ResearchWorkspacesRo
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const data = await deps.listResearchWorkspaces(workspaceId);
       return Response.json({ data }, { status: 200 });
     } catch (error) {
@@ -53,6 +58,10 @@ export function createResearchWorkspacesRouteHandlers(deps: ResearchWorkspacesRo
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const data = await deps.createResearchWorkspace({
         workspaceId,
         title,

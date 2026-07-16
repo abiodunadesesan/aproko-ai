@@ -86,11 +86,14 @@ Response:
 
 ### Workspaces
 
+- `GET /v1/workspaces/current` — resolve (or create) the signed-in user's personal workspace
 - `GET /v1/workspaces`
 - `POST /v1/workspaces`
 - `GET /v1/workspaces/{workspace_id}`
 - `PATCH /v1/workspaces/{workspace_id}`
 - `DELETE /v1/workspaces/{workspace_id}` (soft delete)
+
+Protected workspace-scoped routes require membership in `workspace_memberships` for the authenticated Clerk user (403 otherwise).
 
 ### Library Sources and Uploads
 

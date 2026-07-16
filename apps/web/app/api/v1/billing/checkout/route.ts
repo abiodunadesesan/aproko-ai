@@ -4,6 +4,7 @@ import { createCheckoutSession, parseCheckoutPlanCode } from '@/lib/billing/chec
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { captureServerError, trackServerEvent } from '@/lib/observability/server';
 import { withPerformanceHeaders } from '@/lib/perf/http';
+import { resolveWorkspaceForUser } from '@/lib/storage/workspaces';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -11,6 +12,7 @@ type BillingCheckoutRouteDependencies = {
   auth: AuthDependency;
   createCheckoutSession: typeof createCheckoutSession;
   resolveAuthUserId: (clerkAuth: AuthDependency, request: Request) => Promise<string | null>;
+  resolveWorkspaceForUser: typeof resolveWorkspaceForUser;
 };
 
 export function createBillingCheckoutRouteHandlers(deps: BillingCheckoutRouteDependencies) {
@@ -40,7 +42,17 @@ export function createBillingCheckoutRouteHandlers(deps: BillingCheckoutRouteDep
           planCode?: string;
         } | null;
 
-        const workspaceId = rawBody?.workspaceId?.trim() || 'default-workspace';
+        let workspaceId = rawBody?.workspaceId?.trim() || '';
+        if (!workspaceId) {
+          const workspace = await deps.resolveWorkspaceForUser(userId);
+          workspaceId = workspace?.workspaceId ?? '';
+        }
+        if (!workspaceId) {
+          return withPerformanceHeaders(
+            Response.json({ error: 'Failed to resolve workspace' }, { status: 500 }),
+            startedAtMs,
+          );
+        }
         const planCode = parseCheckoutPlanCode(rawBody?.planCode);
 
         if (!planCode) {
@@ -98,4 +110,5 @@ export const { POST } = createBillingCheckoutRouteHandlers({
   },
   createCheckoutSession,
   resolveAuthUserId,
+  resolveWorkspaceForUser,
 });

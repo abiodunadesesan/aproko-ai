@@ -8,6 +8,7 @@ import {
 } from '@/lib/storage/writing-drafts';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -43,6 +44,10 @@ export function createWritingDraftByIdRouteHandlers(deps: WritingDraftByIdRouteD
       }
 
       const { workspaceId, draftId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const draft = await deps.getWorkspaceWritingDraftById(workspaceId, userId, draftId);
       if (!draft) {
         return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
@@ -66,6 +71,10 @@ export function createWritingDraftByIdRouteHandlers(deps: WritingDraftByIdRouteD
       }
 
       const { workspaceId, draftId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         draft?: string;
@@ -88,7 +97,7 @@ export function createWritingDraftByIdRouteHandlers(deps: WritingDraftByIdRouteD
         title,
         draft,
         polished,
-        mode: rawBody?.mode,
+        ...(rawBody?.mode !== undefined ? { mode: rawBody.mode } : {}),
       });
       if (!updated) {
         return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
@@ -122,6 +131,10 @@ export function createWritingDraftByIdRouteHandlers(deps: WritingDraftByIdRouteD
       }
 
       const { workspaceId, draftId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deleted = await deps.deleteWorkspaceWritingDraft(workspaceId, userId, draftId);
       if (!deleted) {
         return NextResponse.json({ error: 'Draft not found or delete failed' }, { status: 404 });

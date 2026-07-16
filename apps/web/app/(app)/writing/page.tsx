@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { Copy, History, Pencil, PenLine, Plus, ScanSearch, Sparkles, Trash2 } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { Button } from '@/components/ui/button';
@@ -31,9 +32,6 @@ import {
   markLocalWritingDraftsMigrated,
   type WritingDraftRecord,
 } from '@/lib/writing/draft-history';
-
-const WORKSPACE_ID = 'default-workspace';
-const DRAFTS_API = `/api/v1/workspaces/${WORKSPACE_ID}/writing/drafts`;
 
 const MODES = [
   { value: 'clarity', label: 'Clarity' },
@@ -106,11 +104,13 @@ function toDraftRecord(payload: {
     polished: payload.polished,
     mode: payload.mode,
     updatedAt: payload.updatedAt,
-    createdAt: payload.createdAt,
+    ...(payload.createdAt !== undefined ? { createdAt: payload.createdAt } : {}),
   };
 }
 
 export default function WritingPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
+  const draftsApi = workspaceId ? `/api/v1/workspaces/${workspaceId}/writing/drafts` : null;
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('Untitled draft');
   const [drafts, setDrafts] = useState<WritingDraftRecord[]>([]);
@@ -131,7 +131,7 @@ export default function WritingPage() {
   const [draftsOpen, setDraftsOpen] = useState(false);
 
   async function migrateLocalDraftsIfNeeded(): Promise<number> {
-    if (hasMigratedLocalWritingDrafts()) {
+    if (!draftsApi || hasMigratedLocalWritingDrafts()) {
       return 0;
     }
 
@@ -143,7 +143,7 @@ export default function WritingPage() {
 
     let imported = 0;
     for (const item of localDrafts) {
-      const response = await fetch(DRAFTS_API, {
+      const response = await fetch(draftsApi, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -164,7 +164,10 @@ export default function WritingPage() {
   }
 
   async function loadDraftsFromServer(): Promise<WritingDraftRecord[]> {
-    const response = await fetch(DRAFTS_API, { cache: 'no-store' });
+    if (!draftsApi) {
+      throw new Error('Workspace is not ready');
+    }
+    const response = await fetch(draftsApi, { cache: 'no-store' });
     const payload = await readApiJson<{ data?: WritingDraftRecord[]; error?: string }>(response);
     if (!response.ok || !payload.data) {
       throw new Error(payload.error ?? 'Failed to load writing drafts');
@@ -173,6 +176,10 @@ export default function WritingPage() {
   }
 
   useEffect(() => {
+    if (!draftsApi) {
+      return;
+    }
+
     let cancelled = false;
 
     async function bootstrap() {
@@ -213,7 +220,7 @@ export default function WritingPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [draftsApi]);
 
   function selectedCheckText(): string {
     return (checkTarget === 'polished' ? polished : draft).trim();
@@ -242,6 +249,11 @@ export default function WritingPage() {
   }
 
   async function saveCurrentDraft(nextTitle = draftTitle, options?: { polishedText?: string }) {
+    if (!draftsApi) {
+      setError('Workspace is not ready');
+      return null;
+    }
+
     const polishedText = options?.polishedText ?? polished;
     const title = nextTitle.trim() || deriveWritingTitle(draft || polishedText);
     if (!title.trim() && !draft.trim() && !polishedText.trim()) {
@@ -260,7 +272,7 @@ export default function WritingPage() {
         mode,
       };
 
-      const response = await fetch(draftId ? `${DRAFTS_API}/${draftId}` : DRAFTS_API, {
+      const response = await fetch(draftId ? `${draftsApi}/${draftId}` : draftsApi, {
         method: draftId ? 'PATCH' : 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -302,6 +314,11 @@ export default function WritingPage() {
   }
 
   async function removeDraft(id: string) {
+    if (!draftsApi) {
+      setError('Workspace is not ready');
+      return;
+    }
+
     const target = drafts.find((item) => item.id === id);
     if (!target) {
       return;
@@ -313,7 +330,7 @@ export default function WritingPage() {
 
     setError(null);
     try {
-      const response = await fetch(`${DRAFTS_API}/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${draftsApi}/${id}`, { method: 'DELETE' });
       const payload = await readApiJson<{ ok?: boolean; error?: string }>(response);
       if (!response.ok) {
         throw new Error(payload.error ?? 'Failed to delete draft');
@@ -340,7 +357,7 @@ export default function WritingPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/writing/polish`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/writing/polish`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text: draft, mode }),
@@ -396,7 +413,7 @@ export default function WritingPage() {
     setNotice(null);
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/writing/detect`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/writing/detect`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text, source: checkTarget }),
@@ -475,6 +492,16 @@ export default function WritingPage() {
     }
     setDraft(polished);
     setNotice('Moved polished text into the draft editor.');
+  }
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="writing">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
   }
 
   return (

@@ -8,6 +8,7 @@ import {
 import { withPerformanceHeaders } from '@/lib/perf/http';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -46,6 +47,10 @@ export function createWritingDraftsRouteHandlers(deps: WritingDraftsRouteDepende
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const drafts = await deps.listWorkspaceWritingDrafts(workspaceId, userId);
       return withPerformanceHeaders(
         NextResponse.json({ data: drafts.map(toDraftPayload) }),
@@ -71,6 +76,10 @@ export function createWritingDraftsRouteHandlers(deps: WritingDraftsRouteDepende
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         title?: string;
         draft?: string;
@@ -93,7 +102,7 @@ export function createWritingDraftsRouteHandlers(deps: WritingDraftsRouteDepende
         title,
         draft,
         polished,
-        mode: rawBody?.mode,
+        ...(rawBody?.mode !== undefined ? { mode: rawBody.mode } : {}),
       });
       if (!created) {
         return NextResponse.json({ error: 'Failed to create writing draft' }, { status: 500 });

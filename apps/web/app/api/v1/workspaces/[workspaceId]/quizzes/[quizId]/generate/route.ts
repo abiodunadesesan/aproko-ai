@@ -7,6 +7,7 @@ import { readLibrarySourceText } from '@/lib/storage/library';
 import { resolveStudySourceContent } from '@/lib/study/resolve-source';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -56,6 +57,10 @@ export function createQuizGenerateRouteHandlers(deps: QuizGenerateRouteDependenc
         }
 
         const { workspaceId, quizId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
         const quiz = await deps.getQuizById(workspaceId, quizId);
         if (!quiz) {
           return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });

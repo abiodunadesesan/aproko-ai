@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { FileText, Sparkles } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
@@ -36,9 +37,8 @@ type Source = {
   folder: string;
 };
 
-const WORKSPACE_ID = 'default-workspace';
-
 export default function ResearchPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [researchWorkspaces, setResearchWorkspaces] = useState<ResearchWorkspace[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('');
   const [linkedSources, setLinkedSources] = useState<ResearchWorkspaceSource[]>([]);
@@ -76,7 +76,7 @@ export default function ResearchPage() {
   );
 
   async function loadResearchWorkspaces() {
-    const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/research/workspaces`, {
+    const res = await fetch(`/api/v1/workspaces/${workspaceId}/research/workspaces`, {
       cache: 'no-store',
     });
     const payload = await res.json();
@@ -96,7 +96,7 @@ export default function ResearchPage() {
   }
 
   async function loadLibrarySources() {
-    const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources`, { cache: 'no-store' });
+    const res = await fetch(`/api/v1/workspaces/${workspaceId}/sources`, { cache: 'no-store' });
     const payload = await res.json();
 
     if (!res.ok) {
@@ -113,7 +113,7 @@ export default function ResearchPage() {
     }
 
     const res = await fetch(
-      `/api/v1/workspaces/${WORKSPACE_ID}/research/workspaces/${workspaceId}/sources`,
+      `/api/v1/workspaces/${workspaceId}/research/workspaces/${workspaceId}/sources`,
       {
         cache: 'no-store',
       },
@@ -159,7 +159,7 @@ export default function ResearchPage() {
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/research/workspaces`, {
+      const res = await fetch(`/api/v1/workspaces/${workspaceId}/research/workspaces`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -196,7 +196,7 @@ export default function ResearchPage() {
     setNotice(null);
     try {
       const res = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/research/workspaces/${activeWorkspaceId}/sources`,
+        `/api/v1/workspaces/${workspaceId}/research/workspaces/${activeWorkspaceId}/sources`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -229,7 +229,7 @@ export default function ResearchPage() {
     try {
       const encoded = encodeURIComponent(sourceId);
       const res = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/research/workspaces/${activeWorkspaceId}/sources/${encoded}`,
+        `/api/v1/workspaces/${workspaceId}/research/workspaces/${activeWorkspaceId}/sources/${encoded}`,
         {
           method: 'DELETE',
         },
@@ -246,6 +246,16 @@ export default function ResearchPage() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="research">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
   }
 
   return (

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { createWorkspaceFolder, listWorkspaceFolders } from '@/lib/storage/workspace-taxonomy';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -22,6 +23,10 @@ export function createProjectFoldersRouteHandlers(deps: FoldersRouteDependencies
       }
 
       const { workspaceId, projectId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const data = await deps.listWorkspaceFolders(workspaceId, projectId);
 
       return Response.json({ data }, { status: 200 });
@@ -43,6 +48,10 @@ export function createProjectFoldersRouteHandlers(deps: FoldersRouteDependencies
       }
 
       const { workspaceId, projectId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const body = (await request.json()) as { name?: string };
       const name = body.name?.trim() ?? '';
 

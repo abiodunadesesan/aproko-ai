@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Search as SearchIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,6 @@ type SearchResult = {
 
 type SearchTypeFilter = 'all' | 'source' | 'note' | 'memory';
 
-const WORKSPACE_ID = 'default-workspace';
 const FILTERS: Array<{ label: string; value: SearchTypeFilter }> = [
   { label: 'All', value: 'all' },
   { label: 'Sources', value: 'source' },
@@ -37,6 +37,7 @@ function toResultHref(result: SearchResult): string {
 }
 
 export default function SearchPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [activeFilter, setActiveFilter] = useState<SearchTypeFilter>('all');
@@ -55,7 +56,7 @@ export default function SearchPage() {
     try {
       const encoded = encodeURIComponent(query.trim());
       const res = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/search?q=${encoded}&type=${activeFilter}&limit=30`,
+        `/api/v1/workspaces/${workspaceId}/search?q=${encoded}&type=${activeFilter}&limit=30`,
         {
           cache: 'no-store',
         },
@@ -97,6 +98,16 @@ export default function SearchPage() {
           </Link>
         ))}
       </div>
+    );
+  }
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="search">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
     );
   }
 

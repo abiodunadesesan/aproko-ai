@@ -9,6 +9,7 @@ import { getWorkspaceNoteById, listWorkspaceNotes } from '@/lib/storage/notes';
 import { readLibrarySourceText } from '@/lib/storage/library';
 import { resolveStudySourceContent } from '@/lib/study/resolve-source';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -51,6 +52,10 @@ export function createStudySummaryGenerateRouteHandlers(
         }
 
         const { workspaceId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
         const rawBody = (await request.json().catch(() => null)) as {
           noteId?: string;
           sourceId?: string;

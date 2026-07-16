@@ -5,6 +5,13 @@ import { createBillingCheckoutRouteHandlers } from '../../app/api/v1/billing/che
 const resolveAuthUserId = async (clerkAuth: () => Promise<{ userId: string | null }>) =>
   (await clerkAuth()).userId;
 
+const resolveWorkspaceForUser = async (userId: string) => ({
+  workspaceId: `ws_${userId}`,
+  name: 'Personal',
+  slug: `ws_${userId}`,
+  role: 'owner' as const,
+});
+
 test('billing checkout POST returns 401 when unauthenticated', async () => {
   const handlers = createBillingCheckoutRouteHandlers({
     auth: async () => ({ userId: null }),
@@ -16,6 +23,7 @@ test('billing checkout POST returns 401 when unauthenticated', async () => {
       message: 'pending',
     }),
     resolveAuthUserId,
+    resolveWorkspaceForUser,
   });
 
   const response = await handlers.POST(
@@ -41,6 +49,7 @@ test('billing checkout POST validates paid plan code', async () => {
       message: 'pending',
     }),
     resolveAuthUserId,
+    resolveWorkspaceForUser,
   });
 
   const response = await handlers.POST(
@@ -66,6 +75,7 @@ test('billing checkout POST returns checkout payload', async () => {
       message: `Checkout pending for ${userId} in ${workspaceId}`,
     }),
     resolveAuthUserId,
+    resolveWorkspaceForUser,
   });
 
   const response = await handlers.POST(

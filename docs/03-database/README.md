@@ -67,21 +67,23 @@ erDiagram
 
 2. `workspaces`
 
-- `id uuid pk`
-- `account_id uuid not null`
+- `id text pk` (personal workspaces use `ws_<clerk_user_id>`)
 - `name text not null`
 - `slug text unique not null`
-- `created_by uuid not null`
-- audit fields + soft delete
+- `created_by_clerk_user_id text not null`
+- audit fields (`created_at`, `updated_at`)
 
 3. `workspace_memberships`
 
 - `id uuid pk`
-- `workspace_id uuid not null`
+- `workspace_id text not null` (FK → `workspaces.id`)
 - `clerk_user_id text not null`
-- `role text not null check (role in ('owner','editor','viewer'))`
+- `role text not null` (`owner` | `editor` | `viewer`)
 - unique (`workspace_id`, `clerk_user_id`)
-- audit fields
+- `created_at`
+
+Migration: `supabase/migrations/202607161500_create_workspaces_and_memberships.sql`.
+Content tables continue to store `workspace_id` as text (no FK rewrite in that migration).
 
 4. `projects`
 

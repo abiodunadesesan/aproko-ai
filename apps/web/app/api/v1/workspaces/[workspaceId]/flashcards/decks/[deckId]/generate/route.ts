@@ -7,6 +7,7 @@ import { readLibrarySourceText } from '@/lib/storage/library';
 import { resolveStudySourceContent } from '@/lib/study/resolve-source';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -54,6 +55,10 @@ export function createFlashcardGenerateRouteHandlers(deps: FlashcardGenerateRout
         }
 
         const { workspaceId, deckId } = await context.params;
+        const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+        if (forbidden) {
+          return forbidden;
+        }
         const deck = await deps.getFlashcardDeckById(workspaceId, deckId);
         if (!deck) {
           return NextResponse.json({ error: 'Deck not found' }, { status: 404 });

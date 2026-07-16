@@ -151,7 +151,17 @@ export function AppShell({
 
   function startNewChat() {
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('aproko.chat.last-session.default-workspace');
+      const prefix = 'aproko.chat.last-session.';
+      const keysToRemove: string[] = [];
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (key?.startsWith(prefix)) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        window.localStorage.removeItem(key);
+      }
     }
     router.push('/chat?new=1');
   }

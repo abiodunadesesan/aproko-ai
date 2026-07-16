@@ -4,6 +4,7 @@ import {
   getWorkspaceFolderById,
   updateWorkspaceFolder,
 } from '@/lib/storage/workspace-taxonomy';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -27,6 +28,10 @@ export function createFolderByIdRouteHandlers(deps: FolderByIdRouteDependencies)
       }
 
       const { workspaceId, folderId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const folder = await deps.getWorkspaceFolderById(workspaceId, folderId);
 
       if (!folder) {
@@ -52,6 +57,10 @@ export function createFolderByIdRouteHandlers(deps: FolderByIdRouteDependencies)
       }
 
       const { workspaceId, folderId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const body = (await request.json()) as { name?: string };
       const name = body.name?.trim() ?? '';
 
@@ -84,6 +93,10 @@ export function createFolderByIdRouteHandlers(deps: FolderByIdRouteDependencies)
       }
 
       const { workspaceId, folderId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deleted = await deps.deleteWorkspaceFolder(workspaceId, folderId);
 
       if (!deleted) {

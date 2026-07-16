@@ -7,6 +7,7 @@ import {
   type FlashcardDeck,
 } from '@/lib/storage/flashcards';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +42,10 @@ export function createFlashcardDeckByIdRouteHandlers(deps: FlashcardDeckByIdRout
       }
 
       const { workspaceId, deckId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deck = await deps.getFlashcardDeckById(workspaceId, deckId);
       if (!deck) {
         return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
@@ -64,6 +69,10 @@ export function createFlashcardDeckByIdRouteHandlers(deps: FlashcardDeckByIdRout
       }
 
       const { workspaceId, deckId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as { title?: string } | null;
       const title = rawBody?.title?.trim() ?? '';
       if (!title) {
@@ -93,6 +102,10 @@ export function createFlashcardDeckByIdRouteHandlers(deps: FlashcardDeckByIdRout
       }
 
       const { workspaceId, deckId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const deleted = await deps.deleteFlashcardDeck(workspaceId, deckId);
       if (!deleted) {
         return NextResponse.json({ error: 'Deck not found or delete failed' }, { status: 404 });

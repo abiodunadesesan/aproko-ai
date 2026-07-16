@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { FileText } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
@@ -86,7 +87,6 @@ type PendingTaxonomyDeleteJob = {
   previousFolderId: string;
 };
 
-const WORKSPACE_ID = 'default-workspace';
 const PAGE_SIZE = 10;
 const buttonPrimaryClass = cn(buttonVariants({ variant: 'default' }));
 const buttonSecondaryClass = cn(buttonVariants({ variant: 'outline' }));
@@ -104,6 +104,7 @@ function formatBytes(size: number): string {
 }
 
 export default function LibraryPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [sources, setSources] = useState<Source[]>([]);
   const [query, setQuery] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -216,12 +217,9 @@ export default function LibraryPage() {
       return [];
     }
 
-    const res = await fetch(
-      `/api/v1/workspaces/${WORKSPACE_ID}/projects/${nextProjectId}/folders`,
-      {
-        cache: 'no-store',
-      },
-    );
+    const res = await fetch(`/api/v1/workspaces/${workspaceId}/projects/${nextProjectId}/folders`, {
+      cache: 'no-store',
+    });
     const payload = await res.json();
 
     if (!res.ok) {
@@ -233,7 +231,7 @@ export default function LibraryPage() {
 
   async function loadProjects() {
     try {
-      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects`, { cache: 'no-store' });
+      const res = await fetch(`/api/v1/workspaces/${workspaceId}/projects`, { cache: 'no-store' });
       const payload = await res.json();
 
       if (!res.ok) {
@@ -287,7 +285,7 @@ export default function LibraryPage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources`, { cache: 'no-store' });
+      const res = await fetch(`/api/v1/workspaces/${workspaceId}/sources`, { cache: 'no-store' });
       const payload = await res.json();
 
       if (!res.ok) {
@@ -303,13 +301,19 @@ export default function LibraryPage() {
   }
 
   useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
     void loadSources();
     void loadProjects();
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
+    if (!workspaceId || !projectId) {
+      return;
+    }
     void loadFolders(projectId);
-  }, [projectId]);
+  }, [projectId, workspaceId]);
 
   function handleCreateProject() {
     setTaxonomyEditorMode('create-project');
@@ -403,7 +407,7 @@ export default function LibraryPage() {
     if (taxonomyEditorMode === 'create-project') {
       setIsSavingProject(true);
       try {
-        const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects`, {
+        const res = await fetch(`/api/v1/workspaces/${workspaceId}/projects`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ name: taxonomyNameDraft.trim() }),
@@ -444,7 +448,7 @@ export default function LibraryPage() {
       );
 
       try {
-        const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/projects/${projectId}`, {
+        const res = await fetch(`/api/v1/workspaces/${workspaceId}/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ name: optimisticName }),
@@ -524,14 +528,11 @@ export default function LibraryPage() {
 
       setIsSavingFolder(true);
       try {
-        const res = await fetch(
-          `/api/v1/workspaces/${WORKSPACE_ID}/projects/${projectId}/folders`,
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ name: taxonomyNameDraft.trim() }),
-          },
-        );
+        const res = await fetch(`/api/v1/workspaces/${workspaceId}/projects/${projectId}/folders`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: taxonomyNameDraft.trim() }),
+        });
         const payload = await res.json();
         if (!res.ok) throw new Error(payload.error || 'Failed to create folder');
 
@@ -564,7 +565,7 @@ export default function LibraryPage() {
       );
 
       try {
-        const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/folders/${folderId}`, {
+        const res = await fetch(`/api/v1/workspaces/${workspaceId}/folders/${folderId}`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ name: optimisticName }),
@@ -674,7 +675,7 @@ export default function LibraryPage() {
       formData.append('project', selectedProject?.slug ?? '');
       formData.append('folder', selectedFolder?.slug ?? '');
 
-      const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources`, {
+      const res = await fetch(`/api/v1/workspaces/${workspaceId}/sources`, {
         method: 'POST',
         body: formData,
       });
@@ -840,7 +841,7 @@ export default function LibraryPage() {
             };
 
       const res = await fetch(
-        `/api/v1/workspaces/${WORKSPACE_ID}/sources/${sourceEditorTarget.id}`,
+        `/api/v1/workspaces/${workspaceId}/sources/${sourceEditorTarget.id}`,
         {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
@@ -916,7 +917,7 @@ export default function LibraryPage() {
 
     try {
       for (const sourceId of selectedSourceIds) {
-        const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources/${sourceId}`, {
+        const res = await fetch(`/api/v1/workspaces/${workspaceId}/sources/${sourceId}`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -1018,7 +1019,7 @@ export default function LibraryPage() {
 
     try {
       for (const source of job.targets) {
-        const res = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/sources/${source.id}`, {
+        const res = await fetch(`/api/v1/workspaces/${workspaceId}/sources/${source.id}`, {
           method: 'DELETE',
         });
         const payload = await res.json();
@@ -1085,8 +1086,8 @@ export default function LibraryPage() {
     try {
       const endpoint =
         job.mode === 'project'
-          ? `/api/v1/workspaces/${WORKSPACE_ID}/projects/${job.targetId}`
-          : `/api/v1/workspaces/${WORKSPACE_ID}/folders/${job.targetId}`;
+          ? `/api/v1/workspaces/${workspaceId}/projects/${job.targetId}`
+          : `/api/v1/workspaces/${workspaceId}/folders/${job.targetId}`;
 
       const res = await fetch(endpoint, { method: 'DELETE' });
       const payload = await res.json();
@@ -1235,6 +1236,16 @@ export default function LibraryPage() {
       clearPendingTaxonomyDeleteTimer();
     };
   }, []);
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="library">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
+  }
 
   return (
     <AppPageShell pageId="library">

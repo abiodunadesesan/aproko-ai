@@ -8,6 +8,7 @@ import {
   type MemoryState,
   type MemoryType,
 } from '@/lib/storage/memory';
+import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -231,6 +232,10 @@ export function createMemoryItemsRouteHandlers(deps: MemoryItemsRouteDependencie
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const items = await deps.listMemoryItems(workspaceId);
       const sortMode = parseSortMode(request.url);
       const ranked = rankMemoryTimeline(items, sortMode);
@@ -249,6 +254,10 @@ export function createMemoryItemsRouteHandlers(deps: MemoryItemsRouteDependencie
       }
 
       const { workspaceId } = await context.params;
+      const forbidden = await forbidUnlessWorkspaceMember(userId, workspaceId);
+      if (forbidden) {
+        return forbidden;
+      }
       const rawBody = (await request.json().catch(() => null)) as {
         memoryType?: string;
         summary?: string;

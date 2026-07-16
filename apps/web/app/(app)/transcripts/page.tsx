@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { Mic, Square, Upload } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { EmptyState } from '@/components/app/empty-state';
@@ -17,8 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-const WORKSPACE_ID = 'default-workspace';
 
 type TranscriptSource = {
   id: string;
@@ -58,6 +57,7 @@ function formatDuration(totalSeconds: number): string {
 }
 
 export default function TranscriptsPage() {
+  const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [transcripts, setTranscripts] = useState<TranscriptSource[]>([]);
   const [query, setQuery] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -77,7 +77,7 @@ export default function TranscriptsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/transcripts`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/transcripts`, {
         cache: 'no-store',
       });
       const payload = (await response.json()) as { data?: TranscriptSource[]; error?: string };
@@ -124,7 +124,7 @@ export default function TranscriptsPage() {
       const formData = new FormData();
       formData.append('file', nextFile);
 
-      const response = await fetch(`/api/v1/workspaces/${WORKSPACE_ID}/transcripts`, {
+      const response = await fetch(`/api/v1/workspaces/${workspaceId}/transcripts`, {
         method: 'POST',
         body: formData,
       });
@@ -225,6 +225,16 @@ export default function TranscriptsPage() {
     if (recorder && recorder.state !== 'inactive') {
       recorder.stop();
     }
+  }
+
+  if (isWorkspaceLoading || !workspaceId) {
+    return (
+      <AppPageShell pageId="transcripts">
+        <p className="text-sm text-muted-foreground" role="status">
+          {workspaceError ?? 'Resolving workspace…'}
+        </p>
+      </AppPageShell>
+    );
   }
 
   return (
