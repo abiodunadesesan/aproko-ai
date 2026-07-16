@@ -81,7 +81,7 @@ test('transcripts POST returns 503 when audio STT is not configured', async () =
 
   assert.equal(response.status, 503);
   const payload = (await response.json()) as { error: string };
-  assert.match(payload.error, /OPENAI_API_KEY/i);
+  assert.match(payload.error, /GROQ_API_KEY|OPENAI_API_KEY/i);
 });
 
 test('transcripts POST transcribes audio when configured', async () => {

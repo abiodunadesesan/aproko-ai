@@ -310,9 +310,10 @@ export default function TranscriptsPage() {
                 </Button>
               )}
               <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                Text/subtitle files upload immediately. Audio is transcribed with Whisper when{' '}
-                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">OPENAI_API_KEY</code> is
-                set.
+                Text/subtitle files upload immediately. Audio is transcribed with Whisper via{' '}
+                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">GROQ_API_KEY</code>{' '}
+                (preferred) or{' '}
+                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">OPENAI_API_KEY</code>.
               </p>
             </div>
           </CardContent>

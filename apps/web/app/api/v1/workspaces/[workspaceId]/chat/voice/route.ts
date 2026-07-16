@@ -41,7 +41,7 @@ export function createChatVoiceRouteHandlers(deps: ChatVoiceRouteDependencies) {
           return Response.json(
             {
               error:
-                'Voice transcription is not configured. Set OPENAI_API_KEY, or use browser speech recognition.',
+                'Voice transcription is not configured. Set GROQ_API_KEY (preferred) or OPENAI_API_KEY, or use browser speech recognition.',
             },
             { status: 503 },
           );

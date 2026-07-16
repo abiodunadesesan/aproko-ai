@@ -103,7 +103,7 @@ export function createTranscriptsRouteHandlers(deps: TranscriptsRouteDependencie
             return Response.json(
               {
                 error:
-                  'Speech-to-text is not configured. Set OPENAI_API_KEY on the server, or upload a .txt transcript.',
+                  'Speech-to-text is not configured. Set GROQ_API_KEY (preferred) or OPENAI_API_KEY on the server, or upload a .txt transcript.',
               },
               { status: 503 },
             );
