@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import { searchSourceChunks } from '@/lib/storage/source-chunks';
 
 export type WorkspaceSearchResultType = 'source' | 'note' | 'memory';
 
@@ -18,6 +19,10 @@ export type WorkspaceSearchOptions = {
 function toSnippet(raw: string, limit = 180): string {
   const normalized = raw.replace(/\s+/g, ' ').trim();
   return normalized.length > limit ? `${normalized.slice(0, limit)}...` : normalized;
+}
+
+function encodeStoragePathId(storagePath: string): string {
+  return encodeURIComponent(storagePath);
 }
 
 function buildScore(result: WorkspaceSearchResult, query: string): number {
@@ -86,10 +91,16 @@ export async function searchWorkspace(
           .limit(perTypeLimit)
       : Promise.resolve({ data: [], error: null });
 
-  const [sourcesRes, notesRes, memoryRes] = await Promise.all([
+  const chunkPromise =
+    typeFilter === 'all' || typeFilter === 'source'
+      ? searchSourceChunks(workspaceId, query, perTypeLimit)
+      : Promise.resolve([]);
+
+  const [sourcesRes, notesRes, memoryRes, chunkMatches] = await Promise.all([
     sourcePromise,
     notePromise,
     memoryPromise,
+    chunkPromise,
   ]);
 
   if (sourcesRes.error || notesRes.error || memoryRes.error) {
@@ -111,7 +122,7 @@ export async function searchWorkspace(
         }[]
       | null) ?? []
   ).map((row) => ({
-    id: encodeURIComponent(row.storage_path),
+    id: encodeStoragePathId(row.storage_path),
     type: 'source',
     title: row.display_name ?? row.storage_path.split('/').pop() ?? 'Source',
     snippet: toSnippet(
@@ -123,6 +134,32 @@ export async function searchWorkspace(
       storagePath: row.storage_path,
     },
   }));
+
+  const chunkResults: WorkspaceSearchResult[] = chunkMatches.map((match) => {
+    const fileName =
+      match.displayName ?? match.sourceStoragePath.split('/').pop() ?? 'Source document';
+    return {
+      id: encodeStoragePathId(match.sourceStoragePath),
+      type: 'source',
+      title: fileName,
+      snippet: toSnippet(match.content),
+      metadata: {
+        storagePath: match.sourceStoragePath,
+        chunkIndex: match.chunkIndex,
+      },
+    };
+  });
+
+  const mergedSourceResults = [...chunkResults, ...sourceResults].reduce<WorkspaceSearchResult[]>(
+    (acc, result) => {
+      if (acc.some((existing) => existing.id === result.id)) {
+        return acc;
+      }
+      acc.push(result);
+      return acc;
+    },
+    [],
+  );
 
   const noteResults: WorkspaceSearchResult[] = (
     (notesRes.data as { id: string; title: string; content: string | null }[] | null) ?? []
@@ -144,7 +181,7 @@ export async function searchWorkspace(
     metadata: { memoryType: row.memory_type },
   }));
 
-  return [...sourceResults, ...noteResults, ...memoryResults]
+  return [...mergedSourceResults, ...noteResults, ...memoryResults]
     .map((result) => ({ result, score: buildScore(result, query) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)

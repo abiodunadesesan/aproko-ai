@@ -99,13 +99,16 @@ Protected workspace-scoped routes require membership in `workspace_memberships` 
 
 Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 
-- `POST /v1/workspaces/{workspace_id}/sources/upload-url`
 - `POST /v1/workspaces/{workspace_id}/sources`
 - `GET /v1/workspaces/{workspace_id}/sources`
 - `GET /v1/workspaces/{workspace_id}/sources/{source_id}`
 - `PATCH /v1/workspaces/{workspace_id}/sources/{source_id}`
 - `DELETE /v1/workspaces/{workspace_id}/sources/{source_id}`
 - `POST /v1/workspaces/{workspace_id}/sources/{source_id}/reprocess`
+
+Upload (`POST`) persists the file to Supabase Storage, writes `sources` metadata, and **sync-ingests** text-based PDFs and text files into `source_chunks` for search and chat grounding (≤ 12MB, web sync MVP). Ingest failures do not fail the upload response.
+
+`reprocess` is planned; not yet implemented in Sprint 20 MVP.
 
 ### Projects and Folders
 

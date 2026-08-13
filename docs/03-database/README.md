@@ -85,6 +85,18 @@ erDiagram
 Migration: `supabase/migrations/202607161500_create_workspaces_and_memberships.sql`.
 Content tables continue to store `workspace_id` as text (no FK rewrite in that migration).
 
+**Sprint 20 — `source_chunks`**
+
+- `id uuid pk`
+- `workspace_id text not null`
+- `source_storage_path text not null` (matches library `sources.storage_path`)
+- `chunk_index int not null`
+- `content text not null`
+- `token_count int`, `metadata jsonb`
+- unique (`workspace_id`, `source_storage_path`, `chunk_index`)
+
+Migration: `supabase/migrations/202608131600_create_source_chunks.sql`.
+
 4. `projects`
 
 - `id uuid pk`

@@ -1,4 +1,5 @@
 import type { MemoryItem } from '@/lib/storage/memory';
+import { resolveExtractableKind } from '@/lib/ingestion/extract-document';
 import {
   getLibrarySource,
   listTranscriptSources,
@@ -182,15 +183,16 @@ export async function buildWorkspaceContext(
         });
       }
     } catch {
-      // Non-text files (PDF/etc.) still get a pinned stub so the model knows the focus doc.
       const meta = await getLibrarySource(workspaceId, preferredSourceId).catch(() => null);
-      pinned.push({
-        id: preferredSourceId,
-        title: meta?.name ?? 'Focused library document',
-        snippet:
-          'The user asked about this library document. Prefer it over other sources when answering. Text extraction was unavailable for this file type.',
-        type: 'source',
-      });
+      if (meta && resolveExtractableKind(meta.name, meta.mimeType) === 'pdf') {
+        pinned.push({
+          id: preferredSourceId,
+          title: meta.name,
+          snippet:
+            'The user asked about this PDF. Text extraction was unavailable — answer from filename/context only and say if content is missing.',
+          type: 'source',
+        });
+      }
     }
   }
 

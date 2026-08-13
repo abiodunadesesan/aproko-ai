@@ -4,6 +4,13 @@ import {
   DEFAULT_PROJECT_SLUG,
   sanitizeSlug,
 } from '@/lib/storage/workspace-taxonomy';
+import { ingestLibrarySource, readIngestedSourceText } from '@/lib/ingestion/ingest-source';
+import {
+  deleteSourceChunks,
+  joinSourceChunkText,
+  listSourceChunks,
+} from '@/lib/storage/source-chunks';
+import { resolveExtractableKind } from '@/lib/ingestion/extract-document';
 
 export type LibrarySource = {
   id: string;
@@ -310,7 +317,7 @@ export async function uploadLibraryFile(
     fileSize: file.size,
   });
 
-  return {
+  const uploaded: LibrarySource = {
     id: encodeSourceId(objectPath),
     workspaceId,
     name: file.name,
@@ -320,7 +327,16 @@ export async function uploadLibraryFile(
     size: file.size,
     updatedAt: new Date().toISOString(),
     mimeType: file.type || null,
+    sourceType: inferSourceType(file.name, file.type || null),
   };
+
+  try {
+    await ingestLibrarySource(uploaded);
+  } catch (error) {
+    console.warn('Post-upload source ingestion failed.', error);
+  }
+
+  return uploaded;
 }
 
 export async function getLibrarySource(
@@ -404,6 +420,17 @@ export async function readLibrarySourceText(
     return null;
   }
 
+  const extractableKind = resolveExtractableKind(source.name, source.mimeType);
+  if (extractableKind === 'pdf') {
+    const ingested = await readIngestedSourceText(source);
+    if (ingested) {
+      return ingested;
+    }
+    throw new Error(
+      'Unable to extract text from this PDF. It may be scanned, encrypted, or empty.',
+    );
+  }
+
   const ext = source.name.split('.').pop()?.toLowerCase() ?? '';
   const textLike =
     ['txt', 'md', 'markdown', 'vtt', 'srt', 'json', 'csv'].includes(ext) ||
@@ -412,8 +439,20 @@ export async function readLibrarySourceText(
 
   if (!textLike) {
     throw new Error(
-      'Selected source is not readable text. Use a transcript .txt/.md/.vtt/.srt file.',
+      'Selected source is not readable text. Upload a PDF, transcript, or text file.',
     );
+  }
+
+  const cachedChunks = await listSourceChunks(workspaceId, source.objectPath);
+  if (cachedChunks.length > 0) {
+    const content = joinSourceChunkText(cachedChunks).trim();
+    if (content) {
+      return {
+        title: source.name,
+        content,
+        sourceId: source.id,
+      };
+    }
   }
 
   const supabase = getSupabaseAdminClient();
@@ -545,6 +584,8 @@ export async function deleteLibrarySource(workspaceId: string, sourceId: string)
   if (dbDelete.error) {
     console.warn('Unable to delete source metadata from DB.', dbDelete.error.message);
   }
+
+  await deleteSourceChunks(workspaceId, objectPath);
 
   return true;
 }

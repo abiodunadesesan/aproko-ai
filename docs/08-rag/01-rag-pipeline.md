@@ -76,6 +76,8 @@ flowchart LR
 
 Web Step 1 (Sprint 19): browser mic/upload audio is transcribed synchronously with OpenAI Whisper (`whisper-1`) when `OPENAI_API_KEY` is set. Diarization remains deferred.
 
+Web sync PDF ingestion (Sprint 20): text-based PDFs ≤ 12MB are extracted with `unpdf` on upload, chunked into `source_chunks`, and used for lexical search + chat grounding. Scanned PDFs and async worker queues remain deferred.
+
 `TODO`: Async worker queue + diarization strategy for long recordings.
 
 ## Stage 4 - Chunking
