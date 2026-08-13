@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowUp, FolderOpen, Globe, History, Mic, PenLine, Square } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
+import { ChatMessageThread } from '@/components/app/chat-message-thread';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -189,7 +190,6 @@ export default function ChatPage() {
   const [focusSourceId, setFocusSourceId] = useState<string | null>(null);
   const [focusSourceName, setFocusSourceName] = useState<string | null>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -849,10 +849,6 @@ export default function ChatPage() {
     void loadMessages(activeSessionId);
   }, [activeSessionId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isSending]);
-
   function autoResizeComposer() {
     const el = chatInputRef.current;
     if (!el) {
@@ -1040,70 +1036,7 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-              <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6 md:px-6">
-                {messages.map((message) => (
-                  <article
-                    className={cn(
-                      'group',
-                      message.role === 'user' ? 'flex justify-end' : 'flex justify-start',
-                    )}
-                    data-testid={
-                      message.role === 'assistant' ? 'chat-assistant-message' : 'chat-user-message'
-                    }
-                    key={message.id}
-                  >
-                    {message.role === 'user' ? (
-                      <div className="max-w-[85%] rounded-3xl bg-zinc-100 px-4 py-2.5 text-[15px] leading-relaxed text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                    ) : (
-                      <div className="w-full max-w-none space-y-3 text-[15px] leading-7 text-zinc-800 dark:text-zinc-100">
-                        {message.memoryContext?.length ? (
-                          <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60">
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                              Memory
-                            </p>
-                            {message.memoryContext.map((memory) => (
-                              <p
-                                className="mt-1 text-xs text-zinc-500"
-                                key={`${message.id}-${memory.memoryItemId}`}
-                              >
-                                {memory.summary}
-                              </p>
-                            ))}
-                          </div>
-                        ) : null}
-                        <p className="whitespace-pre-wrap">
-                          {message.content || (isSending ? '…' : '')}
-                        </p>
-                        {message.citations?.length ? (
-                          <div className="space-y-2 border-t border-zinc-200/80 pt-3 dark:border-zinc-800">
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                              Citations
-                            </p>
-                            {message.citations.map((citation) => (
-                              <div
-                                className="rounded-xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/50"
-                                data-testid="chat-citation"
-                                key={citation.id}
-                              >
-                                <p className="text-xs font-medium">
-                                  {citation.title}{' '}
-                                  <span className="font-normal text-zinc-500">
-                                    ({citation.sourceType})
-                                  </span>
-                                </p>
-                                <p className="text-xs text-zinc-500">{citation.snippet}</p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-                  </article>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
+              <ChatMessageThread isSending={isSending} messages={messages} />
             )}
           </div>
 

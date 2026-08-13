@@ -26,9 +26,9 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Program Status
 
-- State: `Sprint 20 source ingestion in progress (PDF sync extract + chunks)`
+- State: `Sprint 21 chat AI Elements shipped`
 - Closure board: `./sprint-18-program-closure.md`
-- Current execution board: `./sprint-20-source-ingestion.md`
+- Current execution board: `./sprint-21-chat-ai-elements.md`
 - Launch checklist: `./release-v1-checklist.md`
 
 ## Sprint Boards
