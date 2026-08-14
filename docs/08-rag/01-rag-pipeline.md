@@ -76,7 +76,9 @@ flowchart LR
 
 Web Step 1 (Sprint 19): browser mic/upload audio is transcribed synchronously with OpenAI Whisper (`whisper-1`) when `OPENAI_API_KEY` is set. Diarization remains deferred.
 
-Web sync PDF ingestion (Sprint 20): text-based PDFs ≤ 12MB are extracted with `unpdf` on upload, chunked into `source_chunks`, and used for lexical search + chat grounding. Scanned PDFs and async worker queues remain deferred.
+Web sync PDF/DOCX/text ingestion (Sprint 20–22): text-based PDFs, DOCX, and plain-text files ≤ 12MB are extracted on upload, chunked into `source_chunks`, and used for lexical search + chat grounding. Scanned PDFs and async worker queues remain deferred (`docs/12-backlog/v1.2-async-ingestion-ocr.md`).
+
+Web hybrid search (Sprint 23): when `QDRANT_URL` and `OPENAI_API_KEY` are set, ingested chunks are embedded with `text-embedding-3-small`, upserted to Qdrant, and merged with lexical ILIKE hits in workspace search.
 
 `TODO`: Async worker queue + diarization strategy for long recordings.
 

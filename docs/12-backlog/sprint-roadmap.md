@@ -32,6 +32,6 @@
 
 - Admin users/workspaces/usage operational visibility and governance baseline.
 
-## Current active implementation: Sprint program complete; V1 release checklist active
+## Current active implementation: Sprint 23 complete; V1.2 OCR/async planned
 
-Next ticket target: `Release V1 go-live gates`
+Next ticket target: `V1.2 async ingestion + OCR` or `Release polish`

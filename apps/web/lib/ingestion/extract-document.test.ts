@@ -12,6 +12,17 @@ test('resolveExtractableKind detects text-like files', () => {
   assert.equal(resolveExtractableKind('data.csv', 'text/csv'), 'text');
 });
 
+test('resolveExtractableKind detects docx by extension and mime', () => {
+  assert.equal(resolveExtractableKind('report.docx', null), 'docx');
+  assert.equal(
+    resolveExtractableKind(
+      'file.bin',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ),
+    'docx',
+  );
+});
+
 test('resolveExtractableKind returns null for unsupported types', () => {
   assert.equal(resolveExtractableKind('slides.pptx', null), null);
   assert.equal(resolveExtractableKind('photo.png', 'image/png'), null);

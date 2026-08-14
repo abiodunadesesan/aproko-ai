@@ -44,7 +44,31 @@ type Source = {
   folder: string;
   size: number;
   updatedAt: string | null;
+  ingestStatus?: 'processing' | 'ready' | 'failed' | null;
 };
+
+function formatIngestStatus(status: Source['ingestStatus']): string {
+  if (status === 'processing') return 'Indexing…';
+  if (status === 'failed') return 'Index failed';
+  if (status === 'ready') return 'Indexed';
+  return '—';
+}
+
+function formatUploadNotice(
+  fileName: string,
+  ingest?: { status: string; reason?: string },
+): string {
+  if (!ingest) {
+    return `Uploaded "${fileName}" successfully.`;
+  }
+  if (ingest.status === 'ingested') {
+    return `Uploaded "${fileName}" and indexed for search.`;
+  }
+  if (ingest.status === 'skipped') {
+    return `Uploaded "${fileName}". Text indexing skipped for this file type.`;
+  }
+  return `Uploaded "${fileName}", but indexing failed${ingest.reason ? `: ${ingest.reason}` : '.'}`;
+}
 
 type Project = {
   id: string;
@@ -692,11 +716,35 @@ export default function LibraryPage() {
         fileInput.value = '';
       }
       await loadSources();
-      setNotice(`Uploaded "${file.name}" successfully.`);
+      setNotice(formatUploadNotice(file.name, payload.ingest));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
+    }
+  }
+
+  async function handleReprocessSource(source: Source) {
+    setMutatingSourceId(source.id);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const res = await fetch(
+        `/api/v1/workspaces/${workspaceId}/sources/${encodeURIComponent(source.id)}/reprocess`,
+        { method: 'POST' },
+      );
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.error || 'Re-index failed');
+      }
+
+      await loadSources();
+      setNotice(formatUploadNotice(source.name, payload.ingest));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Re-index failed');
+    } finally {
+      setMutatingSourceId(null);
     }
   }
 
@@ -1786,6 +1834,7 @@ export default function LibraryPage() {
                             Size
                           </button>
                         </TableHead>
+                        <TableHead>Index</TableHead>
                         <TableHead>
                           <button
                             className="font-medium"
@@ -1815,6 +1864,19 @@ export default function LibraryPage() {
                           <TableCell>{source.folder}</TableCell>
                           <TableCell>{formatBytes(source.size)}</TableCell>
                           <TableCell>
+                            <span
+                              className={cn(
+                                'text-xs font-medium',
+                                source.ingestStatus === 'failed' && 'text-destructive',
+                                source.ingestStatus === 'processing' && 'text-muted-foreground',
+                                source.ingestStatus === 'ready' && 'text-emerald-600',
+                              )}
+                              data-testid="library-source-index-status"
+                            >
+                              {formatIngestStatus(source.ingestStatus)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
                             {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
                           </TableCell>
                           <TableCell>
@@ -1828,6 +1890,17 @@ export default function LibraryPage() {
                               >
                                 Ask
                               </Link>
+                              {source.ingestStatus === 'failed' ? (
+                                <button
+                                  aria-label={`Re-index ${source.name}`}
+                                  className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  disabled={mutatingSourceId === source.id || isBulkProcessing}
+                                  onClick={() => void handleReprocessSource(source)}
+                                  type="button"
+                                >
+                                  Re-index
+                                </button>
+                              ) : null}
                               <button
                                 aria-label={`Rename ${source.name}`}
                                 className="text-sm underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -6,6 +6,7 @@ import { createProjectsRouteHandlers } from '../../app/api/v1/workspaces/[worksp
 import { createProjectFoldersRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/projects/[projectId]/folders/route';
 import { createProjectByIdRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/projects/[projectId]/route';
 import { createFolderByIdRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/folders/[folderId]/route';
+import { createSourceReprocessRouteHandlers } from '../../app/api/v1/workspaces/[workspaceId]/sources/[sourceId]/reprocess/route';
 
 test('sources GET returns 401 when unauthenticated', async () => {
   const handlers = createSourcesRouteHandlers({
@@ -58,15 +59,19 @@ test('sources POST resolves project/folder via ids before upload', async () => {
     uploadLibraryFile: async (...args) => {
       capturedArgs = [...args];
       return {
-        id: 'source-1',
-        workspaceId: args[0],
-        name: args[1].name,
-        project: args[2] ?? 'general',
-        folder: args[3] ?? 'inbox',
-        objectPath: 'ws-1/general/inbox/file.txt',
-        size: 4,
-        updatedAt: new Date().toISOString(),
-        mimeType: 'text/plain',
+        source: {
+          id: 'source-1',
+          workspaceId: args[0] as string,
+          name: (args[1] as File).name,
+          project: (args[2] as string | null) ?? 'general',
+          folder: (args[3] as string | null) ?? 'inbox',
+          objectPath: 'ws-1/general/inbox/file.txt',
+          size: 4,
+          updatedAt: new Date().toISOString(),
+          mimeType: 'text/plain',
+          ingestStatus: 'ready',
+        },
+        ingest: { status: 'ingested', chunkCount: 1, characterCount: 4 },
       };
     },
     getWorkspaceProjectById: async () => ({
@@ -394,4 +399,52 @@ test('folder by id DELETE returns 500 when backend throws', async () => {
 
   assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: 'Failed to delete folder' });
+});
+
+test('source reprocess POST returns 401 when unauthenticated', async () => {
+  const handlers = createSourceReprocessRouteHandlers({
+    auth: async () => ({ userId: null }),
+    getLibrarySource: async () => null,
+    reprocessLibrarySource: async () => ({ status: 'failed', reason: 'not expected' }),
+  });
+
+  const response = await handlers.POST(new Request('http://localhost', { method: 'POST' }), {
+    params: Promise.resolve({ workspaceId: 'ws-1', sourceId: 'src-1' }),
+  });
+
+  assert.equal(response.status, 401);
+});
+
+test('source reprocess POST returns ingest payload', async () => {
+  const handlers = createSourceReprocessRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    getLibrarySource: async () => ({
+      id: 'src-1',
+      workspaceId: 'ws-1',
+      name: 'notes.docx',
+      project: 'general',
+      folder: 'inbox',
+      objectPath: 'ws-1/general/inbox/notes.docx',
+      size: 100,
+      updatedAt: null,
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ingestStatus: 'ready',
+    }),
+    reprocessLibrarySource: async () => ({
+      status: 'ingested',
+      chunkCount: 3,
+      characterCount: 900,
+    }),
+  });
+
+  const response = await handlers.POST(new Request('http://localhost', { method: 'POST' }), {
+    params: Promise.resolve({ workspaceId: 'ws-1', sourceId: 'src-1' }),
+  });
+
+  assert.equal(response.status, 200);
+  const payload = (await response.json()) as {
+    ingest: { status: string; chunkCount: number };
+  };
+  assert.equal(payload.ingest.status, 'ingested');
+  assert.equal(payload.ingest.chunkCount, 3);
 });

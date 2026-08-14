@@ -26,9 +26,9 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Program Status
 
-- State: `Sprint 21 chat AI Elements shipped`
+- State: `Sprint 23 Qdrant hybrid search shipped`
 - Closure board: `./sprint-18-program-closure.md`
-- Current execution board: `./sprint-21-chat-ai-elements.md`
+- Current execution board: `./sprint-23-qdrant-hybrid-search.md`
 - Launch checklist: `./release-v1-checklist.md`
 
 ## Sprint Boards
@@ -51,4 +51,8 @@ This backlog is the operational execution system for Aproko AI.
 - `./sprint-16-chat-session-continuity.md`
 - `./sprint-17-chat-session-management.md`
 - `./sprint-18-program-closure.md`
-- `./release-v1-checklist.md`
+- `./sprint-20-source-ingestion.md`
+- `./sprint-21-chat-ai-elements.md`
+- `./sprint-22-ingestion-reliability-docx.md`
+- `./sprint-23-qdrant-hybrid-search.md`
+- `./v1.2-async-ingestion-ocr.md`

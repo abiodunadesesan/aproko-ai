@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import { searchSourceChunksSemantic } from '@/lib/retrieval/hybrid-search';
 import { searchSourceChunks } from '@/lib/storage/source-chunks';
 
 export type WorkspaceSearchResultType = 'source' | 'note' | 'memory';
@@ -39,6 +40,10 @@ function buildScore(result: WorkspaceSearchResult, query: string): number {
     return 2;
   }
   return 1;
+}
+
+function buildSemanticScore(cosineScore: number): number {
+  return 2.5 + cosineScore;
 }
 
 export async function searchWorkspace(
@@ -96,11 +101,17 @@ export async function searchWorkspace(
       ? searchSourceChunks(workspaceId, query, perTypeLimit)
       : Promise.resolve([]);
 
-  const [sourcesRes, notesRes, memoryRes, chunkMatches] = await Promise.all([
+  const semanticChunkPromise =
+    typeFilter === 'all' || typeFilter === 'source'
+      ? searchSourceChunksSemantic(workspaceId, query, perTypeLimit)
+      : Promise.resolve([]);
+
+  const [sourcesRes, notesRes, memoryRes, chunkMatches, semanticMatches] = await Promise.all([
     sourcePromise,
     notePromise,
     memoryPromise,
     chunkPromise,
+    semanticChunkPromise,
   ]);
 
   if (sourcesRes.error || notesRes.error || memoryRes.error) {
@@ -135,20 +146,56 @@ export async function searchWorkspace(
     },
   }));
 
-  const chunkResults: WorkspaceSearchResult[] = chunkMatches.map((match) => {
-    const fileName =
-      match.displayName ?? match.sourceStoragePath.split('/').pop() ?? 'Source document';
-    return {
-      id: encodeStoragePathId(match.sourceStoragePath),
-      type: 'source',
-      title: fileName,
-      snippet: toSnippet(match.content),
-      metadata: {
-        storagePath: match.sourceStoragePath,
-        chunkIndex: match.chunkIndex,
-      },
-    };
-  });
+  const lexicalChunkResults: Array<WorkspaceSearchResult & { score: number }> = chunkMatches.map(
+    (match) => {
+      const fileName =
+        match.displayName ?? match.sourceStoragePath.split('/').pop() ?? 'Source document';
+      const result: WorkspaceSearchResult = {
+        id: encodeStoragePathId(match.sourceStoragePath),
+        type: 'source',
+        title: fileName,
+        snippet: toSnippet(match.content),
+        metadata: {
+          storagePath: match.sourceStoragePath,
+          chunkIndex: match.chunkIndex,
+        },
+      };
+      return { ...result, score: buildScore(result, query) };
+    },
+  );
+
+  const semanticChunkResults: Array<WorkspaceSearchResult & { score: number }> =
+    semanticMatches.map((match) => {
+      const fileName = match.sourceStoragePath.split('/').pop() ?? 'Source document';
+      const result: WorkspaceSearchResult = {
+        id: encodeStoragePathId(match.sourceStoragePath),
+        type: 'source',
+        title: fileName,
+        snippet: toSnippet(match.content),
+        metadata: {
+          storagePath: match.sourceStoragePath,
+          chunkIndex: match.chunkIndex,
+          semanticScore: match.score,
+        },
+      };
+      return { ...result, score: buildSemanticScore(match.score) };
+    });
+
+  const mergedChunkById = new Map<string, WorkspaceSearchResult & { score: number }>();
+  for (const result of [...lexicalChunkResults, ...semanticChunkResults]) {
+    const existing = mergedChunkById.get(result.id);
+    if (!existing || result.score > existing.score) {
+      mergedChunkById.set(result.id, result);
+    }
+  }
+
+  const chunkResults: WorkspaceSearchResult[] = [...mergedChunkById.values()]
+    .sort((a, b) => b.score - a.score)
+    .map((item) => {
+      const { score, ...result } = item;
+      void score;
+      return result;
+    });
 
   const mergedSourceResults = [...chunkResults, ...sourceResults].reduce<WorkspaceSearchResult[]>(
     (acc, result) => {

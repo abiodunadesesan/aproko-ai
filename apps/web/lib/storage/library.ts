@@ -4,13 +4,20 @@ import {
   DEFAULT_PROJECT_SLUG,
   sanitizeSlug,
 } from '@/lib/storage/workspace-taxonomy';
-import { ingestLibrarySource, readIngestedSourceText } from '@/lib/ingestion/ingest-source';
+import {
+  ingestLibrarySource,
+  readIngestedSourceText,
+  type IngestSourceResult,
+} from '@/lib/ingestion/ingest-source';
+import { deleteChunkEmbeddingsForSource } from '@/lib/retrieval/embed-source-chunks';
 import {
   deleteSourceChunks,
   joinSourceChunkText,
   listSourceChunks,
 } from '@/lib/storage/source-chunks';
 import { resolveExtractableKind } from '@/lib/ingestion/extract-document';
+
+export type SourceIngestStatus = 'processing' | 'ready' | 'failed';
 
 export type LibrarySource = {
   id: string;
@@ -23,6 +30,12 @@ export type LibrarySource = {
   updatedAt: string | null;
   mimeType: string | null;
   sourceType?: string | null;
+  ingestStatus?: SourceIngestStatus | null;
+};
+
+export type UploadLibraryFileResult = {
+  source: LibrarySource;
+  ingest: IngestSourceResult;
 };
 
 type DbSourceRecord = {
@@ -36,6 +49,7 @@ type DbSourceRecord = {
   mime_type?: string | null;
   updated_at?: string | null;
   source_type?: string | null;
+  status?: string | null;
 };
 
 export function getLibraryBucketName(): string {
@@ -132,7 +146,15 @@ function toSourceFromDb(workspaceId: string, row: DbSourceRecord): LibrarySource
     sourceType:
       row.source_type ??
       inferSourceType(row.display_name ?? fileNameFromPath, row.mime_type ?? null),
+    ingestStatus: normalizeIngestStatus(row.status),
   };
+}
+
+function normalizeIngestStatus(status: string | null | undefined): SourceIngestStatus | null {
+  if (status === 'processing' || status === 'ready' || status === 'failed') {
+    return status;
+  }
+  return null;
 }
 
 async function listObjectsRecursive(
@@ -187,7 +209,7 @@ async function listSourcesFromDatabase(workspaceId: string): Promise<LibrarySour
   const { data, error } = await supabase
     .from('sources')
     .select(
-      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at, source_type',
+      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at, source_type, status',
     )
     .eq('workspace_id', workspaceId)
     .order('updated_at', { ascending: false });
@@ -218,12 +240,15 @@ async function persistSourceMetadata(params: {
   }
 
   const sourceType = inferSourceType(params.fileName, params.mimeType);
+  const initialStatus = resolveExtractableKind(params.fileName, params.mimeType)
+    ? 'processing'
+    : 'ready';
 
   const extendedPayload = {
     workspace_id: params.workspaceId,
     source_type: sourceType,
     storage_path: params.objectPath,
-    status: 'ready',
+    status: initialStatus,
     project_id: params.projectId,
     folder_id: params.folderId,
     display_name: params.fileName,
@@ -243,7 +268,7 @@ async function persistSourceMetadata(params: {
     workspace_id: params.workspaceId,
     source_type: sourceType,
     storage_path: params.objectPath,
-    status: 'ready',
+    status: initialStatus,
   };
 
   const fallbackResult = await supabase.from('sources').insert(fallbackPayload);
@@ -282,7 +307,7 @@ export async function uploadLibraryFile(
   folderRaw: string | null,
   projectId: string | null = null,
   folderId: string | null = null,
-): Promise<LibrarySource> {
+): Promise<UploadLibraryFileResult> {
   const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
@@ -328,15 +353,30 @@ export async function uploadLibraryFile(
     updatedAt: new Date().toISOString(),
     mimeType: file.type || null,
     sourceType: inferSourceType(file.name, file.type || null),
+    ingestStatus: resolveExtractableKind(file.name, file.type || null) ? 'processing' : 'ready',
   };
 
+  let ingest: IngestSourceResult = { status: 'skipped', reason: 'unsupported_type' };
   try {
-    await ingestLibrarySource(uploaded);
+    ingest = await ingestLibrarySource(uploaded);
   } catch (error) {
     console.warn('Post-upload source ingestion failed.', error);
+    ingest = { status: 'failed', reason: 'unexpected_error' };
   }
 
-  return uploaded;
+  const refreshed = await getLibrarySource(workspaceId, uploaded.id);
+  return {
+    source: refreshed ?? {
+      ...uploaded,
+      ingestStatus:
+        ingest.status === 'failed'
+          ? 'failed'
+          : ingest.status === 'ingested'
+            ? 'ready'
+            : (uploaded.ingestStatus ?? 'ready'),
+    },
+    ingest,
+  };
 }
 
 export async function getLibrarySource(
@@ -358,7 +398,7 @@ export async function getLibrarySource(
   const dbLookup = await supabase
     .from('sources')
     .select(
-      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at, source_type',
+      'storage_path, display_name, project_slug, folder_slug, byte_size, mime_type, updated_at, source_type, status',
     )
     .eq('workspace_id', workspaceId)
     .eq('storage_path', objectPath)
@@ -585,7 +625,10 @@ export async function deleteLibrarySource(workspaceId: string, sourceId: string)
     console.warn('Unable to delete source metadata from DB.', dbDelete.error.message);
   }
 
+  await deleteChunkEmbeddingsForSource(workspaceId, objectPath);
   await deleteSourceChunks(workspaceId, objectPath);
 
   return true;
 }
+
+export { reprocessLibrarySource } from '@/lib/ingestion/ingest-source';

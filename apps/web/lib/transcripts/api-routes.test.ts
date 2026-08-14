@@ -20,11 +20,9 @@ test('transcripts GET returns 401 when unauthenticated', async () => {
   assert.equal(response.status, 401);
 });
 
-test('transcripts POST uploads text transcript', async () => {
-  const handlers = createTranscriptsRouteHandlers({
-    auth: async () => ({ userId: 'user-1' }),
-    listTranscriptSources: async () => [],
-    uploadLibraryFile: async (_workspaceId, file) => ({
+function mockUploadResult(file: File) {
+  return {
+    source: {
       id: 'src-1',
       workspaceId: 'ws-1',
       name: file.name,
@@ -35,7 +33,17 @@ test('transcripts POST uploads text transcript', async () => {
       updatedAt: '2026-07-15T00:00:00.000Z',
       mimeType: file.type,
       sourceType: 'transcript',
-    }),
+      ingestStatus: 'ready' as const,
+    },
+    ingest: { status: 'ingested' as const, chunkCount: 1, characterCount: file.size },
+  };
+}
+
+test('transcripts POST uploads text transcript', async () => {
+  const handlers = createTranscriptsRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    listTranscriptSources: async () => [],
+    uploadLibraryFile: async (_workspaceId, file) => mockUploadResult(file),
     transcribeAudioFile: async () => 'unused',
     isTranscriptionConfigured: () => true,
   });
@@ -92,16 +100,20 @@ test('transcripts POST transcribes audio when configured', async () => {
     uploadLibraryFile: async (_workspaceId, file) => {
       uploads.push(file.name);
       return {
-        id: `src-${uploads.length}`,
-        workspaceId: 'ws-1',
-        name: file.name,
-        project: 'transcripts',
-        folder: file.name.endsWith('.txt') ? 'uploads' : 'recordings',
-        objectPath: `ws-1/transcripts/${file.name}`,
-        size: file.size,
-        updatedAt: '2026-07-15T00:00:00.000Z',
-        mimeType: file.type,
-        sourceType: file.name.endsWith('.txt') ? 'transcript' : 'audio',
+        source: {
+          id: `src-${uploads.length}`,
+          workspaceId: 'ws-1',
+          name: file.name,
+          project: 'transcripts',
+          folder: file.name.endsWith('.txt') ? 'uploads' : 'recordings',
+          objectPath: `ws-1/transcripts/${file.name}`,
+          size: file.size,
+          updatedAt: '2026-07-15T00:00:00.000Z',
+          mimeType: file.type,
+          sourceType: file.name.endsWith('.txt') ? 'transcript' : 'audio',
+          ingestStatus: 'ready' as const,
+        },
+        ingest: { status: 'ingested' as const, chunkCount: 1, characterCount: file.size },
       };
     },
     transcribeAudioFile: async () => 'Welcome to lecture one.',

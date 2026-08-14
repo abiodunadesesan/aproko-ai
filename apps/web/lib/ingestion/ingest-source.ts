@@ -1,7 +1,12 @@
 import { chunkText, estimateTokenCount } from '@/lib/ingestion/chunk-text';
 import { extractDocumentText, resolveExtractableKind } from '@/lib/ingestion/extract-document';
+import {
+  deleteChunkEmbeddingsForSource,
+  embedSourceChunks,
+} from '@/lib/retrieval/embed-source-chunks';
 import { getLibraryBucketName, type LibrarySource } from '@/lib/storage/library';
 import {
+  deleteSourceChunks,
   joinSourceChunkText,
   listSourceChunks,
   replaceSourceChunks,
@@ -9,9 +14,13 @@ import {
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type IngestSourceResult =
-  | { status: 'ingested'; chunkCount: number; characterCount: number }
+  | { status: 'ingested'; chunkCount: number; characterCount: number; embeddedCount?: number }
   | { status: 'skipped'; reason: string }
   | { status: 'failed'; reason: string };
+
+export type IngestLibrarySourceOptions = {
+  force?: boolean;
+};
 
 async function downloadSourceBuffer(objectPath: string): Promise<ArrayBuffer | null> {
   const supabase = getSupabaseAdminClient();
@@ -28,10 +37,10 @@ async function downloadSourceBuffer(objectPath: string): Promise<ArrayBuffer | n
   return download.data.arrayBuffer();
 }
 
-async function updateSourceIngestStatus(
+export async function updateSourceIngestStatus(
   workspaceId: string,
   objectPath: string,
-  status: 'ready' | 'failed',
+  status: 'processing' | 'ready' | 'failed',
 ): Promise<void> {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
@@ -49,19 +58,30 @@ async function updateSourceIngestStatus(
   }
 }
 
-export async function ingestLibrarySource(source: LibrarySource): Promise<IngestSourceResult> {
+export async function ingestLibrarySource(
+  source: LibrarySource,
+  options: IngestLibrarySourceOptions = {},
+): Promise<IngestSourceResult> {
   const kind = resolveExtractableKind(source.name, source.mimeType);
   if (!kind) {
+    await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'ready');
     return { status: 'skipped', reason: 'unsupported_type' };
   }
 
   const existing = await listSourceChunks(source.workspaceId, source.objectPath);
-  if (existing.length > 0) {
+  if (existing.length > 0 && !options.force) {
     return {
       status: 'ingested',
       chunkCount: existing.length,
       characterCount: joinSourceChunkText(existing).length,
     };
+  }
+
+  await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'processing');
+
+  if (options.force) {
+    await deleteChunkEmbeddingsForSource(source.workspaceId, source.objectPath);
+    await deleteSourceChunks(source.workspaceId, source.objectPath);
   }
 
   const buffer = await downloadSourceBuffer(source.objectPath);
@@ -98,11 +118,19 @@ export async function ingestLibrarySource(source: LibrarySource): Promise<Ingest
       return { status: 'failed', reason: 'persist_failed' };
     }
 
+    const storedChunks = await listSourceChunks(source.workspaceId, source.objectPath);
+    const embedResult = await embedSourceChunks({
+      workspaceId: source.workspaceId,
+      sourceStoragePath: source.objectPath,
+      chunks: storedChunks,
+    });
+
     await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'ready');
     return {
       status: 'ingested',
       chunkCount: persisted,
       characterCount: extracted.length,
+      embeddedCount: embedResult.embedded,
     };
   } catch (error) {
     await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'failed');
@@ -110,6 +138,10 @@ export async function ingestLibrarySource(source: LibrarySource): Promise<Ingest
     console.warn('Source ingestion failed.', reason);
     return { status: 'failed', reason };
   }
+}
+
+export async function reprocessLibrarySource(source: LibrarySource): Promise<IngestSourceResult> {
+  return ingestLibrarySource(source, { force: true });
 }
 
 export async function readIngestedSourceText(

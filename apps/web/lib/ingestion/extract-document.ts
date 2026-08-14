@@ -1,8 +1,9 @@
+import mammoth from 'mammoth';
 import { extractText, getDocumentProxy } from 'unpdf';
 
 export const MAX_SYNC_INGEST_BYTES = 12 * 1024 * 1024;
 
-export type ExtractableSourceKind = 'pdf' | 'text';
+export type ExtractableSourceKind = 'pdf' | 'text' | 'docx';
 
 export function resolveExtractableKind(
   fileName: string,
@@ -12,6 +13,13 @@ export function resolveExtractableKind(
 
   if (ext === 'pdf' || mimeType === 'application/pdf') {
     return 'pdf';
+  }
+
+  if (
+    ext === 'docx' ||
+    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    return 'docx';
   }
 
   if (
@@ -30,6 +38,11 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   return text.replace(/\s+/g, ' ').trim();
 }
 
+export async function extractDocxText(buffer: ArrayBuffer): Promise<string> {
+  const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
+  return result.value.replace(/\s+/g, ' ').trim();
+}
+
 export async function extractDocumentText(input: {
   fileName: string;
   mimeType: string | null;
@@ -46,6 +59,10 @@ export async function extractDocumentText(input: {
 
   if (kind === 'pdf') {
     return extractPdfText(input.buffer);
+  }
+
+  if (kind === 'docx') {
+    return extractDocxText(input.buffer);
   }
 
   const decoded = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(input.buffer));

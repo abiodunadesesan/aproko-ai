@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** In progress (web sync MVP)
+- **State:** Shipped (web sync MVP)
 - **Depends on:** personal workspaces (`202607161500`), library upload path
 
 ## Goal

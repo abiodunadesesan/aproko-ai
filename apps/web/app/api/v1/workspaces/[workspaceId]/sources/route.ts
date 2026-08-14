@@ -81,7 +81,7 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
       const project = projectRecord?.slug ?? projectFallback;
       const folder = folderRecord?.slug ?? folderFallback;
 
-      const source = await deps.uploadLibraryFile(
+      const uploadResult = await deps.uploadLibraryFile(
         workspaceId,
         file,
         project,
@@ -100,10 +100,14 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
           file_size: file.size,
           project_id: projectId ?? null,
           folder_id: folderId ?? null,
+          ingest_status: uploadResult.ingest.status,
         },
       });
 
-      return Response.json({ source }, { status: 201 });
+      return Response.json(
+        { source: uploadResult.source, ingest: uploadResult.ingest },
+        { status: 201 },
+      );
     } catch (error) {
       console.error('Failed to upload source', error);
       return Response.json({ error: 'Failed to upload source' }, { status: 500 });

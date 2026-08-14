@@ -118,34 +118,26 @@ export function createTranscriptsRouteHandlers(deps: TranscriptsRouteDependencie
             );
           }
 
-          audioSource = await deps.uploadLibraryFile(
-            workspaceId,
-            file,
-            'transcripts',
-            'recordings',
-            null,
-            null,
-          );
+          audioSource = (
+            await deps.uploadLibraryFile(workspaceId, file, 'transcripts', 'recordings', null, null)
+          ).source;
 
           const transcriptText = await deps.transcribeAudioFile(file);
           const textFile = toTextFile(file.name, transcriptText);
-          transcriptSource = await deps.uploadLibraryFile(
-            workspaceId,
-            textFile,
-            'transcripts',
-            'uploads',
-            null,
-            null,
-          );
+          transcriptSource = (
+            await deps.uploadLibraryFile(
+              workspaceId,
+              textFile,
+              'transcripts',
+              'uploads',
+              null,
+              null,
+            )
+          ).source;
         } else {
-          transcriptSource = await deps.uploadLibraryFile(
-            workspaceId,
-            file,
-            'transcripts',
-            'uploads',
-            null,
-            null,
-          );
+          transcriptSource = (
+            await deps.uploadLibraryFile(workspaceId, file, 'transcripts', 'uploads', null, null)
+          ).source;
         }
 
         await trackServerEvent({

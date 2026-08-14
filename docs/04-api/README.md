@@ -106,9 +106,9 @@ Allowed source formats in V1: PDF, DOCX, PPTX, TXT, Markdown, image, audio.
 - `DELETE /v1/workspaces/{workspace_id}/sources/{source_id}`
 - `POST /v1/workspaces/{workspace_id}/sources/{source_id}/reprocess`
 
-Upload (`POST`) persists the file to Supabase Storage, writes `sources` metadata, and **sync-ingests** text-based PDFs and text files into `source_chunks` for search and chat grounding (≤ 12MB, web sync MVP). Ingest failures do not fail the upload response.
+Upload (`POST`) persists the file to Supabase Storage, writes `sources` metadata, and **sync-ingests** text-based PDFs, DOCX, and text files into `source_chunks` for search and chat grounding (≤ 12MB, web sync MVP). Response includes `{ source, ingest }`. Ingest failures do not fail the upload response.
 
-`reprocess` is planned; not yet implemented in Sprint 20 MVP.
+`POST .../reprocess` re-runs extract → chunk → embed for an existing source (Sprint 22).
 
 ### Projects and Folders
 
@@ -133,7 +133,8 @@ Upload (`POST`) persists the file to Supabase Storage, writes `sources` metadata
 ### Search
 
 - `GET /v1/workspaces/{workspace_id}/search?q=...`
-- `POST /v1/workspaces/{workspace_id}/search/semantic`
+- Hybrid lexical + semantic chunk retrieval when `QDRANT_URL` and `OPENAI_API_KEY` are configured (Sprint 23). Falls back to ILIKE-only otherwise.
+- `POST /v1/workspaces/{workspace_id}/search/semantic` — deferred; semantic leg is merged into `GET /search`.
 
 ### Notes
 
