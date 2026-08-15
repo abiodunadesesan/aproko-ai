@@ -17,7 +17,11 @@ export function createBillingWebhookRouteHandlers(deps: BillingWebhookRouteDepen
           startedAtMs,
         );
       } catch (error) {
-        if (error instanceof Error && error.message === 'Missing stripe-signature header') {
+        if (
+          error instanceof Error &&
+          (error.message === 'Missing stripe-signature header' ||
+            error.message === 'Missing paddle-signature header')
+        ) {
           return withPerformanceHeaders(
             Response.json({ error: error.message }, { status: 400 }),
             startedAtMs,

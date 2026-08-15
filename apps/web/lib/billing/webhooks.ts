@@ -1,4 +1,6 @@
 import type Stripe from 'stripe';
+import { getBillingProvider } from '@/lib/billing/billing-config';
+import { handlePaddleBillingWebhook } from '@/lib/billing/paddle-webhooks';
 import { getStripeClient } from '@/lib/billing/stripe-client';
 import { getPlanCodeFromStripePriceId } from '@/lib/billing/stripe-plans';
 import { appendBillingEvent } from '@/lib/storage/billing-events';
@@ -79,7 +81,7 @@ async function recordBillingWebhookEvent(
   });
 }
 
-async function finalizeWebhookResult(
+async function finalizeStripeWebhookResult(
   event: Stripe.Event,
   result: BillingWebhookResult,
   workspaceId: string | null = null,
@@ -88,12 +90,11 @@ async function finalizeWebhookResult(
   return result;
 }
 
-export async function handleBillingWebhook(request: Request): Promise<BillingWebhookResult> {
-  const provider = process.env.BILLING_PROVIDER?.trim() || null;
+async function handleStripeBillingWebhook(request: Request): Promise<BillingWebhookResult> {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
 
-  if (provider !== 'stripe' || !webhookSecret || !stripeSecretKey) {
+  if (!webhookSecret || !stripeSecretKey) {
     return {
       received: true,
       status: 'pending_provider',
@@ -119,7 +120,7 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
         typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
 
       if (!subscriptionId) {
-        return finalizeWebhookResult(
+        return finalizeStripeWebhookResult(
           event,
           {
             received: true,
@@ -148,7 +149,7 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
           },
         });
       }
-      return finalizeWebhookResult(
+      return finalizeStripeWebhookResult(
         event,
         {
           received: true,
@@ -186,7 +187,7 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
           },
         });
       }
-      return finalizeWebhookResult(
+      return finalizeStripeWebhookResult(
         event,
         {
           received: true,
@@ -200,11 +201,30 @@ export async function handleBillingWebhook(request: Request): Promise<BillingWeb
       );
     }
     default:
-      return finalizeWebhookResult(event, {
+      return finalizeStripeWebhookResult(event, {
         received: true,
         status: 'ignored',
         eventType: event.type,
         message: 'Webhook received and ignored.',
       });
   }
+}
+
+export async function handleBillingWebhook(request: Request): Promise<BillingWebhookResult> {
+  const provider = getBillingProvider();
+  if (provider === 'paddle') {
+    return handlePaddleBillingWebhook(request);
+  }
+
+  if (provider === 'stripe') {
+    return handleStripeBillingWebhook(request);
+  }
+
+  return {
+    received: true,
+    status: 'pending_provider',
+    eventType: null,
+    message:
+      'Billing webhooks are not configured yet. Set BILLING_PROVIDER=paddle (or stripe) and provider credentials.',
+  };
 }

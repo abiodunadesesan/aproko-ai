@@ -1,4 +1,7 @@
+import { getBillingAppBaseUrl } from '@/lib/billing/billing-config';
 import type { PlanCode } from '@/lib/pricing-plans';
+
+export { getBillingAppBaseUrl };
 
 const STRIPE_PRICE_ENV_BY_PLAN: Record<Exclude<PlanCode, 'free'>, string> = {
   teams: 'STRIPE_PRICE_TEAMS',
@@ -29,11 +32,3 @@ export function getPlanCodeFromStripePriceId(priceId: string): PlanCode | null {
   return null;
 }
 
-export function getBillingAppBaseUrl(): string {
-  const configured =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.APP_URL?.trim() ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-
-  return configured.replace(/\/$/, '') || 'http://localhost:3000';
-}

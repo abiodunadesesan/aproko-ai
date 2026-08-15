@@ -1,5 +1,6 @@
 import { chunkText, estimateTokenCount } from '@/lib/ingestion/chunk-text';
 import { extractDocumentText, resolveExtractableKind } from '@/lib/ingestion/extract-document';
+import { runQueuedOcrIngestJobs, queueOcrIngestJob } from '@/lib/ingestion/schedule-ocr-ingest';
 import {
   deleteChunkEmbeddingsForSource,
   embedSourceChunks,
@@ -20,6 +21,7 @@ export type IngestSourceResult =
 
 export type IngestLibrarySourceOptions = {
   force?: boolean;
+  allowLarge?: boolean;
 };
 
 async function downloadSourceBuffer(objectPath: string): Promise<ArrayBuffer | null> {
@@ -95,6 +97,7 @@ export async function ingestLibrarySource(
       fileName: source.name,
       mimeType: source.mimeType,
       buffer,
+      ...(options.allowLarge ? { allowLarge: true } : {}),
     });
 
     if (!extracted.trim()) {
@@ -133,8 +136,21 @@ export async function ingestLibrarySource(
       embeddedCount: embedResult.embedded,
     };
   } catch (error) {
-    await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'failed');
     const reason = error instanceof Error ? error.message : 'extract_failed';
+
+    if (reason === 'scanned_pdf_requires_ocr') {
+      const queued = await queueOcrIngestJob({
+        workspaceId: source.workspaceId,
+        sourceStoragePath: source.objectPath,
+      });
+      if (queued) {
+        await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'processing');
+        void runQueuedOcrIngestJobs(1);
+        return { status: 'skipped', reason: 'ocr_queued' };
+      }
+    }
+
+    await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'failed');
     console.warn('Source ingestion failed.', reason);
     return { status: 'failed', reason };
   }

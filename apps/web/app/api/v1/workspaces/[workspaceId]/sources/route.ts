@@ -1,4 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
+import { after } from 'next/server';
+import { runAsyncSourceIngest } from '@/lib/ingestion/schedule-async-ingest';
 import { listLibrarySources, uploadLibraryFile } from '@/lib/storage/library';
 import { getWorkspaceFolderById, getWorkspaceProjectById } from '@/lib/storage/workspace-taxonomy';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
@@ -13,6 +15,7 @@ type SourcesRouteDependencies = {
   uploadLibraryFile: typeof uploadLibraryFile;
   getWorkspaceProjectById: typeof getWorkspaceProjectById;
   getWorkspaceFolderById: typeof getWorkspaceFolderById;
+  scheduleAsyncIngest?: (source: Awaited<ReturnType<typeof uploadLibraryFile>>['source']) => void;
 };
 
 export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
@@ -89,6 +92,11 @@ export function createSourcesRouteHandlers(deps: SourcesRouteDependencies) {
         projectId,
         folderId,
       );
+
+      if (uploadResult.scheduleAsyncIngest) {
+        const schedule = deps.scheduleAsyncIngest ?? ((source) => after(() => runAsyncSourceIngest(source)));
+        schedule(uploadResult.source);
+      }
 
       await trackServerEvent({
         event: 'source_uploaded',

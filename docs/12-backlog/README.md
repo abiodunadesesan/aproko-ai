@@ -26,9 +26,8 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Program Status
 
-- State: `Sprint 23 Qdrant hybrid search shipped`
-- Closure board: `./sprint-18-program-closure.md`
-- Current execution board: `./sprint-23-qdrant-hybrid-search.md`
+- State: `Sprint 24 A–D step 1 shipped locally (not pushed)`
+- Roadmap: `./options-abcd-roadmap.md`
 - Launch checklist: `./release-v1-checklist.md`
 
 ## Sprint Boards

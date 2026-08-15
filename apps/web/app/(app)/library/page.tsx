@@ -64,8 +64,20 @@ function formatUploadNotice(
   if (ingest.status === 'ingested') {
     return `Uploaded "${fileName}" and indexed for search.`;
   }
+  if (ingest.status === 'skipped' && ingest.reason === 'async_queued') {
+    return `Uploaded "${fileName}". Indexing in the background…`;
+  }
+  if (ingest.status === 'skipped' && ingest.reason === 'ocr_queued') {
+    return `Uploaded "${fileName}". OCR indexing queued in the background…`;
+  }
   if (ingest.status === 'skipped') {
     return `Uploaded "${fileName}". Text indexing skipped for this file type.`;
+  }
+  if (ingest.reason === 'scanned_pdf_requires_ocr') {
+    return `Uploaded "${fileName}", but OCR indexing could not be queued. Try reprocess later.`;
+  }
+  if (ingest.reason === 'ocr_worker_not_configured') {
+    return `Uploaded "${fileName}". OCR worker is not configured yet — indexing will resume once deployed.`;
   }
   return `Uploaded "${fileName}", but indexing failed${ingest.reason ? `: ${ingest.reason}` : '.'}`;
 }
@@ -331,6 +343,20 @@ export default function LibraryPage() {
     void loadSources();
     void loadProjects();
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
+    const hasProcessing = sources.some((source) => source.ingestStatus === 'processing');
+    if (!hasProcessing) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void loadSources();
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [workspaceId, sources]);
 
   useEffect(() => {
     if (!workspaceId || !projectId) {
@@ -1771,7 +1797,7 @@ export default function LibraryPage() {
                     Page {currentPage} of {totalPages}
                   </p>
                 </div>
-                <div className="w-full overflow-x-auto">
+                <div className="hidden w-full overflow-x-auto md:block">
                   <Table data-testid="library-sources-table">
                     <TableHeader>
                       <TableRow>
@@ -1934,6 +1960,54 @@ export default function LibraryPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+                <div className="space-y-3 md:hidden" data-testid="library-sources-mobile">
+                  {paginatedSources.map((source) => (
+                    <div
+                      className="rounded-lg border border-border bg-card p-4 shadow-sm"
+                      key={source.id}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{source.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {source.project} / {source.folder} · {formatBytes(source.size)}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            'shrink-0 text-xs font-medium',
+                            source.ingestStatus === 'failed' && 'text-destructive',
+                            source.ingestStatus === 'processing' && 'text-muted-foreground',
+                            source.ingestStatus === 'ready' && 'text-emerald-600',
+                          )}
+                        >
+                          {formatIngestStatus(source.ingestStatus)}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                        <Link className="underline" href={`/library/${source.id}`}>
+                          View
+                        </Link>
+                        <Link
+                          className="underline"
+                          href={`/chat?new=1&sourceId=${encodeURIComponent(source.id)}&sourceName=${encodeURIComponent(source.name)}`}
+                        >
+                          Ask
+                        </Link>
+                        {source.ingestStatus === 'failed' ? (
+                          <button
+                            className="underline"
+                            disabled={mutatingSourceId === source.id || isBulkProcessing}
+                            onClick={() => void handleReprocessSource(source)}
+                            type="button"
+                          >
+                            Re-index
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <button

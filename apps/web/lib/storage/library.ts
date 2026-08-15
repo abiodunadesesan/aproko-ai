@@ -15,7 +15,7 @@ import {
   joinSourceChunkText,
   listSourceChunks,
 } from '@/lib/storage/source-chunks';
-import { resolveExtractableKind } from '@/lib/ingestion/extract-document';
+import { resolveExtractableKind, shouldUseAsyncIngest } from '@/lib/ingestion/extract-document';
 
 export type SourceIngestStatus = 'processing' | 'ready' | 'failed';
 
@@ -36,6 +36,7 @@ export type LibrarySource = {
 export type UploadLibraryFileResult = {
   source: LibrarySource;
   ingest: IngestSourceResult;
+  scheduleAsyncIngest?: boolean;
 };
 
 type DbSourceRecord = {
@@ -357,25 +358,37 @@ export async function uploadLibraryFile(
   };
 
   let ingest: IngestSourceResult = { status: 'skipped', reason: 'unsupported_type' };
-  try {
-    ingest = await ingestLibrarySource(uploaded);
-  } catch (error) {
-    console.warn('Post-upload source ingestion failed.', error);
-    ingest = { status: 'failed', reason: 'unexpected_error' };
+  const useAsyncIngest =
+    Boolean(resolveExtractableKind(file.name, file.type || null)) && shouldUseAsyncIngest(file.size);
+
+  if (useAsyncIngest) {
+    ingest = { status: 'skipped', reason: 'async_queued' };
+  } else {
+    try {
+      ingest = await ingestLibrarySource(uploaded);
+    } catch (error) {
+      console.warn('Post-upload source ingestion failed.', error);
+      ingest = { status: 'failed', reason: 'unexpected_error' };
+    }
   }
 
   const refreshed = await getLibrarySource(workspaceId, uploaded.id);
   return {
     source: refreshed ?? {
       ...uploaded,
-      ingestStatus:
-        ingest.status === 'failed'
+      ingestStatus: useAsyncIngest
+        ? 'processing'
+        : ingest.status === 'failed'
           ? 'failed'
-          : ingest.status === 'ingested'
-            ? 'ready'
-            : (uploaded.ingestStatus ?? 'ready'),
+          : ingest.status === 'skipped' &&
+              (ingest.reason === 'ocr_queued' || ingest.reason === 'async_queued')
+            ? 'processing'
+            : ingest.status === 'ingested'
+              ? 'ready'
+              : (uploaded.ingestStatus ?? 'ready'),
     },
     ingest,
+    scheduleAsyncIngest: useAsyncIngest,
   };
 }
 

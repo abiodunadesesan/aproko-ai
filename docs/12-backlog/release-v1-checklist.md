@@ -11,7 +11,7 @@
 
 - [x] Core user journeys validated end-to-end (auth, library, chat, memory, study, research, admin). Library upload verified on production 2026-07-15.
 - [x] Empty/loading/error states reviewed on all primary pages (engineering smoke + E2E coverage).
-- [ ] Navigation and responsive behavior spot-checked on desktop and mobile web breakpoints.
+- [ ] Navigation and responsive behavior on desktop and mobile web breakpoints (library mobile cards shipped Sprint 26 partial)
 - [ ] Final copy and labels reviewed for consistency and clarity.
 
 **Engineering status (2026-07-15):** E2E suite covers auth shell, library upload, chat citations, billing checkout, and smoke routes.

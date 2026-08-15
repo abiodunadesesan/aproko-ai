@@ -137,7 +137,7 @@ export function PricingSection({
         </p>
       ) : (
         <p className="mt-4 text-center text-xs text-zinc-600 dark:text-zinc-500">
-          Checkout integration is next. Plan selection confirms billing visibility and state.
+          Paid plans open Paddle Checkout when billing is configured in production.
         </p>
       )}
     </section>

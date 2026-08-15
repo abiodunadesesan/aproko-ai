@@ -1,5 +1,7 @@
+import { getBillingAppBaseUrl, getBillingProvider } from '@/lib/billing/billing-config';
+import { createPaddleCheckoutSession } from '@/lib/billing/paddle-checkout';
 import { getStripeClient } from '@/lib/billing/stripe-client';
-import { getBillingAppBaseUrl, getStripePriceId } from '@/lib/billing/stripe-plans';
+import { getStripePriceId } from '@/lib/billing/stripe-plans';
 import type { PlanCode } from '@/lib/pricing-plans';
 
 export type CheckoutSessionRequest = {
@@ -35,28 +37,22 @@ export function parseCheckoutPlanCode(raw: unknown): PlanCode | null {
   return null;
 }
 
-export async function createCheckoutSession(
+async function createStripeCheckoutSession(
   request: CheckoutSessionRequest,
 ): Promise<CheckoutSessionResult> {
-  if (!isPaidPlanCode(request.planCode)) {
-    throw new Error('Only paid plans can start checkout.');
-  }
-
-  const provider = process.env.BILLING_PROVIDER?.trim() || null;
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
-
-  if (provider !== 'stripe' || !stripeSecretKey) {
+  if (!stripeSecretKey) {
     return {
       status: 'pending_provider',
       planCode: request.planCode,
       checkoutUrl: null,
-      provider,
+      provider: 'stripe',
       message:
         'Billing provider is not configured yet. Set BILLING_PROVIDER=stripe and STRIPE_SECRET_KEY to enable checkout.',
     };
   }
 
-  const priceId = getStripePriceId(request.planCode);
+  const priceId = getStripePriceId(request.planCode as Exclude<PlanCode, 'free'>);
   if (!priceId) {
     return {
       status: 'pending_provider',
@@ -92,3 +88,31 @@ export async function createCheckoutSession(
       : 'Stripe Checkout session was created without a redirect URL.',
   };
 }
+
+export async function createCheckoutSession(
+  request: CheckoutSessionRequest,
+): Promise<CheckoutSessionResult> {
+  if (!isPaidPlanCode(request.planCode)) {
+    throw new Error('Only paid plans can start checkout.');
+  }
+
+  const provider = getBillingProvider();
+  if (provider === 'paddle') {
+    return createPaddleCheckoutSession(request);
+  }
+
+  if (provider === 'stripe') {
+    return createStripeCheckoutSession(request);
+  }
+
+  return {
+    status: 'pending_provider',
+    planCode: request.planCode,
+    checkoutUrl: null,
+    provider,
+    message:
+      'Billing provider is not configured yet. Set BILLING_PROVIDER=paddle (or stripe) and provider credentials.',
+  };
+}
+
+export { getBillingAppBaseUrl };
