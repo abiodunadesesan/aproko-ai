@@ -8,6 +8,7 @@
 | 2 | **B** Chat composer (PromptInput) | `sprint-25-chat-prompt-input.md` | Shipped |
 | 3 | **C** Release polish | `sprint-26-release-polish.md` | Shipped |
 | 4 | **D** Live Paddle billing | `sprint-27-stripe-billing-live.md` | Implemented |
+| 5 | **Plan gates** | `sprint-28-plan-feature-gates.md` | Implemented |
 
 ## Option A phases
 

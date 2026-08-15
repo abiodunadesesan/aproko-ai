@@ -24,6 +24,14 @@ test('billing subscription GET returns 401 when unauthenticated', async () => {
       currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
     }),
+    getWorkspacePlanUsage: async () => ({
+      planCode: 'free',
+      period: '2026-08',
+      used: 0,
+      limit: 100,
+      remaining: 100,
+      unlimited: false,
+    }),
     resolveAuthUserId,
     resolveWorkspaceForUser,
   });
@@ -45,6 +53,14 @@ test('billing subscription GET returns subscription payload', async () => {
       currentPeriodEnd: '2026-02-01T00:00:00.000Z',
       cancelAtPeriodEnd: false,
     }),
+    getWorkspacePlanUsage: async () => ({
+      planCode: 'pro_monthly',
+      period: '2026-01',
+      used: 12,
+      limit: null,
+      remaining: null,
+      unlimited: true,
+    }),
     resolveAuthUserId,
     resolveWorkspaceForUser,
   });
@@ -55,9 +71,16 @@ test('billing subscription GET returns subscription payload', async () => {
 
   assert.equal(response.status, 200);
   const payload = (await response.json()) as {
-    data: { workspaceId: string; planCode: string; provider: string | null };
+    data: {
+      workspaceId: string;
+      planCode: string;
+      provider: string | null;
+      usage: { used: number; unlimited: boolean };
+    };
   };
   assert.equal(payload.data.workspaceId, 'workspace-a');
   assert.equal(payload.data.planCode, 'pro');
   assert.equal(payload.data.provider, 'stripe');
+  assert.equal(payload.data.usage.used, 12);
+  assert.equal(payload.data.usage.unlimited, true);
 });

@@ -230,6 +230,14 @@ export async function installBillingMocks(page: Page): Promise<void> {
           currentPeriodStart: null,
           currentPeriodEnd: null,
           cancelAtPeriodEnd: false,
+          usage: {
+            period: '2026-08',
+            used: 12,
+            limit: 100,
+            remaining: 88,
+            unlimited: false,
+            effectivePlanCode: 'free',
+          },
         },
       }),
     });

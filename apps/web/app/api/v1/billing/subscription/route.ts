@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { resolveAuthUserId } from '@/lib/auth/e2e-auth';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import { getWorkspacePlanUsage, type PlanUsageSnapshot } from '@/lib/billing/plan-usage';
 import { getBillingSubscription, type BillingSubscription } from '@/lib/storage/billing';
 import { captureServerError } from '@/lib/observability/server';
 import { withPerformanceHeaders } from '@/lib/perf/http';
@@ -11,11 +12,15 @@ type AuthDependency = () => Promise<{ userId: string | null }>;
 type BillingSubscriptionRouteDependencies = {
   auth: AuthDependency;
   getBillingSubscription: typeof getBillingSubscription;
+  getWorkspacePlanUsage: typeof getWorkspacePlanUsage;
   resolveAuthUserId: (clerkAuth: AuthDependency, request: Request) => Promise<string | null>;
   resolveWorkspaceForUser: typeof resolveWorkspaceForUser;
 };
 
-function toBillingSubscriptionPayload(subscription: BillingSubscription) {
+function toBillingSubscriptionPayload(
+  subscription: BillingSubscription,
+  usage: PlanUsageSnapshot,
+) {
   return {
     workspaceId: subscription.workspaceId,
     planCode: subscription.planCode,
@@ -24,6 +29,14 @@ function toBillingSubscriptionPayload(subscription: BillingSubscription) {
     currentPeriodStart: subscription.currentPeriodStart,
     currentPeriodEnd: subscription.currentPeriodEnd,
     cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+    usage: {
+      period: usage.period,
+      used: usage.used,
+      limit: usage.limit,
+      remaining: usage.remaining,
+      unlimited: usage.unlimited,
+      effectivePlanCode: usage.planCode,
+    },
   };
 }
 
@@ -62,8 +75,9 @@ export function createBillingSubscriptionRouteHandlers(deps: BillingSubscription
           );
         }
         const subscription = await deps.getBillingSubscription(workspaceId);
+        const usage = await deps.getWorkspacePlanUsage(workspaceId);
         return withPerformanceHeaders(
-          Response.json({ data: toBillingSubscriptionPayload(subscription) }, { status: 200 }),
+          Response.json({ data: toBillingSubscriptionPayload(subscription, usage) }, { status: 200 }),
           startedAtMs,
           {
             cacheControl: 'private, max-age=30, stale-while-revalidate=120',
@@ -89,6 +103,7 @@ export const { GET } = createBillingSubscriptionRouteHandlers({
     return { userId };
   },
   getBillingSubscription,
+  getWorkspacePlanUsage,
   resolveAuthUserId,
   resolveWorkspaceForUser,
 });

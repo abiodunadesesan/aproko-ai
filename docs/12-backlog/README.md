@@ -26,8 +26,8 @@ This backlog is the operational execution system for Aproko AI.
 
 ## Program Status
 
-- State: `Sprint 24 A–D step 1 shipped locally (not pushed)`
 - Roadmap: `./options-abcd-roadmap.md`
+- Next epic: `./sprint-28-plan-feature-gates.md`
 - Launch checklist: `./release-v1-checklist.md`
 
 ## Sprint Boards

@@ -16,6 +16,14 @@ type BillingSubscription = {
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  usage?: {
+    period: string;
+    used: number;
+    limit: number | null;
+    remaining: number | null;
+    unlimited: boolean;
+    effectivePlanCode: string;
+  };
 };
 
 export default function BillingPage() {
@@ -211,15 +219,46 @@ export default function BillingPage() {
               <CardTitle className="text-sm sm:text-base">Usage snapshot</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Billing usage meters (tokens, uploads, and workspace limits) are part of the next
-                billing increment.
-              </p>
-              <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-                <li>Current workspace: {subscription?.workspaceId ?? workspaceId}</li>
-                <li>Model usage counters: pending integration</li>
-                <li>Storage usage counters: pending integration</li>
-              </ul>
+              {subscription?.usage ? (
+                <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                  <p>
+                    <span className="text-zinc-500">Period:</span> {subscription.usage.period}
+                  </p>
+                  <p>
+                    <span className="text-zinc-500">AI queries:</span>{' '}
+                    {subscription.usage.unlimited
+                      ? `${subscription.usage.used} used (unlimited)`
+                      : `${subscription.usage.used} / ${subscription.usage.limit}`}
+                  </p>
+                  {!subscription.usage.unlimited ? (
+                    <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                      <div
+                        className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(
+                              (subscription.usage.used / Math.max(subscription.usage.limit ?? 1, 1)) *
+                                100,
+                            ),
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  <p className="text-xs text-zinc-500">
+                    Limits follow your effective plan
+                    {subscription.usage.effectivePlanCode
+                      ? ` (${subscription.usage.effectivePlanCode})`
+                      : ''}
+                    . Chat messages consume one query each.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Usage meters load with your subscription.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -27,6 +27,10 @@ import { normalizeUserPreferences } from '@/lib/settings/preferences';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { trackServerEvent } from '@/lib/observability/server';
 import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
+import {
+  consumeAiQueryQuota,
+  planQuotaExceededResponse,
+} from '@/lib/billing/plan-usage';
 
 type AuthDependency = () => Promise<{ userId: string | null }>;
 
@@ -41,6 +45,7 @@ type ChatMessagesRouteDependencies = {
   captureChatMemoriesFromMessage: typeof captureChatMemoriesFromMessage;
   buildWorkspaceContext: typeof buildWorkspaceContext;
   streamAssistantGeneration: (input: ChatGenerationInput) => ChatGenerationStream;
+  consumeAiQueryQuota?: typeof consumeAiQueryQuota;
 };
 
 type RouteContext = { params: Promise<{ workspaceId: string; sessionId: string }> };
@@ -217,6 +222,11 @@ export function createChatMessagesRouteHandlers(deps: ChatMessagesRouteDependenc
           },
           { status: 503 },
         );
+      }
+
+      const quota = await (deps.consumeAiQueryQuota ?? consumeAiQueryQuota)(workspaceId);
+      if (!quota.allowed) {
+        return planQuotaExceededResponse(quota.message, quota.usage);
       }
 
       const userMessage = await deps.createChatMessage(workspaceId, sessionId, 'user', content, {
