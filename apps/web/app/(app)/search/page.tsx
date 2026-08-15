@@ -26,6 +26,12 @@ const FILTERS: Array<{ label: string; value: SearchTypeFilter }> = [
   { label: 'Memory', value: 'memory' },
 ];
 
+function formatResultType(type: SearchResult['type']): string {
+  if (type === 'source') return 'Source';
+  if (type === 'note') return 'Note';
+  return 'Memory';
+}
+
 function toResultHref(result: SearchResult): string {
   if (result.type === 'source') {
     return `/library/${result.id}`;
@@ -92,7 +98,7 @@ export default function SearchPage() {
           >
             <p className="text-sm font-medium">{result.title}</p>
             <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-              {result.type}
+              {formatResultType(result.type)}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">{result.snippet}</p>
           </Link>
@@ -116,11 +122,11 @@ export default function SearchPage() {
       <section className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Workspace Search</CardTitle>
-            <CardDescription>Query sources, notes, and memory in one place.</CardDescription>
+            <CardTitle>Search</CardTitle>
+            <CardDescription>Find sources, notes, and memory in your workspace.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input
                 aria-label="Search workspace content"
                 onChange={(event) => setQuery(event.target.value)}
@@ -130,11 +136,16 @@ export default function SearchPage() {
                     void handleSearch();
                   }
                 }}
-                placeholder="Search notes, sources, memory..."
+                placeholder="Search sources, notes, memory…"
                 value={query}
               />
-              <Button disabled={isLoading} onClick={() => void handleSearch()} type="button">
-                {isLoading ? 'Searching...' : 'Search'}
+              <Button
+                className="w-full sm:w-auto"
+                disabled={isLoading}
+                onClick={() => void handleSearch()}
+                type="button"
+              >
+                {isLoading ? 'Searching…' : 'Search'}
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">

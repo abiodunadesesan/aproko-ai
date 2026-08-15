@@ -848,19 +848,6 @@ export default function ChatPage() {
     void loadMessages(activeSessionId);
   }, [activeSessionId]);
 
-  function autoResizeComposer() {
-    const el = chatInputRef.current;
-    if (!el) {
-      return;
-    }
-    el.style.height = '0px';
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
-  }
-
-  useEffect(() => {
-    autoResizeComposer();
-  }, [input]);
-
   if (isWorkspaceLoading || !workspaceId) {
     return (
       <AppPageShell pageId="chat">
@@ -1002,20 +989,14 @@ export default function ChatPage() {
                 className="flex flex-1 flex-col items-center justify-center px-4 pb-8 pt-6"
                 data-testid="chat-welcome"
               >
-                <h1 className="max-w-xl text-center text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+                <h1 className="max-w-xl text-center text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
                   What&apos;s on your mind today?
                 </h1>
                 <p className="mt-3 max-w-md text-center text-sm text-zinc-500">
-                  Ask about your documents, notes, and memory — Aproko answers with citations.
+                  Ask about your library — answers include citations when sources are found.
                 </p>
 
-                <form
-                  className="mt-10 w-full max-w-2xl"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void sendMessage(input);
-                  }}
-                >
+                <div className="mt-10 w-full max-w-2xl">
                   <ChatPromptInput
                     error={error}
                     input={input}
@@ -1023,10 +1004,11 @@ export default function ChatPage() {
                     isSending={isSending}
                     isTranscribingVoice={isTranscribingVoice}
                     onChange={setInput}
+                    onSubmit={(text) => void sendMessage(text)}
                     onToggleVoice={() => void toggleVoiceInput()}
                     textareaRef={chatInputRef}
                   />
-                </form>
+                </div>
 
                 <div className="mt-6 flex flex-col items-stretch gap-2 sm:items-center">
                   <QuickPrompt href="/writing" icon={PenLine} label="Write or edit" />
@@ -1041,13 +1023,7 @@ export default function ChatPage() {
 
           {!showEmptyState ? (
             <div className="shrink-0 bg-gradient-to-t from-white via-white to-transparent px-4 pb-4 pt-2 dark:from-[#212121] dark:via-[#212121] md:px-6">
-              <form
-                className="mx-auto w-full max-w-3xl"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void sendMessage(input);
-                }}
-              >
+              <div className="mx-auto w-full max-w-3xl">
                 <ChatPromptInput
                   error={error}
                   input={input}
@@ -1055,10 +1031,11 @@ export default function ChatPage() {
                   isSending={isSending}
                   isTranscribingVoice={isTranscribingVoice}
                   onChange={setInput}
+                  onSubmit={(text) => void sendMessage(text)}
                   onToggleVoice={() => void toggleVoiceInput()}
                   textareaRef={chatInputRef}
                 />
-              </form>
+              </div>
             </div>
           ) : null}
         </div>

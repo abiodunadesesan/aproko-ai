@@ -4,9 +4,9 @@
 
 | Step | Option | Sprint doc | Status |
 |------|--------|------------|--------|
-| 1 | **A** Async ingestion + PPTX | `sprint-24-async-ingestion-pptx.md` | In progress |
-| 2 | **B** Chat composer (PromptInput) | `sprint-25-chat-prompt-input.md` | Planned |
-| 3 | **C** Release polish | `sprint-26-release-polish.md` | Planned |
+| 1 | **A** Async ingestion + PPTX | `sprint-24-async-ingestion-pptx.md` | Shipped |
+| 2 | **B** Chat composer (PromptInput) | `sprint-25-chat-prompt-input.md` | Shipped |
+| 3 | **C** Release polish | `sprint-26-release-polish.md` | Shipped |
 | 4 | **D** Live Paddle billing | `sprint-27-stripe-billing-live.md` | Implemented |
 
 ## Option A phases

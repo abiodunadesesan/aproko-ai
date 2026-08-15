@@ -11,8 +11,8 @@
 
 - [x] Core user journeys validated end-to-end (auth, library, chat, memory, study, research, admin). Library upload verified on production 2026-07-15.
 - [x] Empty/loading/error states reviewed on all primary pages (engineering smoke + E2E coverage).
-- [ ] Navigation and responsive behavior on desktop and mobile web breakpoints (library mobile cards shipped Sprint 26 partial)
-- [ ] Final copy and labels reviewed for consistency and clarity.
+- [x] Navigation and responsive behavior on desktop and mobile web breakpoints (library mobile cards + chat history sheet + search stacked controls — Sprint 26)
+- [x] Final copy and labels reviewed for consistency and clarity (Sprint 26 pass on chat/search/billing).
 
 **Engineering status (2026-07-15):** E2E suite covers auth shell, library upload, chat citations, billing checkout, and smoke routes.
 
@@ -74,4 +74,4 @@
 
 - Library upload confirmed working on production after Supabase restore + `202607151001` migration.
 - Clerk redirect allow-list in Dashboard still recommended if OAuth sign-in shows redirect errors.
-- Optional post-launch: remove `/sentry-example-page`, add PostHog, configure Stripe for live billing.
+- Optional post-launch: remove `/sentry-example-page`, add PostHog, configure Paddle for live billing.
