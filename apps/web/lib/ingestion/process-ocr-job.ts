@@ -26,6 +26,22 @@ type OcrExtractResponse = {
   error?: string;
 };
 
+function inferMimeTypeFromPath(objectPath: string): string | null {
+  const ext = objectPath.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'tif' || ext === 'tiff') return 'image/tiff';
+  if (ext === 'bmp') return 'image/bmp';
+  return null;
+}
+
+function sourceTypeFromMime(mimeType: string | null): 'pdf' | 'image' {
+  return mimeType?.startsWith('image/') ? 'image' : 'pdf';
+}
+
 async function createSignedSourceUrl(objectPath: string): Promise<string | null> {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
@@ -44,7 +60,7 @@ async function createSignedSourceUrl(objectPath: string): Promise<string | null>
   return signed.data.signedUrl;
 }
 
-async function extractTextViaOcrWorker(signedUrl: string): Promise<string> {
+async function extractTextViaOcrWorker(signedUrl: string, mimeType: string | null): Promise<string> {
   const workerUrl = process.env.OCR_WORKER_URL?.trim()?.replace(/\/$/, '');
   if (!workerUrl) {
     throw new Error('ocr_worker_not_configured');
@@ -57,7 +73,10 @@ async function extractTextViaOcrWorker(signedUrl: string): Promise<string> {
       'content-type': 'application/json',
       ...(workerSecret ? { authorization: `Bearer ${workerSecret}` } : {}),
     },
-    body: JSON.stringify({ fileUrl: signedUrl }),
+    body: JSON.stringify({
+      fileUrl: signedUrl,
+      ...(mimeType ? { mimeType } : {}),
+    }),
   });
 
   const payload = (await response.json().catch(() => ({}))) as OcrExtractResponse;
@@ -77,6 +96,7 @@ async function persistOcrText(
   workspaceId: string,
   objectPath: string,
   extracted: string,
+  mimeType: string | null,
 ): Promise<number> {
   await deleteChunkEmbeddingsForSource(workspaceId, objectPath);
   await deleteSourceChunks(workspaceId, objectPath);
@@ -88,7 +108,7 @@ async function persistOcrText(
     chunks.map((content) => ({
       content,
       tokenCount: estimateTokenCount(content),
-      metadata: { sourceType: 'pdf', extraction: 'ocr' },
+      metadata: { sourceType: sourceTypeFromMime(mimeType), extraction: 'ocr' },
     })),
   );
 
@@ -118,8 +138,9 @@ export async function processIngestJob(job: IngestJob): Promise<'completed' | 'f
       throw new Error('signed_url_failed');
     }
 
-    const extracted = await extractTextViaOcrWorker(signedUrl);
-    await persistOcrText(job.workspaceId, job.sourceStoragePath, extracted);
+    const mimeType = inferMimeTypeFromPath(job.sourceStoragePath);
+    const extracted = await extractTextViaOcrWorker(signedUrl, mimeType);
+    await persistOcrText(job.workspaceId, job.sourceStoragePath, extracted, mimeType);
     await updateSourceIngestStatus(job.workspaceId, job.sourceStoragePath, 'ready');
     await completeIngestJob(job.id);
     return 'completed';

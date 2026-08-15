@@ -39,6 +39,12 @@ test('shouldUseAsyncIngest flags files above sync limit', () => {
   assert.equal(shouldUseAsyncIngest(MAX_SYNC_INGEST_BYTES + 1), true);
 });
 
+test('resolveExtractableKind detects images by extension and mime', () => {
+  assert.equal(resolveExtractableKind('photo.png', null), 'image');
+  assert.equal(resolveExtractableKind('scan.jpg', 'image/jpeg'), 'image');
+  assert.equal(resolveExtractableKind('file.bin', 'image/webp'), 'image');
+});
+
 test('resolveExtractableKind returns null for unsupported types', () => {
-  assert.equal(resolveExtractableKind('photo.png', 'image/png'), null);
+  assert.equal(resolveExtractableKind('archive.zip', 'application/zip'), null);
 });

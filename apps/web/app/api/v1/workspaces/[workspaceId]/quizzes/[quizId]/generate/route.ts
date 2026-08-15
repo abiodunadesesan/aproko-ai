@@ -6,6 +6,10 @@ import { getWorkspaceNoteById, listWorkspaceNotes } from '@/lib/storage/notes';
 import { readLibrarySourceText } from '@/lib/storage/library';
 import { resolveStudySourceContent } from '@/lib/study/resolve-source';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import {
+  consumeAiQueryQuota,
+  planQuotaExceededResponse,
+} from '@/lib/billing/plan-usage';
 import { trackServerEvent } from '@/lib/observability/server';
 import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
@@ -19,6 +23,7 @@ type QuizGenerateRouteDependencies = {
   readLibrarySourceText: typeof readLibrarySourceText;
   createQuizQuestion: typeof createQuizQuestion;
   generateQuizQuestionDrafts: typeof generateQuizQuestionDrafts;
+  consumeAiQueryQuota?: typeof consumeAiQueryQuota;
 };
 
 type RouteContext = {
@@ -92,6 +97,11 @@ export function createQuizGenerateRouteHandlers(deps: QuizGenerateRouteDependenc
             { error: message },
             { status: message.includes('not found') ? 404 : 400 },
           );
+        }
+
+        const quota = await (deps.consumeAiQueryQuota ?? consumeAiQueryQuota)(workspaceId);
+        if (!quota.allowed) {
+          return planQuotaExceededResponse(quota.message, quota.usage);
         }
 
         const drafts = await deps.generateQuizQuestionDrafts(resolved.content);

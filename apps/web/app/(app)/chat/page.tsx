@@ -180,6 +180,7 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
   const [preferredDefaultModel, setPreferredDefaultModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
   const [error, setError] = useState<string | null>(null);
+  const [quotaNotice, setQuotaNotice] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribingVoice, setIsTranscribingVoice] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ChatSession | null>(null);
@@ -756,6 +757,46 @@ export default function ChatPage() {
       return;
     }
 
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/v1/billing/subscription?workspaceId=${encodeURIComponent(workspaceId)}`,
+        );
+        if (!response.ok || cancelled) {
+          return;
+        }
+        const payload = (await response.json()) as {
+          data?: { usage?: { nearingLimit?: boolean; remaining?: number | null } };
+        };
+        if (cancelled) {
+          return;
+        }
+        if (payload.data?.usage?.nearingLimit) {
+          const remaining = payload.data.usage.remaining;
+          setQuotaNotice(
+            remaining === null || remaining === undefined
+              ? "You're nearing this month's AI query limit. Upgrade on Billing to stay uninterrupted."
+              : `You've used most of this month's AI queries (${remaining} left). Upgrade on Billing to stay uninterrupted.`,
+          );
+        } else {
+          setQuotaNotice(null);
+        }
+      } catch {
+        // Soft notice only — ignore billing fetch failures.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId) {
+      return;
+    }
+
     const params =
       typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const wantsNewChat = params?.get('new') === '1';
@@ -860,6 +901,17 @@ export default function ChatPage() {
 
   return (
     <AppPageShell immersive pageId="chat">
+      {quotaNotice ? (
+        <div
+          className="shrink-0 border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-950/40 dark:text-amber-100"
+          role="status"
+        >
+          {quotaNotice}{' '}
+          <Link className="underline underline-offset-2" href="/billing">
+            View billing
+          </Link>
+        </div>
+      ) : null}
       <section className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)]">
         <ChatSessionSidebar
           activeSessionId={activeSessionId}

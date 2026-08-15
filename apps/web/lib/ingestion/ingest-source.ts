@@ -86,6 +86,19 @@ export async function ingestLibrarySource(
     await deleteSourceChunks(source.workspaceId, source.objectPath);
   }
 
+  if (kind === 'image') {
+    const queued = await queueOcrIngestJob({
+      workspaceId: source.workspaceId,
+      sourceStoragePath: source.objectPath,
+    });
+    if (queued) {
+      void runQueuedOcrIngestJobs(1);
+      return { status: 'skipped', reason: 'ocr_queued' };
+    }
+    await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'failed');
+    return { status: 'failed', reason: 'ocr_queue_failed' };
+  }
+
   const buffer = await downloadSourceBuffer(source.objectPath);
   if (!buffer) {
     await updateSourceIngestStatus(source.workspaceId, source.objectPath, 'failed');
@@ -138,7 +151,7 @@ export async function ingestLibrarySource(
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'extract_failed';
 
-    if (reason === 'scanned_pdf_requires_ocr') {
+    if (reason === 'scanned_pdf_requires_ocr' || reason === 'image_requires_ocr') {
       const queued = await queueOcrIngestJob({
         workspaceId: source.workspaceId,
         sourceStoragePath: source.objectPath,

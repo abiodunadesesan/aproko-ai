@@ -27,6 +27,25 @@ test('getPlanEntitlements matches pricing copy', () => {
   assert.equal(getPlanEntitlements('pro_yearly').monthlyAiQueries, null);
 });
 
+test('plan usage snapshot marks nearingLimit at 80 percent', async () => {
+  resetPlanUsageMemoryForTests();
+  process.env.E2E_MOCK_AUTH = '';
+  delete process.env.UPSTASH_REDIS_REST_URL;
+  delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  for (let i = 0; i < 80; i += 1) {
+    const result = await consumeAiQueryQuota('ws_nearing_test');
+    assert.equal(result.allowed, true);
+  }
+
+  const snapshot = await consumeAiQueryQuota('ws_nearing_test');
+  assert.equal(snapshot.allowed, true);
+  if (snapshot.allowed) {
+    assert.equal(snapshot.usage.used, 81);
+    assert.equal(snapshot.usage.nearingLimit, true);
+  }
+});
+
 test('consumeAiQueryQuota blocks free plan after limit in memory mode', async () => {
   resetPlanUsageMemoryForTests();
   process.env.E2E_MOCK_AUTH = '';

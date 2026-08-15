@@ -5,7 +5,7 @@ import { extractText, getDocumentProxy } from 'unpdf';
 export const MAX_SYNC_INGEST_BYTES = 12 * 1024 * 1024;
 export const MAX_ASYNC_INGEST_BYTES = 50 * 1024 * 1024;
 
-export type ExtractableSourceKind = 'pdf' | 'text' | 'docx' | 'pptx';
+export type ExtractableSourceKind = 'pdf' | 'text' | 'docx' | 'pptx' | 'image';
 
 export function resolveExtractableKind(
   fileName: string,
@@ -29,6 +29,13 @@ export function resolveExtractableKind(
     mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
   ) {
     return 'pptx';
+  }
+
+  if (
+    ['png', 'jpg', 'jpeg', 'webp', 'gif', 'tif', 'tiff', 'bmp'].includes(ext) ||
+    Boolean(mimeType?.startsWith('image/'))
+  ) {
+    return 'image';
   }
 
   if (
@@ -116,6 +123,10 @@ export async function extractDocumentText(input: {
       throw new Error('Document is empty');
     }
     return extracted;
+  }
+
+  if (kind === 'image') {
+    throw new Error('image_requires_ocr');
   }
 
   const decoded = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(input.buffer));

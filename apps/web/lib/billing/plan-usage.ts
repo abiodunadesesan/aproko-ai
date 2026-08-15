@@ -14,6 +14,8 @@ export type PlanUsageSnapshot = {
   limit: number | null;
   remaining: number | null;
   unlimited: boolean;
+  /** True when used >= 80% of a finite monthly limit. */
+  nearingLimit: boolean;
 };
 
 const memoryCounters = new Map<string, number>();
@@ -98,6 +100,7 @@ function toSnapshot(planCode: PlanCode, period: string, used: number): PlanUsage
   const entitlements = getPlanEntitlements(planCode);
   const limit = entitlements.monthlyAiQueries;
   const unlimited = limit === null;
+  const nearingLimit = !unlimited && limit !== null && limit > 0 && used / limit >= 0.8;
   return {
     planCode,
     period,
@@ -105,6 +108,7 @@ function toSnapshot(planCode: PlanCode, period: string, used: number): PlanUsage
     limit,
     remaining: unlimited || limit === null ? null : Math.max(0, limit - used),
     unlimited,
+    nearingLimit,
   };
 }
 

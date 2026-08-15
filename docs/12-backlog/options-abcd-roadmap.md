@@ -13,7 +13,7 @@
 ## Option A phases
 
 - **A.1 (this sprint):** PPTX, async large files, polling, scanned-PDF message
-- **A.2 (shipped):** PaddleOCR worker (`backend/workers/ocr`), `ingest_jobs` table, OCR queue on scanned PDFs
+- **A.2 (shipped):** PaddleOCR worker (`backend/workers/ocr`), `ingest_jobs` table, OCR queue on scanned PDFs and images
 
 ## Option B
 

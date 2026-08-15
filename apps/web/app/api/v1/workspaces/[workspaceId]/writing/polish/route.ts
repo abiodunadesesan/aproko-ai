@@ -6,6 +6,10 @@ import {
   type WritingPolishMode,
 } from '@/lib/ai/writing-polish';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
+import {
+  consumeAiQueryQuota,
+  planQuotaExceededResponse,
+} from '@/lib/billing/plan-usage';
 import { trackServerEvent } from '@/lib/observability/server';
 import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
 
@@ -14,6 +18,7 @@ type AuthDependency = () => Promise<{ userId: string | null }>;
 type WritingPolishRouteDependencies = {
   auth: AuthDependency;
   polishWriting: typeof polishWriting;
+  consumeAiQueryQuota?: typeof consumeAiQueryQuota;
 };
 
 type RouteContext = { params: Promise<{ workspaceId: string }> };
@@ -60,6 +65,11 @@ export function createWritingPolishRouteHandlers(deps: WritingPolishRouteDepende
             },
             { status: 400 },
           );
+        }
+
+        const quota = await (deps.consumeAiQueryQuota ?? consumeAiQueryQuota)(workspaceId);
+        if (!quota.allowed) {
+          return planQuotaExceededResponse(quota.message, quota.usage);
         }
 
         const mode: WritingPolishMode = modeRaw;

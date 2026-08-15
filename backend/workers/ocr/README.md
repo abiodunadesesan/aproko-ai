@@ -1,11 +1,11 @@
 # PaddleOCR worker (Sprint 24 A.2)
 
-Python FastAPI service for scanned PDF text extraction.
+Python FastAPI service for scanned PDF and image text extraction.
 
 ## Endpoints
 
 - `GET /health` — liveness probe
-- `POST /extract` — `{ "fileUrl": "<signed-url>" }` → `{ "text": "..." }`
+- `POST /extract` — `{ "fileUrl": "<signed-url>", "mimeType"?: "application/pdf|image/png|..." }` → `{ "text": "..." }`
 
 Optional auth: set `OCR_WORKER_SECRET` and send `Authorization: Bearer <secret>`.
 

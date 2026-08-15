@@ -22,6 +22,7 @@ type BillingSubscription = {
     limit: number | null;
     remaining: number | null;
     unlimited: boolean;
+    nearingLimit?: boolean;
     effectivePlanCode: string;
   };
 };
@@ -233,7 +234,11 @@ export default function BillingPage() {
                   {!subscription.usage.unlimited ? (
                     <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                       <div
-                        className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
+                        className={`h-full rounded-full ${
+                          subscription.usage.nearingLimit
+                            ? 'bg-amber-500 dark:bg-amber-400'
+                            : 'bg-zinc-900 dark:bg-zinc-100'
+                        }`}
                         style={{
                           width: `${Math.min(
                             100,
@@ -246,12 +251,21 @@ export default function BillingPage() {
                       />
                     </div>
                   ) : null}
+                  {subscription.usage.nearingLimit ? (
+                    <p
+                      className="rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
+                      role="status"
+                    >
+                      You&apos;ve used 80%+ of this month&apos;s AI queries. Upgrade anytime to avoid
+                      interruptions.
+                    </p>
+                  ) : null}
                   <p className="text-xs text-zinc-500">
                     Limits follow your effective plan
                     {subscription.usage.effectivePlanCode
                       ? ` (${subscription.usage.effectivePlanCode})`
                       : ''}
-                    . Chat messages consume one query each.
+                    . Chat, writing polish, and study generation each consume one query.
                   </p>
                 </div>
               ) : (

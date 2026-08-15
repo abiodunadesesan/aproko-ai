@@ -35,6 +35,7 @@ function toBillingSubscriptionPayload(
       limit: usage.limit,
       remaining: usage.remaining,
       unlimited: usage.unlimited,
+      nearingLimit: usage.nearingLimit,
       effectivePlanCode: usage.planCode,
     },
   };

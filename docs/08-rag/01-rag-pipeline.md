@@ -76,7 +76,7 @@ flowchart LR
 
 Web Step 1 (Sprint 19): browser mic/upload audio is transcribed synchronously with OpenAI Whisper (`whisper-1`) when `OPENAI_API_KEY` is set. Diarization remains deferred.
 
-Web async OCR (Sprint 24 A.2): scanned PDFs queue `ingest_jobs` rows and are processed by the PaddleOCR worker (`backend/workers/ocr`) when `OCR_WORKER_URL` is set.
+Web async OCR (Sprint 24 A.2): scanned PDFs and images queue `ingest_jobs` rows and are processed by the PaddleOCR worker (`backend/workers/ocr`) when `OCR_WORKER_URL` is set.
 
 Web hybrid search (Sprint 23): when `QDRANT_URL` and `OPENAI_API_KEY` are set, ingested chunks are embedded with `text-embedding-3-small`, upserted to Qdrant, and merged with lexical ILIKE hits in workspace search.
 

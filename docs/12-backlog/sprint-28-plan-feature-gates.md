@@ -13,20 +13,21 @@ Enforce plan entitlements (monthly AI query quotas) from workspace `subscription
 
 - Entitlement map: free 100 / teams 500 / pro unlimited per calendar month
 - Usage counter (Upstash Redis when available; in-memory fallback)
-- Gate AI chat message generation (`POST .../messages`) with `402` when exhausted
+- Gate AI chat, writing polish, and study generation with `402` when exhausted
+- Soft warning when usage ≥ 80% of monthly limit
 - Expose usage on `GET /api/v1/billing/subscription`
-- Billing UI usage meter
+- Billing UI usage meter (+ chat soft banner)
 
 ## Done
 
 - `lib/billing/plan-entitlements.ts` + `plan-usage.ts`
-- Chat messages route consumes quota before streaming
-- Billing subscription payload includes `usage`
-- Billing page meter
+- Chat messages, writing polish, flashcard generate, and quiz generate consume quota
+- Billing subscription payload includes `usage` (+ `nearingLimit` at ≥80%)
+- Billing page meter + soft warning; chat soft banner when nearing limit
+- Image uploads (png/jpg/webp/…) queue OCR like scanned PDFs
 
 ## Out of scope
 
 - Per-seat Teams metering
 - Token-level metering
-- Soft warnings at 80%
 - Paddle Customer Portal
