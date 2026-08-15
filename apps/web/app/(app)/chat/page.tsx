@@ -12,6 +12,7 @@ import { useWorkspace } from '@/components/workspace/workspace-provider';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FolderOpen, Globe, History, PenLine } from 'lucide-react';
+import { AppReveal, AppStagger, AppStaggerItem } from '@/components/app/app-motion';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { ChatMessageThread } from '@/components/app/chat-message-thread';
@@ -1041,14 +1042,16 @@ export default function ChatPage() {
                 className="flex flex-1 flex-col items-center justify-center px-4 pb-8 pt-6"
                 data-testid="chat-welcome"
               >
-                <h1 className="max-w-xl text-center text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
-                  What&apos;s on your mind today?
-                </h1>
-                <p className="mt-3 max-w-md text-center text-sm text-zinc-500">
-                  Ask about your library — answers include citations when sources are found.
-                </p>
+                <AppReveal>
+                  <h1 className="max-w-xl text-balance text-center text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+                    What&apos;s on your mind today?
+                  </h1>
+                  <p className="mt-3 max-w-md text-pretty text-center text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    Ask about your library — answers include citations when sources are found.
+                  </p>
+                </AppReveal>
 
-                <div className="mt-10 w-full max-w-2xl">
+                <AppReveal className="mt-10 w-full max-w-2xl" delay={0.04}>
                   <ChatPromptInput
                     error={error}
                     input={input}
@@ -1060,13 +1063,19 @@ export default function ChatPage() {
                     onToggleVoice={() => void toggleVoiceInput()}
                     textareaRef={chatInputRef}
                   />
-                </div>
+                </AppReveal>
 
-                <div className="mt-6 flex flex-col items-stretch gap-2 sm:items-center">
-                  <QuickPrompt href="/writing" icon={PenLine} label="Write or edit" />
-                  <QuickPrompt href="/search" icon={Globe} label="Look something up" />
-                  <QuickPrompt href="/library" icon={FolderOpen} label="Browse your library" />
-                </div>
+                <AppStagger className="mt-8 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                  <AppStaggerItem>
+                    <QuickPrompt href="/writing" icon={PenLine} label="Write or edit" />
+                  </AppStaggerItem>
+                  <AppStaggerItem>
+                    <QuickPrompt href="/search" icon={Globe} label="Look something up" />
+                  </AppStaggerItem>
+                  <AppStaggerItem>
+                    <QuickPrompt href="/library" icon={FolderOpen} label="Browse your library" />
+                  </AppStaggerItem>
+                </AppStagger>
               </div>
             ) : (
               <ChatMessageThread isSending={isSending} messages={messages} />
@@ -1146,7 +1155,7 @@ function QuickPrompt({
 }) {
   return (
     <Link
-      className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 text-sm text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-white hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
       href={href}
     >
       <Icon className="h-4 w-4" />

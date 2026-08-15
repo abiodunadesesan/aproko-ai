@@ -5,10 +5,18 @@ import { Search as SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import { AppReveal } from '@/components/app/app-motion';
+import {
+  AppFilterChip,
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  appSurface,
+} from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 type SearchResult = {
   id: string;
@@ -92,15 +100,19 @@ export default function SearchPage() {
       <div className="space-y-2">
         {items.map((result) => (
           <Link
-            className="block rounded-md border p-3 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={appSurface.linkRow}
             href={toResultHref(result)}
             key={`${result.type}-${result.id}`}
           >
-            <p className="text-sm font-medium">{result.title}</p>
-            <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-              {formatResultType(result.type)}
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">{result.title}</p>
+              <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                {formatResultType(result.type)}
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              {result.snippet}
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">{result.snippet}</p>
           </Link>
         ))}
       </div>
@@ -119,122 +131,116 @@ export default function SearchPage() {
 
   return (
     <AppPageShell pageId="search">
-      <section className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Search</CardTitle>
-            <CardDescription>Find sources, notes, and memory in your workspace.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-              <Input
-                aria-label="Search workspace content"
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    void handleSearch();
-                  }
-                }}
-                placeholder="Search sources, notes, memory…"
-                value={query}
-              />
-              <Button
-                className="w-full sm:w-auto"
-                disabled={isLoading}
-                onClick={() => void handleSearch()}
-                type="button"
-              >
-                {isLoading ? 'Searching…' : 'Search'}
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {FILTERS.map((filter) => (
-                <button
-                  aria-pressed={activeFilter === filter.value}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    activeFilter === filter.value
-                      ? 'bg-foreground text-background'
-                      : 'hover:bg-muted/70'
-                  }`}
-                  key={filter.value}
-                  onClick={() => setActiveFilter(filter.value)}
+      <AppPageFrame>
+        <AppReveal>
+          <AppPanel>
+            <AppPanelBody className="space-y-4">
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Input
+                  aria-label="Search workspace content"
+                  className={cn(appSurface.field, 'h-11')}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSearch();
+                    }
+                  }}
+                  placeholder="Search sources, notes, memory…"
+                  value={query}
+                />
+                <Button
+                  className="h-11 w-full rounded-full sm:w-auto"
+                  disabled={isLoading}
+                  onClick={() => void handleSearch()}
                   type="button"
                 >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-            {error ? (
-              <div
-                className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-                role="alert"
-              >
-                {error}
+                  {isLoading ? 'Searching…' : 'Search'}
+                </Button>
               </div>
-            ) : null}
-          </CardContent>
-        </Card>
+              <div className="flex flex-wrap gap-2">
+                {FILTERS.map((filter) => (
+                  <AppFilterChip
+                    active={activeFilter === filter.value}
+                    key={filter.value}
+                    onClick={() => setActiveFilter(filter.value)}
+                  >
+                    {filter.label}
+                  </AppFilterChip>
+                ))}
+              </div>
+              {error ? (
+                <div className={appSurface.alert} role="alert">
+                  {error}
+                </div>
+              ) : null}
+            </AppPanelBody>
+          </AppPanel>
+        </AppReveal>
 
-        <Card>
-          <CardContent aria-live="polite" className="pt-6">
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground" role="status">
-                Loading search results...
-              </p>
-            ) : !hasSearched ? (
-              <EmptyState
-                compact
-                description="Enter a query above to find sources, study notes, and remembered facts across your workspace."
-                icon={SearchIcon}
-                title="Search your workspace"
-              />
-            ) : results.length === 0 ? (
-              <EmptyState
-                compact
-                description={`No matches for "${query.trim()}". Try different keywords or broaden your filter.`}
-                icon={SearchIcon}
-                title="No results found"
-              />
-            ) : activeFilter === 'all' ? (
-              <div className="space-y-4">
-                <section className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Sources ({grouped.source.length})
-                  </p>
-                  {grouped.source.length > 0 ? (
-                    renderResultList(grouped.source)
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No source matches.</p>
-                  )}
-                </section>
-                <section className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Notes ({grouped.note.length})
-                  </p>
-                  {grouped.note.length > 0 ? (
-                    renderResultList(grouped.note)
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No note matches.</p>
-                  )}
-                </section>
-                <section className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Memory ({grouped.memory.length})
-                  </p>
-                  {grouped.memory.length > 0 ? (
-                    renderResultList(grouped.memory)
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No memory matches.</p>
-                  )}
-                </section>
-              </div>
-            ) : (
-              renderResultList(results)
-            )}
-          </CardContent>
-        </Card>
-      </section>
+        <AppReveal delay={0.05}>
+        <AppPanel>
+          <div aria-live="polite">
+            <AppPanelBody>
+              {isLoading ? (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400" role="status">
+                  Loading search results...
+                </p>
+              ) : !hasSearched ? (
+                <EmptyState
+                  compact
+                  description="Enter a query above to find sources, study notes, and remembered facts across your workspace."
+                  icon={SearchIcon}
+                  title="Search your workspace"
+                />
+              ) : results.length === 0 ? (
+                <EmptyState
+                  compact
+                  description={`No matches for "${query.trim()}". Try different keywords or broaden your filter.`}
+                  icon={SearchIcon}
+                  title="No results found"
+                />
+              ) : activeFilter === 'all' ? (
+                <div className="space-y-5">
+                  <section className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      Sources ({grouped.source.length})
+                    </p>
+                    {grouped.source.length > 0 ? (
+                      renderResultList(grouped.source)
+                    ) : (
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">No source matches.</p>
+                    )}
+                  </section>
+                  <section className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      Notes ({grouped.note.length})
+                    </p>
+                    {grouped.note.length > 0 ? (
+                      renderResultList(grouped.note)
+                    ) : (
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">No note matches.</p>
+                    )}
+                  </section>
+                  <section className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      Memory ({grouped.memory.length})
+                    </p>
+                    {grouped.memory.length > 0 ? (
+                      renderResultList(grouped.memory)
+                    ) : (
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">No memory matches.</p>
+                    )}
+                  </section>
+                </div>
+              ) : (
+                renderResultList(results)
+              )}
+            </AppPanelBody>
+          </div>
+        </AppPanel>
+        </AppReveal>
+      </AppPageFrame>
     </AppPageShell>
   );
 }

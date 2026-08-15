@@ -3,10 +3,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import {
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { normalizePlanCode, type PlanCode } from '@/lib/pricing-plans';
+import { cn } from '@/lib/utils';
 
 type BillingSubscription = {
   workspaceId: string;
@@ -49,6 +56,18 @@ export default function BillingPage() {
     () => normalizePlanCode(subscription?.planCode),
     [subscription?.planCode],
   );
+
+  const usagePercent = useMemo(() => {
+    if (!subscription?.usage || subscription.usage.unlimited) {
+      return 0;
+    }
+    return Math.min(
+      100,
+      Math.round(
+        (subscription.usage.used / Math.max(subscription.usage.limit ?? 1, 1)) * 100,
+      ),
+    );
+  }, [subscription?.usage]);
 
   async function loadSubscription() {
     setIsLoading(true);
@@ -151,7 +170,7 @@ export default function BillingPage() {
 
   return (
     <AppPageShell pageId="billing">
-      <section className="space-y-6 sm:space-y-8">
+      <AppPageFrame>
         <PricingSection
           currentPlanCode={normalizedCurrentPlan}
           mode="billing"
@@ -159,38 +178,47 @@ export default function BillingPage() {
         />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <Card className="border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-100">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-sm sm:text-base">Subscription status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+          <AppPanel>
+            <AppPanelHeader title="Subscription status" />
+            <AppPanelBody className="space-y-4">
               {isLoading ? (
-                <p className="text-sm text-muted-foreground" role="status">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400" role="status">
                   Loading subscription...
                 </p>
               ) : (
                 <>
-                  <div className="space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
-                    <p>
-                      <span className="text-zinc-500">Plan:</span>{' '}
-                      {subscription?.planCode ?? 'free'}
-                    </p>
-                    <p>
-                      <span className="text-zinc-500">Status:</span>{' '}
-                      {subscription?.status ?? 'active'}
-                    </p>
-                    <p>
-                      <span className="text-zinc-500">Provider:</span>{' '}
-                      {subscription?.provider ?? 'not configured'}
-                    </p>
-                    <p>
-                      <span className="text-zinc-500">Billing period:</span> {periodLabel}
-                    </p>
-                    <p>
-                      <span className="text-zinc-500">Cancel at period end:</span>{' '}
-                      {subscription?.cancelAtPeriodEnd ? 'Yes' : 'No'}
-                    </p>
-                  </div>
+                  <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div className={cn(appSurface.inset, 'p-3')}>
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">Plan</dt>
+                      <dd className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+                        {subscription?.planCode ?? 'free'}
+                      </dd>
+                    </div>
+                    <div className={cn(appSurface.inset, 'p-3')}>
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">Status</dt>
+                      <dd className="mt-1 font-medium capitalize text-zinc-900 dark:text-zinc-100">
+                        {subscription?.status ?? 'active'}
+                      </dd>
+                    </div>
+                    <div className={cn(appSurface.inset, 'p-3')}>
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">Provider</dt>
+                      <dd className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+                        {subscription?.provider ?? 'not configured'}
+                      </dd>
+                    </div>
+                    <div className={cn(appSurface.inset, 'p-3')}>
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">Cancel at period end</dt>
+                      <dd className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+                        {subscription?.cancelAtPeriodEnd ? 'Yes' : 'No'}
+                      </dd>
+                    </div>
+                    <div className={cn(appSurface.inset, 'p-3 sm:col-span-2')}>
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">Billing period</dt>
+                      <dd className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+                        {periodLabel}
+                      </dd>
+                    </div>
+                  </dl>
 
                   <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Button
@@ -212,55 +240,57 @@ export default function BillingPage() {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+            </AppPanelBody>
+          </AppPanel>
 
-          <Card className="border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-100">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-sm sm:text-base">Usage snapshot</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+          <AppPanel>
+            <AppPanelHeader title="Usage snapshot" />
+            <AppPanelBody className="space-y-4">
               {subscription?.usage ? (
-                <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-                  <p>
-                    <span className="text-zinc-500">Period:</span> {subscription.usage.period}
-                  </p>
-                  <p>
-                    <span className="text-zinc-500">AI queries:</span>{' '}
-                    {subscription.usage.unlimited
-                      ? `${subscription.usage.used} used (unlimited)`
-                      : `${subscription.usage.used} / ${subscription.usage.limit}`}
-                  </p>
+                <div className="space-y-4">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                        AI queries
+                      </p>
+                      <p className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                        {subscription.usage.unlimited
+                          ? subscription.usage.used
+                          : `${subscription.usage.used} / ${subscription.usage.limit}`}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        Period {subscription.usage.period}
+                        {subscription.usage.unlimited ? ' · unlimited' : ''}
+                      </p>
+                    </div>
+                    {!subscription.usage.unlimited ? (
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                        {usagePercent}%
+                      </p>
+                    ) : null}
+                  </div>
+
                   {!subscription.usage.unlimited ? (
-                    <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                       <div
-                        className={`h-full rounded-full ${
+                        className={`h-full rounded-full transition-[width] duration-500 ${
                           subscription.usage.nearingLimit
                             ? 'bg-amber-500 dark:bg-amber-400'
                             : 'bg-zinc-900 dark:bg-zinc-100'
                         }`}
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            Math.round(
-                              (subscription.usage.used / Math.max(subscription.usage.limit ?? 1, 1)) *
-                                100,
-                            ),
-                          )}%`,
-                        }}
+                        style={{ width: `${usagePercent}%` }}
                       />
                     </div>
                   ) : null}
+
                   {subscription.usage.nearingLimit ? (
-                    <p
-                      className="rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
-                      role="status"
-                    >
+                    <div className={appSurface.notice} role="status">
                       You&apos;ve used 80%+ of this month&apos;s AI queries. Upgrade anytime to avoid
                       interruptions.
-                    </p>
+                    </div>
                   ) : null}
-                  <p className="text-xs text-zinc-500">
+
+                  <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
                     Limits follow your effective plan
                     {subscription.usage.effectivePlanCode
                       ? ` (${subscription.usage.effectivePlanCode})`
@@ -273,27 +303,21 @@ export default function BillingPage() {
                   Usage meters load with your subscription.
                 </p>
               )}
-            </CardContent>
-          </Card>
+            </AppPanelBody>
+          </AppPanel>
         </div>
-      </section>
 
-      {error ? (
-        <div
-          className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-          role="alert"
-        >
-          {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div
-          className="mt-4 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
-          role="status"
-        >
-          {notice}
-        </div>
-      ) : null}
+        {error ? (
+          <div className={appSurface.alert} role="alert">
+            {error}
+          </div>
+        ) : null}
+        {notice ? (
+          <div className={appSurface.notice} role="status">
+            {notice}
+          </div>
+        ) : null}
+      </AppPageFrame>
     </AppPageShell>
   );
 }

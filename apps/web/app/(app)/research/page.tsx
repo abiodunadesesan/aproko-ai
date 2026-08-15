@@ -5,9 +5,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { FileText, Sparkles } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import {
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -17,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 type ResearchWorkspace = {
   id: string;
@@ -260,28 +267,28 @@ export default function ResearchPage() {
 
   return (
     <AppPageShell pageId="research">
-      <section className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Research Workspace</CardTitle>
-            <CardDescription>
-              Define a focused research context for selected sources.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mt-3 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
+      <AppPageFrame>
+        <AppPanel>
+          <AppPanelHeader
+            description="Define a focused research context for selected sources."
+            title="Create Research Workspace"
+          />
+          <AppPanelBody>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_2fr_auto] lg:items-start">
               <Input
+                className={appSurface.field}
                 onChange={(event) => setTitleDraft(event.target.value)}
                 placeholder="Workspace title"
                 value={titleDraft}
               />
               <Textarea
-                className="min-h-10"
+                className={cn(appSurface.field, 'min-h-10 py-2')}
                 onChange={(event) => setDescriptionDraft(event.target.value)}
                 placeholder="Description (optional)"
                 value={descriptionDraft}
               />
               <Button
+                className="h-10 w-full rounded-full lg:w-auto"
                 disabled={isSaving || !titleDraft.trim()}
                 onClick={() => void handleCreateWorkspace()}
                 type="button"
@@ -289,14 +296,12 @@ export default function ResearchPage() {
                 {isSaving ? 'Saving...' : 'Create'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </AppPanelBody>
+        </AppPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Workspace Context</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <AppPanel>
+          <AppPanelHeader title="Workspace Context" />
+          <AppPanelBody>
             {!isLoading && researchWorkspaces.length === 0 ? (
               <EmptyState
                 compact
@@ -305,12 +310,12 @@ export default function ResearchPage() {
                 title="No research workspaces yet"
               />
             ) : (
-              <div className="mt-3 grid gap-2 md:grid-cols-[280px_1fr]">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,280px)_1fr]">
                 <Select
                   onValueChange={(value) => setActiveWorkspaceId(value)}
                   value={activeWorkspaceId}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-xl border-zinc-200 dark:border-zinc-700">
                     <SelectValue
                       placeholder={
                         researchWorkspaces.length ? 'Select workspace' : 'No research workspace yet'
@@ -325,28 +330,26 @@ export default function ResearchPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="rounded-md border p-3 text-sm text-muted-foreground">
+                <div className={cn(appSurface.inset, 'p-3.5 text-sm text-zinc-600 dark:text-zinc-400')}>
                   {activeWorkspace
                     ? `${activeWorkspace.title} • ${activeWorkspace.description ?? 'No description'}`
                     : 'Choose a workspace to manage linked sources.'}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </AppPanelBody>
+        </AppPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Linked Sources</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+        <AppPanel>
+          <AppPanelHeader title="Linked Sources" />
+          <AppPanelBody className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
               <Select
                 disabled={!activeWorkspaceId || !availableSources.length}
                 onValueChange={(value) => setSourceToLink(value)}
                 value={sourceToLink}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10 rounded-xl border-zinc-200 dark:border-zinc-700">
                   <SelectValue
                     placeholder={
                       availableSources.length ? 'Select source to link' : 'No available source'
@@ -362,6 +365,7 @@ export default function ResearchPage() {
                 </SelectContent>
               </Select>
               <Button
+                className="w-full rounded-full sm:w-auto"
                 disabled={!activeWorkspaceId || !sourceToLink || isSaving}
                 onClick={() => void handleLinkSource()}
                 type="button"
@@ -371,9 +375,9 @@ export default function ResearchPage() {
               </Button>
             </div>
 
-            <div className="mt-3 space-y-2">
+            <div className="space-y-2">
               {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading linked sources...</p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading linked sources...</p>
               ) : !activeWorkspaceId ? (
                 <EmptyState
                   compact
@@ -386,7 +390,7 @@ export default function ResearchPage() {
                   compact
                   action={
                     availableSources.length > 0 ? null : (
-                      <Button asChild size="sm" type="button" variant="outline">
+                      <Button asChild className="rounded-full" size="sm" type="button" variant="outline">
                         <Link href="/library">Upload sources</Link>
                       </Button>
                     )
@@ -398,16 +402,17 @@ export default function ResearchPage() {
               ) : (
                 linkedSourceDetails.map((entry) => (
                   <div
-                    className="flex items-center justify-between rounded-md border p-3"
+                    className="flex flex-col gap-3 rounded-xl border border-zinc-100 bg-zinc-50/80 p-3.5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-950/40"
                     key={entry.sourceId}
                   >
-                    <p className="text-sm">
+                    <p className="text-sm text-zinc-900 dark:text-zinc-100">
                       {entry.source?.name ?? entry.sourceId}
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400 sm:ml-2 sm:mt-0 sm:inline">
                         linked {new Date(entry.addedAt).toLocaleString()}
                       </span>
                     </p>
                     <Button
+                      className="w-full rounded-full sm:w-auto"
                       disabled={isSaving}
                       onClick={() => void handleUnlinkSource(entry.sourceId)}
                       type="button"
@@ -419,20 +424,20 @@ export default function ResearchPage() {
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+          </AppPanelBody>
+        </AppPanel>
 
         {error ? (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className={appSurface.alert} role="alert">
             {error}
           </div>
         ) : null}
         {notice ? (
-          <div className="rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className={appSurface.notice} role="status">
             {notice}
           </div>
         ) : null}
-      </section>
+      </AppPageFrame>
     </AppPageShell>
   );
 }

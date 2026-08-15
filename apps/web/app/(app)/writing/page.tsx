@@ -4,8 +4,15 @@ import { useEffect, useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { Copy, History, Pencil, PenLine, Plus, ScanSearch, Sparkles, Trash2 } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import { AppReveal } from '@/components/app/app-motion';
+import {
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +39,7 @@ import {
   markLocalWritingDraftsMigrated,
   type WritingDraftRecord,
 } from '@/lib/writing/draft-history';
+import { cn } from '@/lib/utils';
 
 const MODES = [
   { value: 'clarity', label: 'Clarity' },
@@ -106,6 +114,125 @@ function toDraftRecord(payload: {
     updatedAt: payload.updatedAt,
     ...(payload.createdAt !== undefined ? { createdAt: payload.createdAt } : {}),
   };
+}
+
+function DraftListItem({
+  item,
+  isActive,
+  onLoad,
+  onDelete,
+  touchFriendly = false,
+}: {
+  item: WritingDraftRecord;
+  isActive: boolean;
+  onLoad: () => void;
+  onDelete: () => void;
+  touchFriendly?: boolean;
+}) {
+  return (
+    <li>
+      <div
+        className={cn(
+          'group flex items-start gap-1 rounded-xl px-2.5 py-2 transition-colors',
+          isActive
+            ? 'bg-zinc-100/90 ring-1 ring-zinc-200/80 dark:bg-zinc-800/70 dark:ring-zinc-700'
+            : 'hover:bg-zinc-50/90 dark:hover:bg-zinc-900/70',
+        )}
+      >
+        <button
+          className={cn('min-w-0 flex-1 text-left', touchFriendly && 'min-h-11')}
+          onClick={onLoad}
+          type="button"
+        >
+          <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            {item.title}
+          </p>
+          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+            {new Date(item.updatedAt).toLocaleString()}
+          </p>
+        </button>
+        <Button
+          aria-label={`Delete ${item.title}`}
+          className={cn(
+            'text-destructive',
+            touchFriendly ? 'h-9 w-9' : 'h-9 w-9 sm:h-7 sm:w-7',
+          )}
+          onClick={onDelete}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+function DraftsPanelBody({
+  drafts,
+  draftId,
+  isLoadingDrafts,
+  isSaving,
+  onNew,
+  onSave,
+  onLoad,
+  onDelete,
+  touchFriendly = false,
+}: {
+  drafts: WritingDraftRecord[];
+  draftId: string | null;
+  isLoadingDrafts: boolean;
+  isSaving: boolean;
+  onNew: () => void;
+  onSave: () => void;
+  onLoad: (item: WritingDraftRecord) => void;
+  onDelete: (id: string) => void;
+  touchFriendly?: boolean;
+}) {
+  return (
+    <>
+      <div className="space-y-2.5 border-b border-zinc-100 p-4 dark:border-zinc-800/80">
+        <Button className="w-full rounded-xl" onClick={onNew} type="button">
+          <Plus className="mr-1.5 h-4 w-4" />
+          New draft
+        </Button>
+        <Button
+          className="w-full rounded-xl"
+          disabled={isSaving}
+          onClick={onSave}
+          type="button"
+          variant="outline"
+        >
+          {isSaving ? 'Saving…' : 'Save current'}
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2">
+        {isLoadingDrafts ? (
+          <p className="px-3 py-6 text-center text-xs text-zinc-500" role="status">
+            Loading drafts…
+          </p>
+        ) : drafts.length === 0 ? (
+          <p className="px-3 py-6 text-center text-xs text-zinc-500">
+            No drafts yet — polish or save to keep work across devices.
+          </p>
+        ) : (
+          <ul className="space-y-0.5">
+            {drafts.map((item) => (
+              <DraftListItem
+                isActive={item.id === draftId}
+                item={item}
+                key={item.id}
+                onDelete={() => onDelete(item.id)}
+                onLoad={() => onLoad(item)}
+                touchFriendly={touchFriendly}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
 }
 
 export default function WritingPage() {
@@ -504,418 +631,330 @@ export default function WritingPage() {
     );
   }
 
+  const draftsPanelProps = {
+    drafts,
+    draftId,
+    isLoadingDrafts,
+    isSaving,
+    onNew: startNewDraft,
+    onSave: () => {
+      void saveCurrentDraft().then((saved) => {
+        if (saved) {
+          setNotice('Draft saved to your account.');
+        }
+      });
+    },
+    onLoad: loadDraft,
+    onDelete: (id: string) => {
+      void removeDraft(id);
+    },
+  };
+
   return (
     <AppPageShell pageId="writing">
-      <section className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="hidden min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 lg:flex lg:min-h-[560px] dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
-          <div className="space-y-3 border-b border-zinc-200/80 p-4 dark:border-zinc-800">
-            <Button className="w-full rounded-xl" onClick={startNewDraft} type="button">
-              <Plus className="mr-1.5 h-4 w-4" />
-              New draft
-            </Button>
-            <Button
-              className="w-full rounded-xl"
-              disabled={isSaving}
-              onClick={() => {
-                void saveCurrentDraft().then((saved) => {
-                  if (saved) {
-                    setNotice('Draft saved to your account.');
-                  }
-                });
-              }}
-              type="button"
-              variant="outline"
-            >
-              {isSaving ? 'Saving…' : 'Save current'}
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2">
-            {isLoadingDrafts ? (
-              <p className="px-3 py-6 text-center text-xs text-muted-foreground" role="status">
-                Loading drafts…
-              </p>
-            ) : drafts.length === 0 ? (
-              <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                No drafts yet — polish or save to keep work across devices.
-              </p>
-            ) : (
-              <ul className="space-y-1">
-                {drafts.map((item) => {
-                  const isActive = item.id === draftId;
-                  return (
-                    <li key={item.id}>
-                      <div
-                        className={`group flex items-start gap-1 rounded-xl border px-2 py-2 ${
-                          isActive
-                            ? 'border-zinc-300 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/80'
-                            : 'border-transparent hover:bg-white/80 dark:hover:bg-zinc-900'
-                        }`}
-                      >
-                        <button
-                          className="min-w-0 flex-1 text-left"
-                          onClick={() => loadDraft(item)}
-                          type="button"
-                        >
-                          <p className="truncate text-sm font-medium">{item.title}</p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            {new Date(item.updatedAt).toLocaleString()}
-                          </p>
-                        </button>
-                        <Button
-                          aria-label={`Delete ${item.title}`}
-                          className="h-9 w-9 text-destructive sm:h-7 sm:w-7"
-                          onClick={() => void removeDraft(item.id)}
-                          size="icon"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </aside>
+      <AppPageFrame>
+        <AppReveal>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,260px)_1fr] lg:items-start">
+          <AppPanel className="hidden min-h-0 flex-col overflow-hidden lg:flex lg:min-h-[560px] lg:sticky lg:top-4">
+            <DraftsPanelBody {...draftsPanelProps} />
+          </AppPanel>
 
-        <Sheet onOpenChange={setDraftsOpen} open={draftsOpen}>
-          <SheetContent className="w-[min(100vw,320px)] p-0 sm:max-w-[320px]" side="left">
-            <SheetHeader className="border-b px-4 py-3 text-left">
-              <SheetTitle>Drafts</SheetTitle>
-            </SheetHeader>
-            <div className="space-y-3 border-b p-4">
+          <Sheet onOpenChange={setDraftsOpen} open={draftsOpen}>
+            <SheetContent
+              className="flex w-[min(100vw,340px)] flex-col border-zinc-200/90 bg-white/95 p-0 sm:max-w-[340px] dark:border-zinc-800 dark:bg-zinc-950/95"
+              side="left"
+            >
+              <SheetHeader className="space-y-0 border-b border-zinc-100 px-4 py-3.5 text-left dark:border-zinc-800/80">
+                <SheetTitle className="text-base font-semibold tracking-tight">Drafts</SheetTitle>
+              </SheetHeader>
+              <div className="flex min-h-0 flex-1 flex-col">
+                <DraftsPanelBody
+                  {...draftsPanelProps}
+                  onLoad={(item) => {
+                    loadDraft(item);
+                    setDraftsOpen(false);
+                  }}
+                  onNew={() => {
+                    startNewDraft();
+                    setDraftsOpen(false);
+                  }}
+                  onSave={() => {
+                    void saveCurrentDraft().then((saved) => {
+                      if (saved) {
+                        setNotice('Draft saved to your account.');
+                        setDraftsOpen(false);
+                      }
+                    });
+                  }}
+                  touchFriendly
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div className="min-w-0 space-y-4">
+            <div className="flex gap-2 lg:hidden">
               <Button
-                className="w-full rounded-xl"
-                onClick={() => {
-                  startNewDraft();
-                  setDraftsOpen(false);
-                }}
+                aria-label="Open drafts"
+                className="rounded-xl"
+                onClick={() => setDraftsOpen(true)}
                 type="button"
+                variant="outline"
               >
+                <History className="mr-1.5 h-4 w-4" />
+                Drafts
+              </Button>
+              <Button className="flex-1 rounded-xl" onClick={startNewDraft} type="button">
                 <Plus className="mr-1.5 h-4 w-4" />
-                New draft
+                New
               </Button>
               <Button
-                className="w-full rounded-xl"
+                className="flex-1 rounded-xl"
                 disabled={isSaving}
                 onClick={() => {
                   void saveCurrentDraft().then((saved) => {
                     if (saved) {
                       setNotice('Draft saved to your account.');
-                      setDraftsOpen(false);
                     }
                   });
                 }}
                 type="button"
                 variant="outline"
               >
-                {isSaving ? 'Saving…' : 'Save current'}
+                {isSaving ? 'Saving…' : 'Save'}
               </Button>
             </div>
-            <div className="overflow-y-auto p-2">
-              {isLoadingDrafts ? (
-                <p className="px-3 py-6 text-center text-xs text-muted-foreground" role="status">
-                  Loading drafts…
-                </p>
-              ) : drafts.length === 0 ? (
-                <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  No drafts yet — polish or save to keep work across devices.
-                </p>
-              ) : (
-                <ul className="space-y-1">
-                  {drafts.map((item) => {
-                    const isActive = item.id === draftId;
-                    return (
-                      <li key={item.id}>
-                        <div
-                          className={`group flex items-start gap-1 rounded-xl border px-2 py-2 ${
-                            isActive
-                              ? 'border-zinc-300 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/80'
-                              : 'border-transparent hover:bg-white/80 dark:hover:bg-zinc-900'
-                          }`}
-                        >
-                          <button
-                            className="min-h-11 min-w-0 flex-1 text-left"
-                            onClick={() => {
-                              loadDraft(item);
-                              setDraftsOpen(false);
-                            }}
-                            type="button"
-                          >
-                            <p className="truncate text-sm font-medium">{item.title}</p>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">
-                              {new Date(item.updatedAt).toLocaleString()}
-                            </p>
-                          </button>
-                          <Button
-                            aria-label={`Delete ${item.title}`}
-                            className="h-9 w-9 text-destructive"
-                            onClick={() => void removeDraft(item.id)}
-                            size="icon"
-                            type="button"
-                            variant="ghost"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
 
-        <div className="space-y-4">
-          <div className="flex gap-2 lg:hidden">
-            <Button
-              aria-label="Open drafts"
-              className="rounded-xl"
-              onClick={() => setDraftsOpen(true)}
-              type="button"
-              variant="outline"
-            >
-              <History className="mr-1.5 h-4 w-4" />
-              Drafts
-            </Button>
-            <Button className="flex-1 rounded-xl" onClick={startNewDraft} type="button">
-              <Plus className="mr-1.5 h-4 w-4" />
-              New
-            </Button>
-            <Button
-              className="flex-1 rounded-xl"
-              disabled={isSaving}
-              onClick={() => {
-                void saveCurrentDraft().then((saved) => {
-                  if (saved) {
-                    setNotice('Draft saved to your account.');
-                  }
-                });
-              }}
-              type="button"
-              variant="outline"
-            >
-              {isSaving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-          <Card className="overflow-hidden rounded-2xl border-zinc-200/80 dark:border-zinc-800">
-            <CardHeader className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <PenLine className="h-4 w-4" />
-                    {draftTitle}
-                  </CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Polish for clarity and tone — not detector evasion.
-                  </p>
-                </div>
-                <Button onClick={openRename} size="sm" type="button" variant="outline">
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                  Rename
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Select
-                  onValueChange={(value) => {
-                    if (MODES.some((item) => item.value === value)) {
-                      setMode(value as PolishMode);
-                    }
-                  }}
-                  value={mode}
-                >
-                  <SelectTrigger
-                    aria-label="Polish mode"
-                    className="w-full rounded-xl sm:w-[160px]"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODES.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  className="rounded-xl"
-                  disabled={isPolishing || !draft.trim()}
-                  onClick={() => void handlePolish()}
-                  type="button"
-                >
-                  <Sparkles className="mr-1.5 h-4 w-4" />
-                  {isPolishing ? 'Polishing…' : 'Polish'}
-                </Button>
-                <div className="mx-1 hidden h-6 w-px bg-zinc-200 sm:block dark:bg-zinc-700" />
-                <Select
-                  onValueChange={(value) => {
-                    if (value === 'draft' || value === 'polished') {
-                      setCheckTarget(value);
-                    }
-                  }}
-                  value={checkTarget}
-                >
-                  <SelectTrigger
-                    aria-label="Text to check"
-                    className="w-full rounded-xl sm:w-[140px]"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Check draft</SelectItem>
-                    <SelectItem value="polished">Check polished</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  className="rounded-xl"
-                  disabled={isChecking}
-                  onClick={() => void handleDetectorCheck()}
-                  type="button"
-                  variant="outline"
-                >
-                  <ScanSearch className="mr-1.5 h-4 w-4" />
-                  {isChecking ? 'Checking…' : 'Report'}
-                </Button>
-                <Button
-                  className="rounded-xl"
-                  onClick={() => void openGptZeroFreeCheck()}
-                  type="button"
-                  variant="secondary"
-                >
-                  GPTZero
-                </Button>
-                <Button
-                  className="rounded-xl"
-                  onClick={() => void copySelectedForTurnitin()}
-                  type="button"
-                  variant="ghost"
-                >
-                  Turnitin
-                </Button>
-              </div>
-            </CardHeader>
-          </Card>
-
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {notice ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>
-          ) : null}
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800">
-              <CardHeader>
-                <CardTitle className="text-base">Draft</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  aria-label="Writing draft"
-                  className="min-h-[320px] rounded-xl"
-                  data-testid="writing-draft"
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Paste lecture notes, an essay draft, or an email..."
-                  value={draft}
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800">
-              <CardHeader className="flex flex-row items-center justify-between gap-2">
-                <CardTitle className="text-base">Polished</CardTitle>
-                <div className="flex gap-2">
+            <AppPanel>
+              <AppPanelHeader
+                action={
                   <Button
-                    disabled={!polished.trim()}
-                    onClick={() => void copyPolished()}
+                    className="rounded-xl"
+                    onClick={openRename}
                     size="sm"
                     type="button"
                     variant="outline"
                   >
-                    <Copy className="mr-1.5 h-3.5 w-3.5" />
-                    Copy
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                    Rename
                   </Button>
+                }
+                description="Polish for clarity and tone — not detector evasion."
+                title={draftTitle}
+              />
+              <AppPanelBody className="space-y-3 pt-0 sm:pt-0">
+                <div className="flex items-center gap-2 pb-1 text-zinc-500 dark:text-zinc-400">
+                  <PenLine className="h-4 w-4 shrink-0" />
+                  <span className="text-xs">Writing tools</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    onValueChange={(value) => {
+                      if (MODES.some((item) => item.value === value)) {
+                        setMode(value as PolishMode);
+                      }
+                    }}
+                    value={mode}
+                  >
+                    <SelectTrigger
+                      aria-label="Polish mode"
+                      className="w-full rounded-xl sm:w-[160px]"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MODES.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
-                    disabled={!polished.trim()}
-                    onClick={usePolishedAsDraft}
-                    size="sm"
+                    className="rounded-xl"
+                    disabled={isPolishing || !draft.trim()}
+                    onClick={() => void handlePolish()}
+                    type="button"
+                  >
+                    <Sparkles className="mr-1.5 h-4 w-4" />
+                    {isPolishing ? 'Polishing…' : 'Polish'}
+                  </Button>
+                  <div className="mx-1 hidden h-6 w-px bg-zinc-200 sm:block dark:bg-zinc-700" />
+                  <Select
+                    onValueChange={(value) => {
+                      if (value === 'draft' || value === 'polished') {
+                        setCheckTarget(value);
+                      }
+                    }}
+                    value={checkTarget}
+                  >
+                    <SelectTrigger
+                      aria-label="Text to check"
+                      className="w-full rounded-xl sm:w-[140px]"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Check draft</SelectItem>
+                      <SelectItem value="polished">Check polished</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    className="rounded-xl"
+                    disabled={isChecking}
+                    onClick={() => void handleDetectorCheck()}
                     type="button"
                     variant="outline"
                   >
-                    Use as draft
+                    <ScanSearch className="mr-1.5 h-4 w-4" />
+                    {isChecking ? 'Checking…' : 'Report'}
+                  </Button>
+                  <Button
+                    className="rounded-xl"
+                    onClick={() => void openGptZeroFreeCheck()}
+                    type="button"
+                    variant="secondary"
+                  >
+                    GPTZero
+                  </Button>
+                  <Button
+                    className="rounded-xl"
+                    onClick={() => void copySelectedForTurnitin()}
+                    type="button"
+                    variant="ghost"
+                  >
+                    Turnitin
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  aria-label="Polished writing"
-                  className="min-h-[320px] rounded-xl"
-                  data-testid="writing-polished"
-                  onChange={(event) => setPolished(event.target.value)}
-                  placeholder="Polished output appears here..."
-                  value={polished}
-                />
-              </CardContent>
-            </Card>
-          </div>
+              </AppPanelBody>
+            </AppPanel>
 
-          {gptzero || turnitin ? (
+            {error ? <p className={cn(appSurface.alert)}>{error}</p> : null}
+            {notice ? <p className={cn(appSurface.notice)}>{notice}</p> : null}
+
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-base">GPTZero report</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {gptzero ? (
-                    <>
-                      <p>
-                        Status:{' '}
-                        <span className="font-medium">
-                          {gptzero.available ? 'In-app API' : 'Use free website'}
-                        </span>
-                      </p>
-                      {gptzero.available ? (
-                        <>
-                          <p>Classification: {gptzero.classification ?? '—'}</p>
-                          <p>AI probability: {formatPercent(gptzero.aiProbability)}</p>
-                          <p>Avg sentence AI prob: {formatPercent(gptzero.averageGeneratedProb)}</p>
-                          <p>Confidence: {gptzero.confidence ?? '—'}</p>
-                        </>
-                      ) : null}
-                      <p className="text-muted-foreground">{gptzero.message}</p>
-                    </>
-                  ) : null}
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-base">Turnitin</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {turnitin ? (
-                    <>
-                      <p>
-                        Status: <span className="font-medium">School portal only</span>
-                      </p>
-                      <p className="text-muted-foreground">{turnitin.message}</p>
-                    </>
-                  ) : null}
-                </CardContent>
-              </Card>
+              <AppPanel muted>
+                <AppPanelHeader title="Draft" />
+                <AppPanelBody className="pt-0 sm:pt-0">
+                  <Textarea
+                    aria-label="Writing draft"
+                    className="min-h-[280px] rounded-xl border-zinc-200/80 bg-white/80 sm:min-h-[320px] dark:border-zinc-700 dark:bg-zinc-950/50"
+                    data-testid="writing-draft"
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Paste lecture notes, an essay draft, or an email..."
+                    value={draft}
+                  />
+                </AppPanelBody>
+              </AppPanel>
+
+              <AppPanel muted>
+                <AppPanelHeader
+                  action={
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        className="rounded-xl"
+                        disabled={!polished.trim()}
+                        onClick={() => void copyPolished()}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        <Copy className="mr-1.5 h-3.5 w-3.5" />
+                        Copy
+                      </Button>
+                      <Button
+                        className="rounded-xl"
+                        disabled={!polished.trim()}
+                        onClick={usePolishedAsDraft}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        Use as draft
+                      </Button>
+                    </div>
+                  }
+                  title="Polished"
+                />
+                <AppPanelBody className="pt-0 sm:pt-0">
+                  <Textarea
+                    aria-label="Polished writing"
+                    className="min-h-[280px] rounded-xl border-zinc-200/80 bg-white/80 sm:min-h-[320px] dark:border-zinc-700 dark:bg-zinc-950/50"
+                    data-testid="writing-polished"
+                    onChange={(event) => setPolished(event.target.value)}
+                    placeholder="Polished output appears here..."
+                    value={polished}
+                  />
+                </AppPanelBody>
+              </AppPanel>
             </div>
-          ) : null}
+
+            {gptzero || turnitin ? (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <AppPanel muted>
+                  <AppPanelHeader
+                    description="Legitimate transparency check — not evasion."
+                    title="GPTZero report"
+                  />
+                  <AppPanelBody className="space-y-2 text-sm pt-0 sm:pt-0">
+                    {gptzero ? (
+                      <>
+                        <p className="text-zinc-700 dark:text-zinc-300">
+                          Status:{' '}
+                          <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                            {gptzero.available ? 'In-app API' : 'Use free website'}
+                          </span>
+                        </p>
+                        {gptzero.available ? (
+                          <div className={cn(appSurface.inset, 'space-y-1.5 p-3 text-sm')}>
+                            <p>Classification: {gptzero.classification ?? '—'}</p>
+                            <p>AI probability: {formatPercent(gptzero.aiProbability)}</p>
+                            <p>
+                              Avg sentence AI prob: {formatPercent(gptzero.averageGeneratedProb)}
+                            </p>
+                            <p>Confidence: {gptzero.confidence ?? '—'}</p>
+                          </div>
+                        ) : null}
+                        <p className="text-zinc-500 dark:text-zinc-400">{gptzero.message}</p>
+                      </>
+                    ) : null}
+                  </AppPanelBody>
+                </AppPanel>
+                <AppPanel muted>
+                  <AppPanelHeader
+                    description="Institutional portal only."
+                    title="Turnitin"
+                  />
+                  <AppPanelBody className="space-y-2 text-sm pt-0 sm:pt-0">
+                    {turnitin ? (
+                      <>
+                        <p className="text-zinc-700 dark:text-zinc-300">
+                          Status:{' '}
+                          <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                            School portal only
+                          </span>
+                        </p>
+                        <p className="text-zinc-500 dark:text-zinc-400">{turnitin.message}</p>
+                      </>
+                    ) : null}
+                  </AppPanelBody>
+                </AppPanel>
+              </div>
+            ) : null}
+          </div>
         </div>
-      </section>
+        </AppReveal>
+      </AppPageFrame>
 
       <Dialog onOpenChange={setRenameOpen} open={renameOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl border-zinc-200/90 dark:border-zinc-800">
           <DialogHeader>
             <DialogTitle>Rename draft</DialogTitle>
             <DialogDescription>Give this writing draft a clearer title.</DialogDescription>
           </DialogHeader>
           <Input
             aria-label="Draft title"
+            className="rounded-xl"
             onChange={(event) => setRenameTitle(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -926,10 +965,20 @@ export default function WritingPage() {
             value={renameTitle}
           />
           <DialogFooter>
-            <Button onClick={() => setRenameOpen(false)} type="button" variant="outline">
+            <Button
+              className="rounded-xl"
+              onClick={() => setRenameOpen(false)}
+              type="button"
+              variant="outline"
+            >
               Cancel
             </Button>
-            <Button disabled={isSaving} onClick={() => void confirmRename()} type="button">
+            <Button
+              className="rounded-xl"
+              disabled={isSaving}
+              onClick={() => void confirmRename()}
+              type="button"
+            >
               {isSaving ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

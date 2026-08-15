@@ -67,8 +67,8 @@ export function ChatMessageThread({ messages, isSending, className }: ChatMessag
             >
               <MessageContent className="w-full max-w-none">
                 {message.memoryContext?.length ? (
-                  <div className="mb-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/60">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                  <div className="mb-3 rounded-2xl border border-zinc-200/70 bg-zinc-50/80 px-3 py-2 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                       Memory
                     </p>
                     {message.memoryContext.map((memory) => (
@@ -92,7 +92,7 @@ export function ChatMessageThread({ messages, isSending, className }: ChatMessag
                     <SourcesContent>
                       {message.citations.map((citation) => (
                         <div
-                          className="rounded-xl border border-zinc-200/80 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/50"
+                          className="rounded-xl border border-zinc-200/70 bg-zinc-50/70 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950/35"
                           data-testid="chat-citation"
                           key={citation.id}
                         >

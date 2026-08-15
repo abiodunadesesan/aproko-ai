@@ -3,9 +3,16 @@
 import { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import {
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 type AdminUsageSummary = {
   totalUsers: number;
@@ -89,7 +96,7 @@ export default function AdminPage() {
 
   return (
     <AppPageShell pageId="admin">
-      <section className="space-y-6">
+      <AppPageFrame>
         {error === 'Admin access required.' ? (
           <EmptyState
             description="This area is restricted to platform administrators. Contact your workspace owner if you need access."
@@ -97,91 +104,88 @@ export default function AdminPage() {
             title="Admin access required"
           />
         ) : error ? (
-          <div
-            className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-            role="alert"
-          >
+          <div className={appSurface.alert} role="alert">
             {error}
           </div>
         ) : null}
 
         {!error || error !== 'Admin access required.' ? (
           <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Usage summary</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <AppPanel>
+              <AppPanelHeader title="Usage summary" />
+              <AppPanelBody>
                 {isLoading ? (
-                  <div className="space-y-2" role="status">
+                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4" role="status">
                     <p className="sr-only">Loading admin usage data</p>
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <Skeleton className="h-20 w-full rounded-xl" key={index} />
+                    ))}
                   </div>
                 ) : usage ? (
-                  <div className="grid gap-2 text-sm md:grid-cols-4">
-                    <div className="rounded-md border bg-muted/20 p-3">
-                      Users: {usage.totalUsers}
-                    </div>
-                    <div className="rounded-md border bg-muted/20 p-3">
-                      Workspaces: {usage.totalWorkspaces}
-                    </div>
-                    <div className="rounded-md border bg-muted/20 p-3">
-                      Sources: {usage.totalSources}
-                    </div>
-                    <div className="rounded-md border bg-muted/20 p-3">
-                      Messages: {usage.totalMessages}
-                    </div>
+                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                    {[
+                      { label: 'Users', value: usage.totalUsers },
+                      { label: 'Workspaces', value: usage.totalWorkspaces },
+                      { label: 'Sources', value: usage.totalSources },
+                      { label: 'Messages', value: usage.totalMessages },
+                    ].map((metric) => (
+                      <div className={cn(appSurface.inset, 'p-3.5 sm:p-4')} key={metric.label}>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                          {metric.label}
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                          {metric.value}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No usage data available.</p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">No usage data available.</p>
                 )}
-              </CardContent>
-            </Card>
+              </AppPanelBody>
+            </AppPanel>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Users</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <AppPanel>
+              <AppPanelHeader title="Users" />
+              <AppPanelBody>
                 {isLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading users...</p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading users...</p>
                 ) : users.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No users found.</p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">No users found.</p>
                 ) : (
                   <div className="space-y-2">
                     {users.map((user) => (
-                      <div
-                        className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
-                        key={user.clerkUserId}
-                      >
-                        <p>{user.fullName ?? 'Unknown user'}</p>
-                        <p className="text-muted-foreground">{user.email ?? user.clerkUserId}</p>
+                      <div className={cn(appSurface.inset, 'p-3.5')} key={user.clerkUserId}>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                          {user.fullName ?? 'Unknown user'}
+                        </p>
+                        <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                          {user.email ?? user.clerkUserId}
+                        </p>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </AppPanelBody>
+            </AppPanel>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Workspace footprint</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <AppPanel>
+              <AppPanelHeader title="Workspace footprint" />
+              <AppPanelBody>
                 {isLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading workspaces...</p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading workspaces...</p>
                 ) : workspaces.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No workspace footprint yet.</p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    No workspace footprint yet.
+                  </p>
                 ) : (
                   <div className="space-y-2">
                     {workspaces.map((workspace) => (
-                      <div
-                        className="rounded-md border p-3 text-sm transition-colors hover:bg-muted/40"
-                        key={workspace.workspaceId}
-                      >
-                        <p className="font-medium">{workspace.workspaceId}</p>
-                        <p className="text-muted-foreground">
+                      <div className={cn(appSurface.inset, 'p-3.5')} key={workspace.workspaceId}>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                          {workspace.workspaceId}
+                        </p>
+                        <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
                           {workspace.projects} projects · {workspace.sources} sources ·{' '}
                           {workspace.conversations} conversations
                         </p>
@@ -189,11 +193,11 @@ export default function AdminPage() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </AppPanelBody>
+            </AppPanel>
           </>
         ) : null}
-      </section>
+      </AppPageFrame>
     </AppPageShell>
   );
 }

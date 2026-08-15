@@ -5,6 +5,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { FileText } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import {
+  AppFieldLabel,
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
 import { buttonVariants } from '@/components/ui/button';
@@ -18,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -1323,15 +1330,13 @@ export default function LibraryPage() {
 
   return (
     <AppPageShell pageId="library">
-      <section className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload and taxonomy</CardTitle>
-            <CardDescription>
-              Add new sources and keep your project-folder structure clean as your workspace grows.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <AppPageFrame>
+        <AppPanel>
+          <AppPanelHeader
+            description="Add new sources and keep your project-folder structure clean as your workspace grows."
+            title="Upload and taxonomy"
+          />
+          <AppPanelBody>
             <form
               className="grid gap-3 md:grid-cols-[1fr_200px_200px_auto]"
               data-testid="library-upload-form"
@@ -1339,7 +1344,7 @@ export default function LibraryPage() {
             >
               <input
                 aria-label="Upload source file"
-                className="h-10 rounded-md border px-3 text-sm"
+                className={appSurface.field}
                 data-testid="library-upload-file"
                 type="file"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
@@ -1347,7 +1352,7 @@ export default function LibraryPage() {
               />
               <select
                 aria-label="Select project for upload"
-                className="h-10 rounded-md border px-3 text-sm"
+                className={appSurface.field}
                 data-testid="library-upload-project"
                 value={projectId}
                 onChange={(event) => setProjectId(event.target.value)}
@@ -1361,7 +1366,7 @@ export default function LibraryPage() {
               </select>
               <select
                 aria-label="Select folder for upload"
-                className="h-10 rounded-md border px-3 text-sm"
+                className={appSurface.field}
                 data-testid="library-upload-folder"
                 value={folderId}
                 onChange={(event) => setFolderId(event.target.value)}
@@ -1382,7 +1387,7 @@ export default function LibraryPage() {
                 {isUploading ? 'Uploading...' : 'Upload'}
               </button>
             </form>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button
                 className={buttonSecondaryClass}
                 disabled={isSavingProject}
@@ -1434,8 +1439,8 @@ export default function LibraryPage() {
             </div>
 
             {taxonomyEditorMode ? (
-              <div className="mt-3 space-y-3 rounded-md border p-3">
-                <p className="text-sm font-medium">
+              <div className={cn(appSurface.inset, 'mt-3 space-y-3 p-3')}>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
                   {taxonomyEditorMode === 'create-project' && 'Create project'}
                   {taxonomyEditorMode === 'rename-project' && 'Rename project'}
                   {taxonomyEditorMode === 'delete-project' && 'Delete project'}
@@ -1445,14 +1450,14 @@ export default function LibraryPage() {
                 </p>
 
                 {taxonomyEditorMode === 'delete-project' ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Delete selected project and its folders? This action affects{' '}
                     {affectedProjectSourcesCount} source
                     {affectedProjectSourcesCount === 1 ? '' : 's'} and cannot be undone.
                   </p>
                 ) : null}
                 {taxonomyEditorMode === 'delete-folder' ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Delete selected folder? This action affects {affectedFolderSourcesCount} source
                     {affectedFolderSourcesCount === 1 ? '' : 's'} and cannot be undone.
                   </p>
@@ -1460,16 +1465,20 @@ export default function LibraryPage() {
 
                 {taxonomyEditorMode !== 'delete-project' &&
                 taxonomyEditorMode !== 'delete-folder' ? (
-                  <input
-                    aria-label="Taxonomy name"
-                    className="h-10 w-full rounded-md border px-3 text-sm"
-                    placeholder="Name"
-                    value={taxonomyNameDraft}
-                    onChange={(event) => setTaxonomyNameDraft(event.target.value)}
-                  />
+                  <div className="space-y-1.5">
+                    <AppFieldLabel htmlFor="library-taxonomy-name">Name</AppFieldLabel>
+                    <input
+                      aria-label="Taxonomy name"
+                      className={appSurface.field}
+                      id="library-taxonomy-name"
+                      placeholder="Name"
+                      value={taxonomyNameDraft}
+                      onChange={(event) => setTaxonomyNameDraft(event.target.value)}
+                    />
+                  </div>
                 ) : null}
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <button
                     className={buttonPrimaryClass}
                     disabled={isSavingProject || isSavingFolder}
@@ -1489,29 +1498,27 @@ export default function LibraryPage() {
                 </div>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
+          </AppPanelBody>
+        </AppPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sources</CardTitle>
-            <CardDescription>
-              Browse, filter, and manage every uploaded source with bulk actions.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <AppPanel>
+          <AppPanelHeader
+            description="Browse, filter, and manage every uploaded source with bulk actions."
+            title="Sources"
+          />
+          <AppPanelBody>
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <input
                 aria-label="Search library sources"
-                className="h-10 w-full rounded-md border px-3 text-sm md:max-w-sm"
+                className={cn(appSurface.field, 'md:max-w-sm')}
                 placeholder="Search by name, project, or folder"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <select
                   aria-label="Filter by project"
-                  className="h-10 rounded-md border px-3 text-sm"
+                  className={cn(appSurface.field, 'sm:w-auto')}
                   value={projectFilter}
                   onChange={(event) => {
                     const nextProjectFilter = event.target.value;
@@ -1528,7 +1535,7 @@ export default function LibraryPage() {
                 </select>
                 <select
                   aria-label="Filter by folder"
-                  className="h-10 rounded-md border px-3 text-sm"
+                  className={cn(appSurface.field, 'sm:w-auto')}
                   value={folderFilter}
                   onChange={(event) => setFolderFilter(event.target.value)}
                 >
@@ -1551,15 +1558,15 @@ export default function LibraryPage() {
             </div>
 
             {selectedSourceIds.length > 0 ? (
-              <div className="mb-3 space-y-3 rounded-md border p-3">
-                <p className="text-sm font-medium">
+              <div className={cn(appSurface.inset, 'mb-3 space-y-3 p-3')}>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
                   {selectedSourceIds.length} source{selectedSourceIds.length === 1 ? '' : 's'}{' '}
                   selected
                 </p>
                 <div className="grid gap-2 md:grid-cols-2">
                   <select
                     aria-label="Move selected sources to project"
-                    className="h-10 rounded-md border px-3 text-sm"
+                    className={appSurface.field}
                     value={bulkMoveProjectId}
                     onChange={(event) => void handleBulkMoveProjectChange(event.target.value)}
                   >
@@ -1572,7 +1579,7 @@ export default function LibraryPage() {
                   </select>
                   <select
                     aria-label="Move selected sources to folder"
-                    className="h-10 rounded-md border px-3 text-sm"
+                    className={appSurface.field}
                     value={bulkMoveFolderId}
                     onChange={(event) => setBulkMoveFolderId(event.target.value)}
                   >
@@ -1590,7 +1597,7 @@ export default function LibraryPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <button
                     className={buttonPrimaryClass}
                     disabled={isBulkProcessing}
@@ -1620,25 +1627,29 @@ export default function LibraryPage() {
             ) : null}
 
             {sourceEditorMode && sourceEditorTarget ? (
-              <div className="mb-3 space-y-3 rounded-md border p-3">
-                <p className="text-sm font-medium">
+              <div className={cn(appSurface.inset, 'mb-3 space-y-3 p-3')}>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
                   {sourceEditorMode === 'rename' ? 'Rename source' : 'Move source'}:{' '}
                   {sourceEditorTarget.name}
                 </p>
 
                 {sourceEditorMode === 'rename' ? (
-                  <input
-                    aria-label="Source name"
-                    className="h-10 w-full rounded-md border px-3 text-sm"
-                    value={sourceNameDraft}
-                    onChange={(event) => setSourceNameDraft(event.target.value)}
-                    placeholder="Source name"
-                  />
+                  <div className="space-y-1.5">
+                    <AppFieldLabel htmlFor="library-source-name">Source name</AppFieldLabel>
+                    <input
+                      aria-label="Source name"
+                      className={appSurface.field}
+                      id="library-source-name"
+                      value={sourceNameDraft}
+                      onChange={(event) => setSourceNameDraft(event.target.value)}
+                      placeholder="Source name"
+                    />
+                  </div>
                 ) : (
                   <div className="grid gap-2 md:grid-cols-2">
                     <select
                       aria-label="Select destination project"
-                      className="h-10 rounded-md border px-3 text-sm"
+                      className={appSurface.field}
                       value={sourceMoveProjectId}
                       onChange={(event) => void handleSourceEditorProjectChange(event.target.value)}
                     >
@@ -1651,7 +1662,7 @@ export default function LibraryPage() {
                     </select>
                     <select
                       aria-label="Select destination folder"
-                      className="h-10 rounded-md border px-3 text-sm"
+                      className={appSurface.field}
                       value={sourceMoveFolderId}
                       onChange={(event) => setSourceMoveFolderId(event.target.value)}
                     >
@@ -1671,7 +1682,7 @@ export default function LibraryPage() {
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <button
                     className={buttonPrimaryClass}
                     disabled={mutatingSourceId === sourceEditorTarget.id}
@@ -1694,7 +1705,7 @@ export default function LibraryPage() {
 
             {error ? (
               <div
-                className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3"
+                className={cn(appSurface.alert, 'mb-3 flex items-center justify-between gap-3')}
                 role="alert"
               >
                 <p className="text-sm text-destructive">{error}</p>
@@ -1708,19 +1719,19 @@ export default function LibraryPage() {
               </div>
             ) : null}
             {notice ? (
-              <p
-                className="mb-3 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
-                role="status"
-              >
+              <p className={cn(appSurface.notice, 'mb-3')} role="status">
                 {notice}
               </p>
             ) : null}
             {pendingSourceDeleteJob ? (
               <div
-                className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3"
+                className={cn(
+                  appSurface.notice,
+                  'mb-3 flex items-center justify-between gap-3',
+                )}
                 role="status"
               >
-                <p className="text-sm text-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
                   {pendingSourceDeleteJob.targets.length} source
                   {pendingSourceDeleteJob.targets.length === 1 ? '' : 's'} pending deletion.
                 </p>
@@ -1735,10 +1746,13 @@ export default function LibraryPage() {
             ) : null}
             {pendingTaxonomyDeleteJob ? (
               <div
-                className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-600/30 bg-amber-600/10 p-3"
+                className={cn(
+                  appSurface.notice,
+                  'mb-3 flex items-center justify-between gap-3',
+                )}
                 role="status"
               >
-                <p className="text-sm text-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
                   {pendingTaxonomyDeleteJob.mode === 'project' ? 'Project' : 'Folder'} "
                   {pendingTaxonomyDeleteJob.targetName}" pending deletion.
                 </p>
@@ -1906,7 +1920,7 @@ export default function LibraryPage() {
                             {source.updatedAt ? new Date(source.updatedAt).toLocaleString() : '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                               <Link className="text-sm underline" href={`/library/${source.id}`}>
                                 View
                               </Link>
@@ -1964,13 +1978,15 @@ export default function LibraryPage() {
                 <div className="space-y-3 md:hidden" data-testid="library-sources-mobile">
                   {paginatedSources.map((source) => (
                     <div
-                      className="rounded-lg border border-border bg-card p-4 shadow-sm"
+                      className={cn(appSurface.inset, 'p-4')}
                       key={source.id}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{source.name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
+                          <p className="truncate font-medium text-zinc-900 dark:text-zinc-50">
+                            {source.name}
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                             {source.project} / {source.folder} · {formatBytes(source.size)}
                           </p>
                         </div>
@@ -1985,7 +2001,7 @@ export default function LibraryPage() {
                           {formatIngestStatus(source.ingestStatus)}
                         </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap text-sm">
                         <Link className="underline" href={`/library/${source.id}`}>
                           View
                         </Link>
@@ -2009,7 +2025,7 @@ export default function LibraryPage() {
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                   <button
                     className={buttonSecondaryClass}
                     disabled={currentPage <= 1}
@@ -2029,9 +2045,9 @@ export default function LibraryPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </section>
+          </AppPanelBody>
+        </AppPanel>
+      </AppPageFrame>
 
       <AlertDialog
         open={Boolean(deleteModalMode)}

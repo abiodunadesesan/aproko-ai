@@ -76,7 +76,7 @@ function NavLink({
         className={cn(
           'h-9 rounded-lg text-[13px] transition-colors',
           isActive
-            ? 'bg-zinc-200/80 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
+            ? 'bg-zinc-900 font-medium text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'
             : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100',
         )}
         isActive={isActive}
@@ -275,7 +275,7 @@ export function AppShell({
 
       <SidebarInset
         className={cn(
-          'bg-zinc-50/40 dark:bg-[#212121]',
+          'bg-[radial-gradient(ellipse_at_top,theme(colors.amber.400/6),transparent_42%),theme(colors.zinc.50)] dark:bg-[radial-gradient(ellipse_at_top,theme(colors.amber.500/5),transparent_40%),#212121]',
           immersive && 'min-h-svh bg-white dark:bg-[#212121]',
         )}
       >
@@ -284,7 +284,7 @@ export function AppShell({
             'sticky top-0 z-10 flex h-12 items-center justify-between gap-3 px-3 md:px-4',
             immersive
               ? 'border-b-0 bg-transparent'
-              : 'border-b border-zinc-200/70 bg-white/85 backdrop-blur-md dark:border-zinc-800/80 dark:bg-[#212121]/85',
+              : 'border-b border-zinc-200/60 bg-white/75 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-[#212121]/80',
           )}
         >
           <div className="flex min-w-0 items-center gap-2 md:hidden">

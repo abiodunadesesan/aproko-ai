@@ -51,19 +51,19 @@ export function ChatSessionSidebar({
   return (
     <aside
       className={cn(
-        'flex h-full min-h-0 flex-col border-r border-zinc-200/70 bg-zinc-50/80 dark:border-zinc-800/80 dark:bg-[#171717]',
+        'flex h-full min-h-0 flex-col border-r border-zinc-200/80 bg-gradient-to-b from-zinc-50/90 to-white/80 dark:border-zinc-800/80 dark:from-zinc-950/80 dark:to-zinc-900/40',
         className,
       )}
     >
       <div className="space-y-2 p-3">
-        <Button className="h-10 w-full rounded-full" onClick={onNewSession} type="button">
+        <Button className="h-10 w-full rounded-xl" onClick={onNewSession} type="button">
           New chat
         </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
           <Input
             aria-label="Search conversations"
-            className="h-10 rounded-full border-zinc-200/80 bg-white pl-9 text-sm dark:border-zinc-700 dark:bg-zinc-900 sm:h-9"
+            className="h-10 rounded-xl border-zinc-200/80 bg-white/90 pl-9 text-sm dark:border-zinc-700 dark:bg-zinc-950/60 sm:h-9"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
             value={query}
@@ -102,10 +102,10 @@ export function ChatSessionSidebar({
                 <li key={session.id}>
                   <div
                     className={cn(
-                      'group flex items-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors',
+                      'group flex items-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors',
                       isActive
-                        ? 'bg-zinc-200/90 dark:bg-zinc-800'
-                        : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60',
+                        ? 'bg-zinc-100/95 ring-1 ring-zinc-200/70 dark:bg-zinc-800/80 dark:ring-zinc-700'
+                        : 'hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50',
                     )}
                   >
                     <button

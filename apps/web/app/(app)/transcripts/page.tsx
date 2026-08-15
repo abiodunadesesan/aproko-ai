@@ -5,10 +5,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { Mic, Square, Upload } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import {
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -18,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 type TranscriptSource = {
   id: string;
@@ -239,41 +246,46 @@ export default function TranscriptsPage() {
 
   return (
     <AppPageShell headerBadge={`${transcripts.length} files`} pageId="transcripts">
-      <section className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
-                {isLoading ? '—' : transcripts.length}
-              </p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">All transcript files</p>
-            </CardContent>
-          </Card>
-          <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                This month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
-                {isLoading ? '—' : thisMonthCount}
-              </p>
-              <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Recently added</p>
-            </CardContent>
-          </Card>
+      <AppPageFrame>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div
+            className={cn(
+              'rounded-xl border border-zinc-200 bg-white p-3.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-5',
+            )}
+          >
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 sm:text-xs">
+              Total
+            </p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:mt-3 sm:text-3xl">
+              {isLoading ? '—' : transcripts.length}
+            </p>
+            <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400 sm:mt-2 sm:text-xs">
+              All transcript files
+            </p>
+          </div>
+          <div
+            className={cn(
+              'rounded-xl border border-zinc-200 bg-white p-3.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-5',
+            )}
+          >
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 sm:text-xs">
+              This month
+            </p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:mt-3 sm:text-3xl">
+              {isLoading ? '—' : thisMonthCount}
+            </p>
+            <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400 sm:mt-2 sm:text-xs">
+              Recently added
+            </p>
+          </div>
         </div>
 
-        <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
-          <CardHeader>
-            <CardTitle className="text-base">Capture transcript</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <AppPanel>
+          <AppPanelHeader
+            description="Upload text/subtitle files or record audio for Whisper transcription."
+            title="Capture transcript"
+          />
+          <AppPanelBody className="space-y-4">
             <form
               className="flex flex-col gap-3 sm:flex-row sm:items-center"
               onSubmit={handleUpload}
@@ -281,12 +293,12 @@ export default function TranscriptsPage() {
               <Input
                 accept=".txt,.md,.markdown,.vtt,.srt,audio/*,.webm,.mp3,.wav,.m4a"
                 aria-label="Choose transcript or audio file"
-                className="max-w-xl"
+                className={cn(appSurface.field, 'max-w-xl')}
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 type="file"
               />
               <Button
-                className="rounded-full"
+                className="w-full rounded-full sm:w-auto"
                 disabled={!file || isUploading || isRecording}
                 type="submit"
               >
@@ -295,10 +307,10 @@ export default function TranscriptsPage() {
               </Button>
             </form>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               {isRecording ? (
                 <Button
-                  className="rounded-full"
+                  className="w-full rounded-full sm:w-auto"
                   disabled={isUploading}
                   onClick={stopRecording}
                   type="button"
@@ -309,7 +321,7 @@ export default function TranscriptsPage() {
                 </Button>
               ) : (
                 <Button
-                  className="rounded-full"
+                  className="w-full rounded-full sm:w-auto"
                   disabled={isUploading}
                   onClick={() => void startRecording()}
                   type="button"
@@ -319,31 +331,39 @@ export default function TranscriptsPage() {
                   Record microphone
                 </Button>
               )}
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
                 Text/subtitle files upload immediately. Audio is transcribed with Whisper via{' '}
                 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">GROQ_API_KEY</code>{' '}
                 (preferred) or{' '}
                 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">OPENAI_API_KEY</code>.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </AppPanelBody>
+        </AppPanel>
 
-        <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60">
-          <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-base">All transcripts</CardTitle>
-            <Input
-              aria-label="Search transcripts"
-              className="max-w-xs"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search transcripts..."
-              value={query}
-            />
-          </CardHeader>
-          <CardContent>
-            {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
+        <AppPanel>
+          <AppPanelHeader
+            action={
+              <Input
+                aria-label="Search transcripts"
+                className={cn(appSurface.field, 'w-full max-w-xs')}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search transcripts..."
+                value={query}
+              />
+            }
+            title="All transcripts"
+          />
+          <AppPanelBody>
+            {error ? (
+              <div className={cn(appSurface.alert, 'mb-4')} role="alert">
+                {error}
+              </div>
+            ) : null}
             {notice ? (
-              <p className="mb-4 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>
+              <div className={cn(appSurface.notice, 'mb-4')} role="status">
+                {notice}
+              </div>
             ) : null}
 
             {isLoading ? (
@@ -394,9 +414,9 @@ export default function TranscriptsPage() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
-      </section>
+          </AppPanelBody>
+        </AppPanel>
+      </AppPageFrame>
     </AppPageShell>
   );
 }

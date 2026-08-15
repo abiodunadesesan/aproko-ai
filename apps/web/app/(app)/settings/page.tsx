@@ -2,8 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AppPageShell } from '@/components/app/app-page-shell';
+import {
+  AppFieldLabel,
+  AppPageFrame,
+  AppPanel,
+  AppPanelBody,
+  AppPanelHeader,
+  appSurface,
+} from '@/components/app/app-surface';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   getChatModelLabel,
@@ -12,6 +19,7 @@ import {
   type ChatModel,
 } from '@/lib/ai/chat-models';
 import { DEFAULT_USER_PREFERENCES, type UserPreferences } from '@/lib/settings/preferences';
+import { cn } from '@/lib/utils';
 
 type MeResponse = {
   clerk_user_id: string;
@@ -136,119 +144,119 @@ export default function SettingsPage() {
 
   return (
     <AppPageShell pageId="settings">
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Profile</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">
-                Update your display name used across Aproko AI.
-              </p>
-            </div>
+      <AppPageFrame>
+        <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
+          <AppPanel>
+            <AppPanelHeader
+              description="Update your display name used across Aproko AI."
+              title="Profile"
+            />
+            <AppPanelBody className="space-y-4">
+              {isLoading ? (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading profile...</p>
+              ) : null}
 
-            {isLoading ? <p className="text-sm text-muted-foreground">Loading profile...</p> : null}
+              <div className="space-y-1.5">
+                <AppFieldLabel htmlFor="settings-email">Email</AppFieldLabel>
+                <Input
+                  className={appSurface.field}
+                  disabled
+                  id="settings-email"
+                  value={emailText}
+                />
+              </div>
 
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Email</span>
-              <Input disabled value={emailText} />
-            </label>
+              <div className="space-y-1.5">
+                <AppFieldLabel htmlFor="settings-full-name">Full Name</AppFieldLabel>
+                <Input
+                  className={appSurface.field}
+                  id="settings-full-name"
+                  onChange={(event) => setFullNameDraft(event.target.value)}
+                  placeholder="Your full name"
+                  value={fullNameDraft}
+                />
+              </div>
 
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Full Name</span>
-              <Input
-                onChange={(event) => setFullNameDraft(event.target.value)}
-                placeholder="Your full name"
-                value={fullNameDraft}
-              />
-            </label>
-
-            <Button
-              className="transition-transform hover:-translate-y-0.5"
-              disabled={isLoading || isSavingProfile}
-              onClick={() => void saveProfile()}
-              type="button"
-            >
-              {isSavingProfile ? 'Saving...' : 'Save Profile'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">AI Preferences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">
-                Saved to your account and used as the default model for new chats.
-              </p>
-            </div>
-
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground" id="default-model-label">
-                Default Chat Model
-              </span>
-              <select
-                aria-labelledby="default-model-label"
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                onChange={(event) => {
-                  if (isChatModel(event.target.value)) {
-                    setDefaultChatModel(event.target.value);
-                  }
-                }}
-                value={defaultChatModel}
+              <Button
+                className="h-10 w-full rounded-full transition-transform hover:-translate-y-0.5 sm:w-auto"
+                disabled={isLoading || isSavingProfile}
+                onClick={() => void saveProfile()}
+                type="button"
               >
-                {CHAT_MODEL_OPTIONS.map((model) => (
-                  <option key={model} value={model}>
-                    {getChatModelLabel(model)}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {isSavingProfile ? 'Saving...' : 'Save Profile'}
+              </Button>
+            </AppPanelBody>
+          </AppPanel>
 
-            <label className="flex items-center gap-2 text-sm" htmlFor="auto-memory-capture">
-              <input
-                id="auto-memory-capture"
-                checked={autoMemoryCapture}
-                onChange={(event) => setAutoMemoryCapture(event.target.checked)}
-                type="checkbox"
-              />
-              <span>
-                Auto-capture preference and fact signals from chats. Explicit “remember that…”
-                requests still save even when this is off.
-              </span>
-            </label>
+          <AppPanel>
+            <AppPanelHeader
+              description="Saved to your account and used as the default model for new chats."
+              title="AI Preferences"
+            />
+            <AppPanelBody className="space-y-4">
+              <div className="space-y-1.5">
+                <AppFieldLabel htmlFor="default-chat-model">Default Chat Model</AppFieldLabel>
+                <select
+                  className={cn(appSurface.field, 'appearance-none')}
+                  id="default-chat-model"
+                  onChange={(event) => {
+                    if (isChatModel(event.target.value)) {
+                      setDefaultChatModel(event.target.value);
+                    }
+                  }}
+                  value={defaultChatModel}
+                >
+                  {CHAT_MODEL_OPTIONS.map((model) => (
+                    <option key={model} value={model}>
+                      {getChatModelLabel(model)}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <Button
-              className="transition-transform hover:-translate-y-0.5"
-              disabled={isLoading || isSavingPrefs}
-              onClick={() => void savePreferences()}
-              type="button"
-            >
-              {isSavingPrefs ? 'Saving...' : 'Save AI Preferences'}
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
+              <label
+                className={cn(
+                  appSurface.inset,
+                  'flex cursor-pointer items-start gap-3 p-3.5 text-sm text-zinc-700 dark:text-zinc-300',
+                )}
+                htmlFor="auto-memory-capture"
+              >
+                <input
+                  checked={autoMemoryCapture}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:focus-visible:ring-zinc-600"
+                  id="auto-memory-capture"
+                  onChange={(event) => setAutoMemoryCapture(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>
+                  Auto-capture preference and fact signals from chats. Explicit “remember that…”
+                  requests still save even when this is off.
+                </span>
+              </label>
 
-      {error ? (
-        <div
-          className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-          role="alert"
-        >
-          {error}
+              <Button
+                className="h-10 w-full rounded-full transition-transform hover:-translate-y-0.5 sm:w-auto"
+                disabled={isLoading || isSavingPrefs}
+                onClick={() => void savePreferences()}
+                type="button"
+              >
+                {isSavingPrefs ? 'Saving...' : 'Save AI Preferences'}
+              </Button>
+            </AppPanelBody>
+          </AppPanel>
         </div>
-      ) : null}
-      {notice ? (
-        <div
-          className="mt-4 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200"
-          role="status"
-        >
-          {notice}
-        </div>
-      ) : null}
+
+        {error ? (
+          <div className={appSurface.alert} role="alert">
+            {error}
+          </div>
+        ) : null}
+        {notice ? (
+          <div className={appSurface.notice} role="status">
+            {notice}
+          </div>
+        ) : null}
+      </AppPageFrame>
     </AppPageShell>
   );
 }
