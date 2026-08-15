@@ -6,6 +6,7 @@ import { PostHogProvider } from '@/components/observability/posthog-provider';
 import { ObservabilityProvider } from '@/components/observability-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { isClerkEnabled } from '@/lib/auth/post-auth-redirect';
+import { aprokoSans } from '@/lib/fonts';
 import { LANDING_LOCALE_STORAGE_KEY } from '@/lib/landing-i18n';
 import { resolveLandingLocale } from '@/lib/locale/server';
 
@@ -27,7 +28,7 @@ function LocaleRootLayoutFallback({ children }: LocaleRootLayoutProps) {
   );
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html className={aprokoSans.variable} lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -35,7 +36,7 @@ function LocaleRootLayoutFallback({ children }: LocaleRootLayoutProps) {
           }}
         />
       </head>
-      <body>{body}</body>
+      <body className="font-sans antialiased">{body}</body>
     </html>
   );
 }
@@ -59,7 +60,7 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
   );
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html className={aprokoSans.variable} lang={locale} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -67,7 +68,7 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
           }}
         />
       </head>
-      <body>
+      <body className="font-sans antialiased">
         <PostHogProvider>
           {isClerkEnabled() ? (
             <ClerkProviderShell locale={locale}>{appContent}</ClerkProviderShell>

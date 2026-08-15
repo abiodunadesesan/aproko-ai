@@ -6,10 +6,19 @@ const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-aproko)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      boxShadow: {
+        premium:
+          '0 1px 0 rgba(255,255,255,0.65) inset, 0 10px 40px -18px rgba(15,15,20,0.18)',
+        'premium-dark':
+          '0 1px 0 rgba(255,255,255,0.06) inset, 0 16px 48px -20px rgba(0,0,0,0.65)',
       },
       colors: {
         border: 'hsl(var(--border))',

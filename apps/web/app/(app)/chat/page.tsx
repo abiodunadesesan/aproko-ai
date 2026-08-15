@@ -983,8 +983,8 @@ export default function ChatPage() {
           </SheetContent>
         </Sheet>
 
-        <div className="relative flex min-h-[calc(100svh-3rem)] flex-col bg-white dark:bg-[#212121]">
-          <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-6">
+        <div className="relative flex min-h-[calc(100svh-3rem)] flex-col bg-background">
+          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-black/[0.04] px-4 py-3 backdrop-blur-xl dark:border-white/[0.05] md:px-6">
             <div className="flex min-w-0 items-start gap-2">
               <Button
                 aria-label="Open chat history"

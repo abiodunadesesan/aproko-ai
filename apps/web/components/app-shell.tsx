@@ -74,10 +74,10 @@ function NavLink({
       <SidebarMenuButton
         asChild
         className={cn(
-          'h-9 rounded-lg text-[13px] transition-colors',
+          'h-9 rounded-xl text-[13px] transition-all duration-200',
           isActive
-            ? 'bg-zinc-900 font-medium text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'
-            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100',
+            ? 'bg-amber-500/12 font-medium text-amber-950 shadow-[inset_3px_0_0_0_theme(colors.amber.500)] dark:bg-amber-400/10 dark:text-amber-50 dark:shadow-[inset_3px_0_0_0_theme(colors.amber.400)]'
+            : 'text-zinc-500 hover:bg-black/[0.04] hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-zinc-100',
         )}
         isActive={isActive}
       >
@@ -171,7 +171,7 @@ export function AppShell({
   return (
     <SidebarProvider>
       <Sidebar
-        className="border-r border-zinc-200/70 bg-zinc-50 dark:border-zinc-800/80 dark:bg-[#171717]"
+        className="border-r border-black/[0.06] bg-[hsl(var(--sidebar-background))] dark:border-white/[0.06]"
         collapsible="icon"
         data-testid="app-sidebar"
         variant="inset"
@@ -181,13 +181,13 @@ export function AppShell({
             <AprokoLogo className="group-data-[collapsible=icon]:hidden" size="sm" />
             <SidebarTrigger
               aria-label="Toggle sidebar"
-              className="h-8 w-8 shrink-0 rounded-lg text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="h-8 w-8 shrink-0 rounded-xl text-zinc-500 hover:bg-black/[0.05] hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
             />
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                className="h-9 rounded-lg bg-zinc-200/60 text-[13px] font-medium text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700"
+                className="h-9 rounded-xl bg-zinc-900 text-[13px] font-medium text-white shadow-sm transition-transform hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
                 onClick={startNewChat}
                 tooltip="New chat"
               >
@@ -210,7 +210,7 @@ export function AppShell({
               />
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  className="h-9 rounded-lg text-[13px] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100"
+                  className="h-9 rounded-xl text-[13px] text-zinc-500 hover:bg-black/[0.04] hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-zinc-100"
                   onClick={() => setIsCommandOpen(true)}
                   tooltip="Search"
                 >
@@ -264,7 +264,7 @@ export function AppShell({
           </div>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-zinc-200/70 p-2 dark:border-zinc-800/80">
+        <SidebarFooter className="border-t border-black/[0.05] p-2 dark:border-white/[0.06]">
           <div className="group-data-[collapsible=icon]:hidden">
             <SidebarUser />
           </div>
@@ -273,34 +273,29 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset
-        className={cn(
-          'bg-[radial-gradient(ellipse_at_top,theme(colors.amber.400/6),transparent_42%),theme(colors.zinc.50)] dark:bg-[radial-gradient(ellipse_at_top,theme(colors.amber.500/5),transparent_40%),#212121]',
-          immersive && 'min-h-svh bg-white dark:bg-[#212121]',
-        )}
-      >
+      <SidebarInset className={cn('aproko-mesh bg-background', immersive && 'min-h-svh !bg-background')}>
         <header
           className={cn(
-            'sticky top-0 z-10 flex h-12 items-center justify-between gap-3 px-3 md:px-4',
+            'sticky top-0 z-10 flex h-14 items-center justify-between gap-3 px-3 md:px-5',
             immersive
               ? 'border-b-0 bg-transparent'
-              : 'border-b border-zinc-200/60 bg-white/75 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-[#212121]/80',
+              : 'border-b border-black/[0.05] bg-background/70 backdrop-blur-2xl dark:border-white/[0.06]',
           )}
         >
           <div className="flex min-w-0 items-center gap-2 md:hidden">
             <SidebarTrigger aria-label="Open sidebar" className="md:hidden" />
-            <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            <span className="truncate text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               {title}
             </span>
           </div>
 
           <div className="hidden min-w-0 flex-1 md:block" />
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {!immersive ? (
               <Button
                 aria-label="Open search"
-                className="h-8 rounded-full border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+                className="h-9 rounded-full border-black/[0.08] bg-white/80 text-zinc-700 shadow-sm backdrop-blur hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
                 data-testid="open-search-shortcut"
                 onClick={() => setIsCommandOpen(true)}
                 size="sm"
@@ -309,7 +304,7 @@ export function AppShell({
               >
                 <Search className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Search</span>
-                <kbd className="pointer-events-none hidden rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <kbd className="pointer-events-none hidden rounded-md border border-black/[0.08] bg-black/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-400">
                   ⌘K
                 </kbd>
               </Button>
@@ -326,11 +321,11 @@ export function AppShell({
         </header>
 
         <main
-          className={cn('flex-1', immersive ? 'flex min-h-0 flex-col p-0' : 'p-4 md:p-6 lg:p-8')}
+          className={cn('flex-1', immersive ? 'flex min-h-0 flex-col p-0' : 'p-4 md:p-7 lg:p-9')}
         >
           <div
             className={cn(
-              immersive ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto max-w-6xl space-y-6',
+              immersive ? 'flex min-h-0 flex-1 flex-col' : 'mx-auto max-w-6xl space-y-7',
             )}
           >
             {!immersive ? (

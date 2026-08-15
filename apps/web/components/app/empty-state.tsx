@@ -22,19 +22,26 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-gradient-to-b from-zinc-50/90 to-white text-center dark:border-zinc-800 dark:from-zinc-900/50 dark:to-zinc-950/30',
-        compact ? 'px-4 py-8' : 'px-6 py-12',
+        'relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-black/[0.08] text-center dark:border-white/10',
+        'bg-gradient-to-b from-white/80 to-black/[0.02] dark:from-white/[0.04] dark:to-transparent',
+        compact ? 'px-5 py-10' : 'px-6 py-14',
         className,
       )}
     >
-      <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-600 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-        <Icon className="h-5 w-5" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.amber.400/12),transparent_55%)]"
+      />
+      <span className="relative inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-black/[0.06] bg-white text-zinc-700 shadow-premium dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-200 dark:shadow-premium-dark">
+        <Icon className="h-6 w-6" />
       </span>
-      <p className="mt-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</p>
-      <p className="mt-1 max-w-sm text-pretty text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+      <p className="relative mt-5 text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        {title}
+      </p>
+      <p className="relative mt-1.5 max-w-sm text-pretty text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
         {description}
       </p>
-      {action ? <div className="mt-5">{action}</div> : null}
+      {action ? <div className="relative mt-6">{action}</div> : null}
     </div>
   );
 }
