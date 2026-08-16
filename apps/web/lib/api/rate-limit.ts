@@ -161,6 +161,11 @@ export const rateLimitPolicies = {
     windowMs: 60_000,
     maxRequests: 40,
   },
+  liveContextWrite: {
+    bucket: 'v1:live-context:post',
+    windowMs: 60_000,
+    maxRequests: 30,
+  },
   notesWrite: {
     bucket: 'v1:notes:write',
     windowMs: 60_000,

@@ -19,6 +19,21 @@ const nextConfig: NextConfig = {
   turbopack: {
     resolveAlias: reactAlias,
   },
+  async headers() {
+    return [
+      {
+        // Allow the Chrome extension side panel to embed the live-context UI
+        // so Clerk session cookies work (extension-origin fetch cannot).
+        source: '/extension/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' chrome-extension: safari-web-extension: safari-extension:",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 const sentryOrg = process.env.SENTRY_ORG ?? 'calebsilvanus';

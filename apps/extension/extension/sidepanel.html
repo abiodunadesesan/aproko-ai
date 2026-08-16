@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aproko Live Context</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body class="shell">
+    <header class="header">
+      <div>
+        <p class="eyebrow">Aproko · v0.3.1</p>
+        <h1>Live context</h1>
+      </div>
+      <div class="header-actions">
+        <button id="capture-btn" type="button">Capture tab</button>
+      </div>
+    </header>
+
+    <p id="status" class="status muted"></p>
+
+    <iframe
+      id="app-frame"
+      title="Aproko live context"
+      class="app-frame"
+      allow="clipboard-write"
+    ></iframe>
+
+    <details class="card settings">
+      <summary>Settings</summary>
+      <label for="web-app-url">Web app URL</label>
+      <input id="web-app-url" type="url" placeholder="http://localhost:3000" />
+      <button id="save-settings" type="button">Save & reload panel</button>
+      <p class="muted">
+        Sign in to Aproko in a normal Chrome tab first (same profile). Open this panel with the
+        <strong>toolbar icon</strong> (not the keyboard shortcut). Shortcut only captures the page —
+        an amber badge “1” means a capture is waiting.
+      </p>
+      <a id="connect-link" href="#" target="_blank" rel="noreferrer">Open connect checklist</a>
+    </details>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

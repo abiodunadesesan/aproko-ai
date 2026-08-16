@@ -164,6 +164,11 @@ graph LR
 - secrets via environment manager only
 - audit logging for privileged operations
 
+## V2 companion surfaces (design only)
+
+- Desktop companion: `./03-desktop-companion-v2.md`
+- Browser extension live context: `./04-browser-extension-companion-v2.md`
+
 ## Cross References
 
 - Database design: `../03-database/README.md`

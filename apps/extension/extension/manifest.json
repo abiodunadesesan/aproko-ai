@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Aproko Live Context",
+  "version": "0.3.1",
+  "description": "Live tab scrape + cursor hover context for Aproko AI.",
+  "action": {
+    "default_title": "Open Aproko Live Context",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "commands": {
+    "toggle-aproko-live-context": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "Capture the active page for Aproko (then open the side panel from the toolbar)"
+    }
+  },
+  "permissions": ["activeTab", "scripting", "sidePanel", "commands", "storage", "tabs"],
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*",
+    "https://aprokoai.vercel.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -18,6 +18,9 @@ This file is the persistent operating manual for all coding agents working in th
 - Do **not** build detector-evasion writing tools (e.g. marketed to beat Turnitin/GPTZero, or rewrite-to-lower-detector-score).
 - Desktop screen overlay + OS-level meeting/audio capture = **V2 companion** only  
   (`docs/12-backlog/sprint-19-web-study-copilot.md`, `docs/02-architecture/03-desktop-companion-v2.md`).
+- Browser extension live tab/DOM capture + floating overlay = **V2 companion** only  
+  (`docs/02-architecture/04-browser-extension-companion-v2.md`, `docs/12-backlog/sprint-29-browser-extension-v2.md`).
+  Sprint 29 is PO-approved; package lives in `apps/extension/extension` and must not be treated as the V1 default web surface.
 - Prefer `TODO` sections over unsupported assumptions.
 - Every implementation must map to documented architecture and approved product scope.
 

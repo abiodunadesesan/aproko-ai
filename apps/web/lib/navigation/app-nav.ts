@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Mic,
   PenLine,
+  Puzzle,
   Search,
   Settings,
   ShieldCheck,
@@ -46,6 +47,7 @@ export const appNavGroups: AppNavGroup[] = [
       { id: 'research', label: 'Research', href: '/research', icon: Sparkles },
       { id: 'study', label: 'Study', href: '/study', icon: BookOpen },
       { id: 'writing', label: 'Writing', href: '/writing', icon: PenLine },
+      { id: 'live-context', label: 'Live context', href: '/extension/live', icon: Puzzle },
     ],
   },
   {

@@ -28,7 +28,7 @@ export function canGenerateWithModel(model: ChatModel): boolean {
   return isModelConfigured(model);
 }
 
-function formatGenerationError(error: unknown): Error {
+export function formatGenerationError(error: unknown): Error {
   if (!(error instanceof Error)) {
     return new Error('Unable to stream assistant response');
   }

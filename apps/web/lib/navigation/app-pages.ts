@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Mic,
   PenLine,
+  Puzzle,
   Search,
   ShieldCheck,
   Sparkles,
@@ -73,6 +74,16 @@ export const appPageMeta = {
     title: 'Writing',
     subtitle: 'Polish drafts for clarity and tone — not detector evasion.',
     icon: PenLine,
+  },
+  liveContext: {
+    title: 'Live browser context',
+    subtitle: 'Ask Aproko about the page you are viewing via the Chrome extension.',
+    icon: Puzzle,
+  },
+  extensionConnect: {
+    title: 'Connect Chrome extension',
+    subtitle: 'Sign-in cookies from this browser profile power the Aproko side panel.',
+    icon: Puzzle,
   },
   settings: {
     title: 'Settings',

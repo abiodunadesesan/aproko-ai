@@ -130,6 +130,19 @@ Upload (`POST`) persists the file to Supabase Storage, writes `sources` metadata
 - `GET /v1/workspaces/{workspace_id}/chat/sessions/{session_id}`
 - `POST /v1/workspaces/{workspace_id}/chat/sessions/{session_id}/messages`
 
+### Live browser context (Sprint 29 / V2 companion)
+
+- `POST /v1/workspaces/{workspace_id}/live-context/chat` — streaming SSE assistant grounded in extension-captured tab context
+  - Body: `{ url, title, pageText | fullPageContext, activeHoverContext?, capturedAt?, userQuery, model? }`
+  - `activeHoverContext` is cursor-focus text (highest priority in the system prompt)
+  - Auth: Clerk session (cookies or Bearer) + workspace membership
+  - Consumes AI query quota; CORS allowlist includes `chrome-extension://*` and `APROKO_EXTENSION_ORIGIN_ALLOWLIST`
+  - Does **not** persist captures as library sources in MVP
+- `POST /v1/workspaces/{workspace_id}/live-context/solve` — JSON solve helper for Alt/Option-click on a question
+  - Body same as chat (`pageText`/`fullPageContext`, `activeHoverContext`, `userQuery?`)
+  - Response: `{ data: { kind, optionKey, optionText, fillText, explanation, model } }`
+  - Used by the extension to highlight MCQ options or fill nearby text fields
+
 ### Search
 
 - `GET /v1/workspaces/{workspace_id}/search?q=...`

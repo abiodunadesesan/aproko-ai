@@ -55,3 +55,6 @@ This backlog is the operational execution system for Aproko AI.
 - `./sprint-22-ingestion-reliability-docx.md`
 - `./sprint-23-qdrant-hybrid-search.md`
 - `./v1.2-async-ingestion-ocr.md`
+- `./sprint-28-plan-feature-gates.md`
+- `./sprint-29-browser-extension-v2.md` (V2 companion — MVP in repo; PO approved)
+- Inputs: `./inputs/cursor_prompt-screen-live-context.md`

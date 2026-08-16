@@ -1,14 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "lib": [
-      "ES2023",
-      "DOM"
-    ]
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": []
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["scripts/**/*.mjs"],
+  "exclude": ["extension"]
 }

@@ -8,6 +8,9 @@ Constitution: `AGENTS.md` (V2 companion scope)
 
 Capture capabilities that **cannot** be delivered honestly in a browser alone, while keeping one shared Aproko workspace backend.
 
+For **in-browser** active-tab DOM / side panel / shortcut capture (still V2), see
+`docs/02-architecture/04-browser-extension-companion-v2.md`.
+
 ## Problem
 
 Web V1.1 supports:

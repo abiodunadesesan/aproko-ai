@@ -1,7 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { sanitizePostAuthRedirect } from '@/lib/auth/post-auth-redirect';
 
-const isProtectedRoute = createRouteMatcher([
+const isProtectedPage = createRouteMatcher([
   '/dashboard(.*)',
   '/search(.*)',
   '/library(.*)',
@@ -14,6 +15,10 @@ const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
   '/settings(.*)',
   '/billing(.*)',
+  '/extension(.*)',
+]);
+
+const isProtectedApi = createRouteMatcher([
   '/api/v1/admin(.*)',
   '/api/v1/billing/subscription(.*)',
   '/api/v1/billing/checkout(.*)',
@@ -28,20 +33,39 @@ export default clerkMiddleware(
     if (pathname === '/sign-in' || pathname === '/sign-up') {
       const { userId } = await auth();
       if (userId) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+        const redirectUrl = sanitizePostAuthRedirect(
+          req.nextUrl.searchParams.get('redirect_url'),
+        );
+        // Never bounce authenticated users onto an API path from sign-in.
+        if (redirectUrl.startsWith('/api/')) {
+          return NextResponse.redirect(new URL('/dashboard', req.url));
+        }
+        return NextResponse.redirect(new URL(redirectUrl, req.url));
       }
       return;
     }
 
-    if (isProtectedRoute(req)) {
-      const isE2EMockAuthEnabled = process.env.E2E_MOCK_AUTH === 'true';
-      const hasE2EMockAuthCookie = req.cookies.get('aproko_e2e_auth')?.value === '1';
+    const isE2EMockAuthEnabled = process.env.E2E_MOCK_AUTH === 'true';
+    const hasE2EMockAuthCookie = req.cookies.get('aproko_e2e_auth')?.value === '1';
+    if (isE2EMockAuthEnabled && hasE2EMockAuthCookie) {
+      return;
+    }
 
-      if (isE2EMockAuthEnabled && hasE2EMockAuthCookie) {
-        return;
+    // APIs must return JSON 401 — HTML sign-in redirects break fetch/SSE clients
+    // (extension iframe showed an empty assistant with no error).
+    if (isProtectedApi(req)) {
+      const { userId } = await auth();
+      if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
+      return;
+    }
 
-      await auth.protect({ unauthenticatedUrl: new URL('/sign-in', req.url).href });
+    if (isProtectedPage(req)) {
+      const returnTo = `${pathname}${req.nextUrl.search}`;
+      const signInUrl = new URL('/sign-in', req.url);
+      signInUrl.searchParams.set('redirect_url', returnTo);
+      await auth.protect({ unauthenticatedUrl: signInUrl.href });
     }
   },
   {
