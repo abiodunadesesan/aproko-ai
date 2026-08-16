@@ -174,6 +174,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const settings = await getSettings();
         const webAppUrl = settings.webAppUrl;
+        // Prefer flat extension path (resolves workspace server-side).
+        // Keep workspace-scoped path as fallback for older web deploys.
+        const solveUrls = [
+          `${webAppUrl}/api/v1/live-context/solve`,
+          null,
+        ];
+
         const workspaceRes = await fetch(`${webAppUrl}/api/v1/workspaces/current`, {
           credentials: 'include',
           cache: 'no-store',
@@ -182,37 +189,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!workspaceRes.ok || !workspacePayload?.data?.workspaceId) {
           throw new Error(
             workspacePayload?.error ||
-              'Not signed in. Open Aproko at the web app URL in this Safari profile.',
+              'Not signed in. Open Aproko at the web app URL in this browser profile, then try again.',
           );
         }
 
         const workspaceId = workspacePayload.data.workspaceId;
+        solveUrls[1] = `${webAppUrl}/api/v1/workspaces/${workspaceId}/live-context/solve`;
+
         const context = message.context || {};
-        const solveRes = await fetch(
-          `${webAppUrl}/api/v1/workspaces/${workspaceId}/live-context/solve`,
-          {
+        const body = JSON.stringify({
+          url: context.url,
+          title: context.title,
+          pageText: context.pageText,
+          fullPageContext: context.pageText,
+          activeHoverContext: context.activeHoverContext || '',
+          capturedAt: context.capturedAt || new Date().toISOString(),
+          userQuery:
+            context.userQuery ||
+            'Solve the clicked question using the full page and cursor focus.',
+          model: 'groq:llama-3.1-8b-instant',
+        });
+
+        let lastError = 'Solve failed';
+        for (const solveUrl of solveUrls) {
+          if (!solveUrl) {
+            continue;
+          }
+          const solveRes = await fetch(solveUrl, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              url: context.url,
-              title: context.title,
-              pageText: context.pageText,
-              fullPageContext: context.pageText,
-              activeHoverContext: context.activeHoverContext || '',
-              capturedAt: context.capturedAt || new Date().toISOString(),
-              userQuery:
-                context.userQuery ||
-                'Solve the clicked question using the full page and cursor focus.',
-              model: 'groq:llama-3.1-8b-instant',
-            }),
-          },
-        );
-        const solvePayload = await solveRes.json().catch(() => null);
-        if (!solveRes.ok || !solvePayload?.data) {
-          throw new Error(solvePayload?.error || `Solve failed (${solveRes.status})`);
+            body,
+          });
+          const solvePayload = await solveRes.json().catch(() => null);
+          if (solveRes.ok && solvePayload?.data) {
+            sendResponse({ ok: true, data: solvePayload.data });
+            return;
+          }
+          lastError =
+            solvePayload?.error ||
+            (solveRes.status === 401
+              ? 'Not signed in. Open Aproko at the web app URL in this browser profile.'
+              : `Solve failed (${solveRes.status})`);
+          // Retry fallback on missing route only.
+          if (solveRes.status !== 404) {
+            break;
+          }
         }
-        sendResponse({ ok: true, data: solvePayload.data });
+        throw new Error(lastError);
       } catch (error) {
         sendResponse({
           ok: false,

@@ -65,6 +65,14 @@ test('parseHoverFocus extracts tag, primary, and surrounding blocks', () => {
   assert.match(parsed.surroundingText, /Quiz Mind Map/);
 });
 
+test('parseHoverFocus keeps heading tags like h2 (not h 2)', () => {
+  const parsed = parseHoverFocus(
+    '[Hover node: h2]\n1. Which characteristic is common to all living organisms?',
+  );
+  assert.equal(parsed.tagName, 'h2');
+  assert.match(parsed.primaryText, /living organisms/i);
+});
+
 test('summarizePageSnapshot prefers page topic over chrome nav', () => {
   const snapshot = summarizePageSnapshot(
     [

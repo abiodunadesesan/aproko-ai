@@ -220,17 +220,17 @@ function ensureCursorTip() {
     <style>
       .tip {
         font: 12px/1.4 ui-sans-serif, system-ui, sans-serif;
-        background: rgba(24,24,27,0.94);
+        background: linear-gradient(160deg, rgba(24,24,27,0.96), rgba(39,28,12,0.96));
         color: #fafafa;
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 10px;
+        border: 1px solid rgba(245,158,11,0.45);
+        border-radius: 12px;
         padding: 8px 10px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.28), 0 0 0 1px rgba(245,158,11,0.08);
         white-space: pre-wrap;
         word-break: break-word;
       }
       .tip strong { color: #fbbf24; font-weight: 600; }
-      .tip .meta { color: #a1a1aa; font-size: 10px; margin-top: 4px; }
+      .tip .meta { color: #d6d3d1; font-size: 10px; margin-top: 4px; opacity: 0.9; }
     </style>
     <div class="tip" id="tip"></div>
   `;
@@ -445,7 +445,7 @@ async function solveAtClick(event) {
         showCursorTip(
           `<strong>Solve failed</strong>\n${
             response?.error || chrome.runtime.lastError?.message || 'Unknown error'
-          }<div class="meta">Sign in at localhost:3000, then Alt/Option-click again</div>`,
+          }<div class="meta">Keep the extension on · sign in at your Web app URL · Alt/Option-click again</div>`,
           event.clientX,
           event.clientY,
         );
@@ -501,13 +501,16 @@ function ensureCaptureChip() {
     <style>
       button {
         font: 600 12px ui-sans-serif, system-ui, sans-serif;
-        border: 0; border-radius: 999px; background: #18181b; color: #fafafa;
-        padding: 10px 14px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        border: 0; border-radius: 999px;
+        background: linear-gradient(135deg, #d97706, #b45309);
+        color: #fffbeb;
+        padding: 10px 14px; cursor: pointer;
+        box-shadow: 0 10px 28px rgba(217,119,6,0.35);
       }
-      .hint { margin: 6px 0 0; font: 11px/1.3 ui-sans-serif, system-ui, sans-serif; color: #52525b; text-align: right; max-width: 200px; }
+      .hint { margin: 6px 0 0; font: 11px/1.3 ui-sans-serif, system-ui, sans-serif; color: #78716c; text-align: right; max-width: 220px; }
     </style>
     <button type="button" id="aproko-ask">Capture for Aproko</button>
-    <p class="hint">Hover tip follows cursor. Alt/Option-click a question to solve.</p>
+    <p class="hint">Panel optional. Hover tip + Alt/Option-click work while the extension is on.</p>
   `;
   shadow.getElementById('aproko-ask')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'APROKO_TOGGLE_FROM_OVERLAY' });

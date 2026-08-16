@@ -57,7 +57,7 @@ export function withLiveContextCors(response: Response, request: Request): Respo
   for (const [key, value] of Object.entries(cors)) {
     headers.set(key, value);
   }
-  return new Response(response.body, {
+  return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers,

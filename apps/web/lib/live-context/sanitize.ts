@@ -81,13 +81,28 @@ export type ParsedHoverFocus = {
 
 /** Parse content-script hover prompt text into structured UI fields. */
 export function parseHoverFocus(raw: string): ParsedHoverFocus {
-  const text = formatCapturedPageText(raw || '');
-  if (!text) {
+  const source = (raw || '').trim();
+  if (!source) {
     return { tagName: null, primaryText: '', surroundingText: '' };
   }
 
-  const lines = text.split(/\n/).map((line) => line.trim());
+  // Read the hover-node line before formatCapturedPageText — that formatter
+  // inserts spaces into tags like h2 → "h 2".
+  const rawLines = source.split(/\n/).map((line) => line.trim());
   let tagName: string | null = null;
+  for (const line of rawLines) {
+    const nodeMatch = line.match(HOVER_NODE_RE);
+    if (nodeMatch) {
+      tagName = (nodeMatch[1] || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '');
+      break;
+    }
+  }
+
+  const text = formatCapturedPageText(source);
+  const lines = text.split(/\n/).map((line) => line.trim());
   const primary: string[] = [];
   const surrounding: string[] = [];
   let mode: 'primary' | 'surrounding' = 'primary';
@@ -96,9 +111,7 @@ export function parseHoverFocus(raw: string): ParsedHoverFocus {
     if (!line) {
       continue;
     }
-    const nodeMatch = line.match(HOVER_NODE_RE);
-    if (nodeMatch) {
-      tagName = nodeMatch[1]?.trim().toLowerCase() || null;
+    if (HOVER_NODE_RE.test(line) || /^\[Hover node:/i.test(line)) {
       continue;
     }
     if (HOVER_PARENT_RE.test(line)) {
