@@ -29,31 +29,6 @@ type ChatLine = {
   content: string;
 };
 
-const TAG_LABELS: Record<string, string> = {
-  a: 'Link',
-  button: 'Button',
-  p: 'Paragraph',
-  li: 'List item',
-  h1: 'Heading',
-  h2: 'Heading',
-  h3: 'Heading',
-  h4: 'Heading',
-  h5: 'Heading',
-  h6: 'Heading',
-  label: 'Label',
-  span: 'Text',
-  div: 'Block',
-  td: 'Table cell',
-  th: 'Table header',
-  input: 'Input',
-  textarea: 'Text area',
-  pre: 'Code',
-  code: 'Code',
-  blockquote: 'Quote',
-  section: 'Section',
-  article: 'Article',
-};
-
 function isExtensionMessageOrigin(origin: string, pageOrigin: string): boolean {
   return (
     origin === pageOrigin ||
@@ -91,9 +66,6 @@ function parseSseEventsFromBuffer(buffer: string): {
 
 function CursorFocusCard({ raw }: { raw: string }) {
   const parsed = useMemo(() => parseHoverFocus(raw), [raw]);
-  const tagLabel = parsed.tagName
-    ? TAG_LABELS[parsed.tagName] || parsed.tagName.toUpperCase()
-    : null;
   const hasPrimary = Boolean(parsed.primaryText);
 
   return (
@@ -118,14 +90,6 @@ function CursorFocusCard({ raw }: { raw: string }) {
             Cursor focus
           </p>
         </div>
-        {tagLabel ? (
-          <span className="rounded-full border border-amber-600/20 bg-white/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:border-amber-300/25 dark:bg-zinc-950/50 dark:text-amber-100">
-            {tagLabel}
-            {parsed.tagName ? (
-              <span className="ml-1 font-mono text-[9px] opacity-60">&lt;{parsed.tagName}&gt;</span>
-            ) : null}
-          </span>
-        ) : null}
       </div>
 
       <div className="space-y-3 px-3.5 py-3">
