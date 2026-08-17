@@ -30,6 +30,10 @@ for (const relative of copyFiles) {
   await cp(from, to);
 }
 
+const chromeManifestRaw = await readFile(path.join(chromeDir, 'manifest.json'), 'utf8');
+const chromeManifest = JSON.parse(chromeManifestRaw);
+const safariVersion = chromeManifest.version || '0.0.0';
+
 const chromeBackground = await readFile(path.join(chromeDir, 'background.js'), 'utf8');
 const safariBackground = chromeBackground
   .replace(
@@ -61,7 +65,7 @@ const sidepanelHtml = await readFile(path.join(safariDir, 'sidepanel.html'), 'ut
 await writeFile(
   path.join(safariDir, 'sidepanel.html'),
   sidepanelHtml
-    .replace(/Aproko · v[\d.]+/, 'Aproko · Safari v0.3.1')
+    .replace(/Aproko · v[\d.]+/, `Aproko · Safari v${safariVersion}`)
     .replace(/normal Chrome tab/g, 'normal Safari tab')
     .replace(/side panel/gi, 'toolbar popup'),
 );
@@ -75,7 +79,7 @@ await writeFile(
 const manifest = {
   manifest_version: 3,
   name: 'Aproko Live Context',
-  version: '0.3.1',
+  version: safariVersion,
   description: 'Live tab scrape + cursor hover context for Aproko AI (Safari).',
   action: {
     default_title: 'Open Aproko Live Context',

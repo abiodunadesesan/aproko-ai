@@ -9,6 +9,7 @@
     "lint": "node ./scripts/verify-extension.mjs",
     "typecheck": "node ./scripts/verify-extension.mjs",
     "test": "node ./scripts/verify-extension.mjs",
-    "sync:safari": "node ./scripts/sync-safari.mjs"
+    "sync:safari": "node ./scripts/sync-safari.mjs",
+    "pack:chrome": "node ./scripts/pack-chrome.mjs"
   }
 }

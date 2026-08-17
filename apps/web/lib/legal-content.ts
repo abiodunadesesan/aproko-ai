@@ -50,6 +50,21 @@ export const privacyContent: LegalPageContent = {
       ],
     },
     {
+      id: 'browser-extension',
+      title: 'Browser extension (Live Context)',
+      paragraphs: [
+        'Aproko’s browser extension can capture limited text from the webpage you are currently viewing and use that text to help answer questions. The extension is intended for learning and productivity support.',
+      ],
+      bullets: [
+        'Information we capture: (1) cursor-focused text (local snippet around what your mouse is pointing at), and (2) readable page text when you press “Capture tab” or Alt/Option-click to solve a question.',
+        'How we reduce sensitive data exposure: before sending page text to our services, we format it for readability and redact password- and payment-card-like lines; we also apply size limits.',
+        'How we use it: the captured text is used to generate a grounded answer in your active workspace. We do not claim knowledge of page content that is not present in the captured text.',
+        'User controls: cursor hover focus can be disabled in the extension settings. Even with hover disabled, “Capture tab” and Alt/Option-click to solve still work.',
+        'Data destination: the extension sends the captured payload to Aproko’s authenticated web API; our backend processes the request and may forward relevant context to our configured AI provider to generate the response.',
+        'Storage: for the extension MVP, captured context is used for the generation request and is not persisted as a long-lived “source” object in your workspace (unless you explicitly save content in the web app).',
+      ],
+    },
+    {
       id: 'sharing',
       title: 'How we share information',
       paragraphs: [

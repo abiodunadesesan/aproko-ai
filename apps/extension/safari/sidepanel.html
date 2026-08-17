@@ -9,7 +9,7 @@
   <body class="shell">
     <header class="header">
       <div>
-        <p class="eyebrow">Aproko · Safari v0.3.1</p>
+        <p class="eyebrow">Aproko · Safari v0.3.3</p>
         <h1>Live context</h1>
       </div>
       <div class="header-actions">
@@ -30,6 +30,12 @@
       <summary>Settings</summary>
       <label for="web-app-url">Web app URL</label>
       <input id="web-app-url" type="url" placeholder="http://localhost:3000" />
+      <div style="display:flex; align-items:center; gap:10px; margin: 8px 0;">
+        <input id="hover-enabled" type="checkbox" />
+        <label for="hover-enabled" style="margin:0; text-transform:none; letter-spacing:normal; color:inherit;">
+          Enable cursor hover focus
+        </label>
+      </div>
       <button id="save-settings" type="button">Save & reload panel</button>
       <p class="muted">
         Sign in to Aproko in a normal browser tab first (same profile). Open this panel with the

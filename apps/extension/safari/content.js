@@ -5,7 +5,6 @@
 
 const PAGE_TEXT_MAX = 24_000;
 const HOVER_THROTTLE_MS = 175;
-const FULL_PAGE_REFRESH_MS = 5_000;
 const HOVER_LOCAL_MAX = 1_200;
 const HOVER_PARENT_MAX = 2_400;
 
@@ -15,6 +14,8 @@ const state = {
   lastPointer: { x: 0, y: 0 },
   lastClickedEl: null,
   solving: false,
+  /** Store-friendly default: allow users to opt out of hover tracking. */
+  hoverEnabled: true,
 };
 
 function normalizeReadableText(text) {
@@ -475,6 +476,11 @@ const onMouseMove = throttle((event) => {
   if (isOurUi(event.target)) {
     return;
   }
+
+  if (!state.hoverEnabled) {
+    return;
+  }
+
   const hover = resolveHoverContext(event.clientX, event.clientY);
   if (hover) {
     publishHover(hover);
@@ -515,15 +521,6 @@ function ensureCaptureChip() {
   shadow.getElementById('aproko-ask')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'APROKO_TOGGLE_FROM_OVERLAY' });
   });
-}
-
-function scheduleFullPageRefresh() {
-  const run = () => scrapeFullPageContext();
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(run, { timeout: 1_500 });
-  } else {
-    setTimeout(run, 0);
-  }
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -577,5 +574,27 @@ document.addEventListener('keydown', (event) => {
 
 ensureCaptureChip();
 ensureCursorTip();
-scheduleFullPageRefresh();
-setInterval(scheduleFullPageRefresh, FULL_PAGE_REFRESH_MS);
+
+// User control for hover tracking (store/privacy review friendly).
+(async () => {
+  try {
+    const stored = await chrome.storage.sync.get({ hoverEnabled: true });
+    state.hoverEnabled = stored.hoverEnabled !== false;
+  } catch {
+    // default true
+  }
+})();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'sync') {
+    return;
+  }
+  if (Object.prototype.hasOwnProperty.call(changes, 'hoverEnabled')) {
+    const next = changes.hoverEnabled?.newValue;
+    state.hoverEnabled = next !== false;
+    if (!state.hoverEnabled) {
+      hideCursorTip();
+      clearHighlights();
+    }
+  }
+});

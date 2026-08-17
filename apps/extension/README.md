@@ -77,8 +77,21 @@ Streams SSE (`start` / `delta` / `done` / `error`), same family as workspace cha
 
 Add your preview/custom origin there before pointing Settings at it.
 
+## Chrome Web Store (publish first)
+
+1. Clear production gates in `docs/12-backlog/chrome-web-store-submission-runbook.md`
+2. Build upload ZIP:
+
+```bash
+pnpm --filter @aproko/extension pack:chrome
+```
+
+3. Upload `apps/extension/dist/aproko-live-context-chrome-v*.zip` in the [Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+4. Listing copy: `apps/extension/STORE_LISTING.md`
+
 ## Docs
 
+- Chrome submit runbook: `docs/12-backlog/chrome-web-store-submission-runbook.md`
 - Architecture: `docs/02-architecture/04-browser-extension-companion-v2.md`
 - Backlog: `docs/12-backlog/sprint-29-browser-extension-v2.md`
 - Connect UI: `/extension/connect` · Live dashboard: `/extension/live`

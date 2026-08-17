@@ -3,6 +3,7 @@ const DEFAULT_WEB_APP_URL = 'http://localhost:3000';
 const captureBtn = document.getElementById('capture-btn');
 const statusEl = document.getElementById('status');
 const webAppUrlEl = document.getElementById('web-app-url');
+const hoverEnabledEl = document.getElementById('hover-enabled');
 const saveSettingsBtn = document.getElementById('save-settings');
 const connectLink = document.getElementById('connect-link');
 const appFrame = document.getElementById('app-frame');
@@ -49,6 +50,10 @@ async function loadSettings() {
   const stored = await chrome.storage.sync.get({ webAppUrl: DEFAULT_WEB_APP_URL });
   webAppUrl = String(stored.webAppUrl || DEFAULT_WEB_APP_URL).replace(/\/$/, '');
   webAppUrlEl.value = webAppUrl;
+  const { hoverEnabled } = await chrome.storage.sync.get({ hoverEnabled: true });
+  if (hoverEnabledEl) {
+    hoverEnabledEl.checked = hoverEnabled !== false;
+  }
   connectLink.href = `${webAppUrl}/extension/connect`;
   const nextSrc = panelUrl(webAppUrl);
   if (appFrame.src !== nextSrc) {
@@ -112,3 +117,10 @@ chrome.runtime.onMessage.addListener((message) => {
 
 void loadSettings();
 void loadStoredContext();
+
+if (hoverEnabledEl) {
+  hoverEnabledEl.addEventListener('change', async () => {
+    await chrome.storage.sync.set({ hoverEnabled: hoverEnabledEl.checked });
+    setStatus(hoverEnabledEl.checked ? 'Cursor hover focus enabled' : 'Cursor hover focus disabled');
+  });
+}
