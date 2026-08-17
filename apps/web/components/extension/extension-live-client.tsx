@@ -18,6 +18,11 @@ import {
   readLiveContextSseError,
 } from '@/lib/live-context/sse-client';
 import { cn } from '@/lib/utils';
+import {
+  fetchLiveContextChatViaExtensionProxy,
+  shouldProxyLiveContextChatThroughExtension,
+} from '@/lib/extension/embed-ask';
+import { isExtensionEmbedFrame, openInExtensionBrowserTab } from '@/lib/extension/embed-frame';
 
 const mono = 'rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] dark:bg-zinc-800';
 
@@ -128,10 +133,12 @@ function ExtensionEmbedSignIn({
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button asChild size="sm">
-          <a href={connectUrl} target="_blank" rel="noopener noreferrer">
-            Open Aproko tab
-          </a>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => openInExtensionBrowserTab(connectUrl)}
+        >
+          Open Aproko tab
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={onReload}>
           Reload panel
@@ -212,7 +219,17 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
 
   useEffect(() => {
     setWebAppUrl(window.location.origin);
-  }, []);
+    if (embed) {
+      window.parent.postMessage({ type: 'APROKO_REQUEST_EXTENSION_AUTH' }, '*');
+    }
+  }, [embed]);
+
+  useEffect(() => {
+    if (!embed || !extensionAuth?.token) {
+      return;
+    }
+    setError(null);
+  }, [embed, extensionAuth?.token]);
 
   useEffect(() => {
     if (!embed || activeWorkspaceId || isLoading) {
@@ -314,26 +331,30 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     setStreaming(true);
     setLines((prev) => [...prev, { role: 'user', content: userQuery }, { role: 'assistant', content: '' }]);
 
-    const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (extensionAuth?.token) {
-      authHeaders.Authorization = `Bearer ext.${extensionAuth.token}`;
-    }
+    const requestBody = {
+      url: synced.url,
+      title: synced.title,
+      pageText: synced.pageText,
+      fullPageContext: synced.pageText,
+      activeHoverContext: synced.activeHoverContext || hoverText || '',
+      capturedAt: synced.capturedAt,
+      userQuery,
+    };
 
     try {
-      const response = await fetch(`/api/v1/workspaces/${activeWorkspaceId}/live-context/chat`, {
-        method: 'POST',
-        credentials: extensionAuth?.token ? 'omit' : 'include',
-        headers: authHeaders,
-        body: JSON.stringify({
-          url: synced.url,
-          title: synced.title,
-          pageText: synced.pageText,
-          fullPageContext: synced.pageText,
-          activeHoverContext: synced.activeHoverContext || hoverText || '',
-          capturedAt: synced.capturedAt,
-          userQuery,
-        }),
-      });
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (extensionAuth?.token) {
+        authHeaders.Authorization = `Bearer ext.${extensionAuth.token}`;
+      }
+
+      const response = shouldProxyLiveContextChatThroughExtension(embed)
+        ? await fetchLiveContextChatViaExtensionProxy(activeWorkspaceId, requestBody)
+        : await fetch(`/api/v1/workspaces/${activeWorkspaceId}/live-context/chat`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: authHeaders,
+            body: JSON.stringify(requestBody),
+          });
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
@@ -393,7 +414,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     } finally {
       setStreaming(false);
     }
-  }, [activeWorkspaceId, extensionAuth?.token, synced, query, streaming, hoverText]);
+  }, [activeWorkspaceId, embed, extensionAuth?.token, synced, query, streaming, hoverText]);
 
   const body = (
     <div className="space-y-6">

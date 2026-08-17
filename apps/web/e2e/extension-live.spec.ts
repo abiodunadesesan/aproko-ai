@@ -53,4 +53,38 @@ test.describe('Extension live context embed UI', () => {
     const backgroundColor = await askButton.evaluate((node) => getComputedStyle(node).backgroundColor);
     expect(backgroundColor).not.toMatch(/rgb\(217, 119, 6\)|rgb\(245, 158, 11\)/);
   });
+
+  test('embed panel in iframe hides full app sidebar', async ({ page }) => {
+    test.setTimeout(120_000);
+    await enableMockAuth(page);
+    await installExtensionLiveMocks(page);
+
+    await page.setContent(
+      `<iframe id="embed" src="/extension/live?embed=1" style="width:480px;height:720px;border:0"></iframe>`,
+      { waitUntil: 'domcontentloaded' },
+    );
+
+    const frame = page.frameLocator('#embed');
+    await expect(frame.getByRole('heading', { name: 'Ask about this page' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(frame.getByTestId('app-sidebar')).toHaveCount(0);
+  });
+
+  test('connect page in iframe shows panel-safe guidance without app sidebar', async ({ page }) => {
+    test.setTimeout(120_000);
+    await enableMockAuth(page);
+
+    await page.setContent(
+      `<iframe id="embed" src="/extension/connect?from=extension" style="width:480px;height:720px;border:0"></iframe>`,
+      { waitUntil: 'domcontentloaded' },
+    );
+
+    const frame = page.frameLocator('#embed');
+    await expect(frame.getByText('Open this page in a full browser tab')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(frame.getByRole('button', { name: 'Open in browser tab' })).toBeVisible();
+    await expect(frame.getByTestId('app-sidebar')).toHaveCount(0);
+  });
 });

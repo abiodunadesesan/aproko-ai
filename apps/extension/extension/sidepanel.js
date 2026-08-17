@@ -1,4 +1,4 @@
-const DEFAULT_WEB_APP_URL = 'http://localhost:3000';
+const DEFAULT_WEB_APP_URL = 'https://aprokoai.vercel.app';
 
 const captureBtn = document.getElementById('capture-btn');
 const statusEl = document.getElementById('status');
@@ -11,12 +11,40 @@ const appFrame = document.getElementById('app-frame');
 let webAppUrl = DEFAULT_WEB_APP_URL;
 let lastContext = null;
 
+function normalizeWebAppUrl(url) {
+  let value = String(url || DEFAULT_WEB_APP_URL).trim().replace(/\/$/, '');
+  if (!value) {
+    value = DEFAULT_WEB_APP_URL;
+  }
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value)) {
+    return value.replace(/\/$/, '');
+  }
+  if (value.startsWith('http://')) {
+    value = `https://${value.slice('http://'.length)}`;
+  }
+  if (!/^https?:\/\//i.test(value)) {
+    value = `https://${value}`;
+  }
+  return value.replace(/\/$/, '');
+}
+
+function iframeTargetOrigin() {
+  try {
+    if (appFrame?.src) {
+      return new URL(appFrame.src).origin;
+    }
+  } catch {
+    // ignore invalid src while loading
+  }
+  return webAppUrl;
+}
+
 function setStatus(text) {
   statusEl.textContent = text || '';
 }
 
 function panelUrl(base) {
-  return `${base.replace(/\/$/, '')}/extension/live?embed=1`;
+  return `${normalizeWebAppUrl(base)}/extension/live?embed=1`;
 }
 
 function postContextToFrame(context) {
@@ -28,7 +56,7 @@ function postContextToFrame(context) {
       type: 'APROKO_LIVE_CONTEXT',
       payload: context,
     },
-    webAppUrl,
+    iframeTargetOrigin(),
   );
 }
 
@@ -42,7 +70,7 @@ function postHoverToFrame(message) {
       hover: message.hover,
       activeHoverContext: message.activeHoverContext || '',
     },
-    webAppUrl,
+    iframeTargetOrigin(),
   );
 }
 
@@ -60,7 +88,7 @@ function postAuthToFrame(auth) {
         role: auth.role ?? null,
       },
     },
-    webAppUrl,
+    iframeTargetOrigin(),
   );
 }
 
@@ -73,7 +101,7 @@ async function pushExtensionAuth() {
 
 async function loadSettings() {
   const stored = await chrome.storage.sync.get({ webAppUrl: DEFAULT_WEB_APP_URL });
-  webAppUrl = String(stored.webAppUrl || DEFAULT_WEB_APP_URL).replace(/\/$/, '');
+  webAppUrl = normalizeWebAppUrl(stored.webAppUrl || DEFAULT_WEB_APP_URL);
   webAppUrlEl.value = webAppUrl;
   const { hoverEnabled } = await chrome.storage.sync.get({ hoverEnabled: true });
   if (hoverEnabledEl) {
@@ -108,8 +136,50 @@ window.addEventListener('message', (event) => {
   if (event.source !== appFrame?.contentWindow) {
     return;
   }
+
+  const frameOrigin = iframeTargetOrigin();
+  if (frameOrigin && event.origin !== frameOrigin) {
+    return;
+  }
+
   if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
     void pushExtensionAuth();
+    return;
+  }
+
+  if (event.data?.type === 'APROKO_EMBED_ASK') {
+    chrome.runtime.sendMessage(
+      {
+        type: 'APROKO_PROXY_LIVE_CONTEXT_CHAT',
+        workspaceId: event.data.workspaceId,
+        body: event.data.body,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          appFrame.contentWindow?.postMessage(
+            {
+              type: 'APROKO_EMBED_ASK_RESULT',
+              requestId: event.data.requestId,
+              ok: false,
+              error: chrome.runtime.lastError.message,
+            },
+            iframeTargetOrigin(),
+          );
+          return;
+        }
+
+        appFrame.contentWindow?.postMessage(
+          {
+            type: 'APROKO_EMBED_ASK_RESULT',
+            requestId: event.data.requestId,
+            ok: Boolean(response?.ok),
+            sse: response?.sse,
+            error: response?.error,
+          },
+          iframeTargetOrigin(),
+        );
+      },
+    );
   }
 });
 
@@ -131,7 +201,8 @@ captureBtn.addEventListener('click', () => {
 });
 
 saveSettingsBtn.addEventListener('click', async () => {
-  webAppUrl = webAppUrlEl.value.trim().replace(/\/$/, '') || DEFAULT_WEB_APP_URL;
+  webAppUrl = normalizeWebAppUrl(webAppUrlEl.value.trim() || DEFAULT_WEB_APP_URL);
+  webAppUrlEl.value = webAppUrl;
   await chrome.storage.sync.set({ webAppUrl });
   connectLink.href = `${webAppUrl}/extension/connect?from=extension`;
   appFrame.src = panelUrl(webAppUrl);

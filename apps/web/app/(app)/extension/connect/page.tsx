@@ -12,17 +12,176 @@ import {
 } from '@/components/app/app-surface';
 import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
+import { isExtensionEmbedFrame, openInExtensionBrowserTab } from '@/lib/extension/embed-frame';
 
 const mono = 'rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] dark:bg-zinc-800';
+
+function ExtensionConnectPanels({
+  fromExtension,
+  origin,
+  signedIn,
+  isLoading,
+  name,
+  workspaceId,
+  error,
+  inExtensionFrame,
+}: {
+  fromExtension: boolean;
+  origin: string;
+  signedIn: boolean;
+  isLoading: boolean;
+  name: string | null;
+  workspaceId: string | null;
+  error: string | null;
+  inExtensionFrame: boolean;
+}) {
+  const signInUrl = `/sign-in?redirect_url=${encodeURIComponent('/extension/connect?from=extension')}`;
+  const connectUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/extension/connect?from=extension`
+      : `${origin}/extension/connect?from=extension`;
+
+  if (inExtensionFrame) {
+    return (
+      <div className="space-y-4">
+        <AppPanel>
+          <AppPanelHeader title="Extension connection" />
+          <AppPanelBody className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+              Open this page in a full browser tab
+            </p>
+            <p>
+              Sign-in and Google OAuth do not work inside the extension panel. Use a normal Safari or
+              Chrome tab, then return to the extension and click <strong>Reload panel</strong>.
+            </p>
+            {signedIn ? (
+              <p>
+                You&apos;re signed in as{' '}
+                <strong className="text-zinc-900 dark:text-zinc-50">{name ?? 'Personal'}</strong>.
+                Return to the extension panel — it should connect within a few seconds.
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => openInExtensionBrowserTab(connectUrl)}>
+                Open in browser tab
+              </Button>
+            </div>
+          </AppPanelBody>
+        </AppPanel>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {fromExtension ? (
+        <AppPanel>
+          <AppPanelHeader title="Extension connection" />
+          <AppPanelBody className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+            {signedIn ? (
+              <>
+                <p className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+                  You&apos;re signed in — the extension can use this session.
+                </p>
+                <p>
+                  Return to the extension panel (Chrome side panel or Safari toolbar popup). It should
+                  connect automatically within a few seconds. If not, click{' '}
+                  <strong className="text-zinc-800 dark:text-zinc-200">Reload panel</strong>.
+                </p>
+                <p>
+                  Active workspace:{' '}
+                  <strong className="text-zinc-900 dark:text-zinc-50">{name ?? 'Personal'}</strong>
+                  {workspaceId ? (
+                    <>
+                      {' '}
+                      (<code className={mono}>{workspaceId}</code>)
+                    </>
+                  ) : null}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-base font-medium text-zinc-900 dark:text-zinc-50">
+                  Sign in to connect the extension
+                </p>
+                <p>
+                  You opened this page from the browser extension. Sign in below (Google or email) —
+                  after auth you&apos;ll land back here, then return to the extension panel.
+                </p>
+                {error ? <p className="text-red-600">{error}</p> : null}
+                <Button asChild>
+                  <a href={signInUrl}>Continue to sign in</a>
+                </Button>
+              </>
+            )}
+          </AppPanelBody>
+        </AppPanel>
+      ) : null}
+
+      <AppPanel>
+        <AppPanelHeader title="Checklist" />
+        <AppPanelBody className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+          <ul className="list-disc space-y-2 pl-5">
+            <li>Sign in to Aproko in a normal browser tab (same profile as the extension).</li>
+            <li>
+              <strong>Chrome / Edge:</strong> load unpacked from{' '}
+              <code className={mono}>apps/extension/extension</code>, then reload after updates.
+            </li>
+            <li>
+              <strong>Safari:</strong> sync with{' '}
+              <code className={mono}>pnpm --filter @aproko/extension sync:safari</code>, then follow{' '}
+              <code className={mono}>apps/extension/safari/README.md</code>.
+            </li>
+            <li>
+              Panel Settings → Web app URL = <code className={mono}>{origin}</code>.
+            </li>
+            <li>
+              After sign-in on this page, a short-lived session token is passed to the extension
+              automatically. Return to the panel and click <strong>Reload panel</strong> if needed.
+            </li>
+            <li>
+              The embedded panel cannot read Clerk cookies directly — the handoff token bridges that
+              gap.
+            </li>
+            <li>
+              Capture with <kbd className={mono}>Ctrl/Cmd+Shift+Y</kbd>, then ask in the embedded
+              panel.
+            </li>
+          </ul>
+          {!fromExtension && error ? <p className="text-red-600">{error}</p> : null}
+          {!fromExtension ? (
+            <p>
+              Active workspace:{' '}
+              <strong className="text-zinc-900 dark:text-zinc-50">
+                {isLoading ? 'Loading…' : (name ?? 'Unknown')}
+              </strong>
+              {workspaceId ? (
+                <>
+                  {' '}
+                  (<code className={mono}>{workspaceId}</code>)
+                </>
+              ) : null}
+            </p>
+          ) : null}
+          <Button asChild variant={fromExtension && signedIn ? 'default' : 'outline'} size="sm">
+            <a href="/extension/live">Open live context dashboard</a>
+          </Button>
+        </AppPanelBody>
+      </AppPanel>
+    </div>
+  );
+}
 
 function ExtensionConnectContent() {
   const searchParams = useSearchParams();
   const fromExtension = searchParams.get('from') === 'extension';
   const { workspaceId, name, isLoading, error } = useWorkspace();
   const [origin, setOrigin] = useState('http://localhost:3000');
+  const [inExtensionFrame, setInExtensionFrame] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    setInExtensionFrame(isExtensionEmbedFrame());
   }, []);
 
   const signedIn = Boolean(workspaceId) && !isLoading;
@@ -61,108 +220,28 @@ function ExtensionConnectContent() {
     };
   }, [fromExtension, signedIn]);
 
+  const panels = (
+    <ExtensionConnectPanels
+      fromExtension={fromExtension}
+      origin={origin}
+      signedIn={signedIn}
+      isLoading={isLoading}
+      name={name}
+      workspaceId={workspaceId}
+      error={error}
+      inExtensionFrame={inExtensionFrame}
+    />
+  );
+
+  if (inExtensionFrame) {
+    return (
+      <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">{panels}</div>
+    );
+  }
+
   return (
     <AppPageShell pageId="extensionConnect">
-      <AppPageFrame>
-        <div className="space-y-6">
-          {fromExtension ? (
-            <AppPanel>
-              <AppPanelHeader title="Extension connection" />
-              <AppPanelBody className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
-                {signedIn ? (
-                  <>
-                    <p className="text-base font-medium text-zinc-900 dark:text-zinc-50">
-                      You&apos;re signed in — the extension can use this session.
-                    </p>
-                    <p>
-                      Return to the extension panel (Chrome side panel or Safari toolbar popup). It
-                      should connect automatically within a few seconds. If not, click{' '}
-                      <strong className="text-zinc-800 dark:text-zinc-200">Reload panel</strong>.
-                    </p>
-                    <p>
-                      Active workspace:{' '}
-                      <strong className="text-zinc-900 dark:text-zinc-50">{name ?? 'Personal'}</strong>
-                      {workspaceId ? (
-                        <>
-                          {' '}
-                          (<code className={mono}>{workspaceId}</code>)
-                        </>
-                      ) : null}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-base font-medium text-zinc-900 dark:text-zinc-50">
-                      Sign in to connect the extension
-                    </p>
-                    <p>
-                      You opened this page from the browser extension. Sign in below (Google or email)
-                      — after auth you&apos;ll land back here, then return to the extension panel.
-                    </p>
-                    {error ? <p className="text-red-600">{error}</p> : null}
-                    <Button asChild>
-                      <a href={`/sign-in?redirect_url=${encodeURIComponent('/extension/connect?from=extension')}`}>
-                        Continue to sign in
-                      </a>
-                    </Button>
-                  </>
-                )}
-              </AppPanelBody>
-            </AppPanel>
-          ) : null}
-
-          <AppPanel>
-            <AppPanelHeader title="Checklist" />
-            <AppPanelBody className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
-              <ul className="list-disc space-y-2 pl-5">
-                <li>Sign in to Aproko in a normal browser tab (same profile as the extension).</li>
-                <li>
-                  <strong>Chrome / Edge:</strong> load unpacked from{' '}
-                  <code className={mono}>apps/extension/extension</code>, then reload after updates.
-                </li>
-                <li>
-                  <strong>Safari:</strong> sync with{' '}
-                  <code className={mono}>pnpm --filter @aproko/extension sync:safari</code>, then
-                  follow <code className={mono}>apps/extension/safari/README.md</code>.
-                </li>
-                <li>
-                  Panel Settings → Web app URL = <code className={mono}>{origin}</code>.
-                </li>
-                <li>
-                  After sign-in on this page, a short-lived session token is passed to the extension
-                  automatically. Return to the panel and click <strong>Reload panel</strong> if needed.
-                </li>
-                <li>
-                  The embedded panel cannot read Clerk cookies directly — the handoff token bridges
-                  that gap.
-                </li>
-                <li>
-                  Capture with <kbd className={mono}>Ctrl/Cmd+Shift+Y</kbd>, then ask in the embedded
-                  panel.
-                </li>
-              </ul>
-              {!fromExtension && error ? <p className="text-red-600">{error}</p> : null}
-              {!fromExtension ? (
-                <p>
-                  Active workspace:{' '}
-                  <strong className="text-zinc-900 dark:text-zinc-50">
-                    {isLoading ? 'Loading…' : (name ?? 'Unknown')}
-                  </strong>
-                  {workspaceId ? (
-                    <>
-                      {' '}
-                      (<code className={mono}>{workspaceId}</code>)
-                    </>
-                  ) : null}
-                </p>
-              ) : null}
-              <Button asChild variant={fromExtension && signedIn ? 'default' : 'outline'} size="sm">
-                <a href="/extension/live">Open live context dashboard</a>
-              </Button>
-            </AppPanelBody>
-          </AppPanel>
-        </div>
-      </AppPageFrame>
+      <AppPageFrame>{panels}</AppPageFrame>
     </AppPageShell>
   );
 }

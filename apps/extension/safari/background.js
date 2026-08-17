@@ -1,4 +1,21 @@
-const DEFAULT_WEB_APP_URL = 'http://localhost:3000';
+const DEFAULT_WEB_APP_URL = 'https://aprokoai.vercel.app';
+
+function normalizeWebAppUrl(url) {
+  let value = String(url || DEFAULT_WEB_APP_URL).trim().replace(/\/$/, '');
+  if (!value) {
+    value = DEFAULT_WEB_APP_URL;
+  }
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value)) {
+    return value.replace(/\/$/, '');
+  }
+  if (value.startsWith('http://')) {
+    value = `https://${value.slice('http://'.length)}`;
+  }
+  if (!/^https?:\/\//i.test(value)) {
+    value = `https://${value}`;
+  }
+  return value.replace(/\/$/, '');
+}
 
 function isRestrictedTabUrl(url) {
   if (!url) {
@@ -14,7 +31,7 @@ async function getSettings() {
     webAppUrl: DEFAULT_WEB_APP_URL,
   });
   return {
-    webAppUrl: String(stored.webAppUrl || DEFAULT_WEB_APP_URL).replace(/\/$/, ''),
+    webAppUrl: normalizeWebAppUrl(stored.webAppUrl || DEFAULT_WEB_APP_URL),
   };
 }
 
@@ -52,7 +69,7 @@ async function fetchWebAppJson(path, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: auth?.token ? 'omit' : 'include',
+    credentials: 'include',
     cache: 'no-store',
   });
   const json = await response.json().catch(() => null);
@@ -254,7 +271,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           const solveRes = await fetch(solveUrl, {
             method: 'POST',
-            credentials: auth?.token ? 'omit' : 'include',
+            credentials: 'include',
             headers: solveHeaders,
             body,
           });
@@ -316,6 +333,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           error: error instanceof Error ? error.message : 'Auth failed',
         }),
       );
+    return true;
+  }
+
+  if (message?.type === 'APROKO_PROXY_LIVE_CONTEXT_CHAT') {
+    void (async () => {
+      try {
+        const workspaceId = message.workspaceId;
+        if (!workspaceId) {
+          throw new Error('Missing workspace');
+        }
+
+        const { response } = await fetchWebAppJson(
+          `/api/v1/workspaces/${workspaceId}/live-context/chat`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(message.body ?? {}),
+          },
+        );
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          sendResponse({
+            ok: false,
+            error: payload?.error || `Ask failed (${response.status})`,
+          });
+          return;
+        }
+
+        const sse = await response.text();
+        sendResponse({ ok: true, sse });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Ask failed',
+        });
+      }
+    })();
     return true;
   }
 
