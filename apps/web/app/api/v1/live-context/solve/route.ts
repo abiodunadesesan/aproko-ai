@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import {
-  liveContextPreflightResponse,
-  withLiveContextCors,
-} from '@/lib/live-context/cors';
+import { liveContextPreflightResponse, withLiveContextCors } from '@/lib/live-context/cors';
 import { handleLiveContextSolveRequest } from '@/lib/live-context/solve-route';
 import { resolveWorkspaceForUser } from '@/lib/storage/workspaces';
-
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 /**
  * Extension-friendly solve endpoint: resolves the caller's workspace server-side
@@ -28,9 +22,7 @@ export async function POST(request: Request) {
 
   const workspace = await resolveWorkspaceForUser(userId);
   if (!workspace?.workspaceId) {
-    return respond(
-      NextResponse.json({ error: 'Failed to resolve workspace' }, { status: 500 }),
-    );
+    return respond(NextResponse.json({ error: 'Failed to resolve workspace' }, { status: 500 }));
   }
 
   return handleLiveContextSolveRequest({

@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import {
-  liveContextPreflightResponse,
-  withLiveContextCors,
-} from '@/lib/live-context/cors';
+import { liveContextPreflightResponse, withLiveContextCors } from '@/lib/live-context/cors';
 import { handleLiveContextSolveRequest } from '@/lib/live-context/solve-route';
-
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 type RouteContext = { params: Promise<{ workspaceId: string }> };
 
