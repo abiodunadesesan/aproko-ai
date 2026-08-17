@@ -40,7 +40,7 @@ async function storeHandoff(auth) {
     return;
   }
 
-  await chrome.storage.session.set({
+  const payload = {
     extensionHandoff: {
       token: auth.token,
       workspaceId: auth.workspaceId,
@@ -48,13 +48,20 @@ async function storeHandoff(auth) {
       role: auth.role ?? null,
       storedAt: Date.now(),
     },
-  });
+  };
+
+  await chrome.storage.session.set(payload);
+  await chrome.storage.local.set(payload);
   chrome.runtime.sendMessage({ type: 'APROKO_EXTENSION_AUTH_UPDATED' }).catch(() => {});
 }
 
 async function getExtensionAuth() {
-  const stored = await chrome.storage.session.get(['extensionHandoff']);
-  return stored.extensionHandoff || null;
+  const sessionStored = await chrome.storage.session.get(['extensionHandoff']);
+  if (sessionStored.extensionHandoff?.token) {
+    return sessionStored.extensionHandoff;
+  }
+  const localStored = await chrome.storage.local.get(['extensionHandoff']);
+  return localStored.extensionHandoff || null;
 }
 
 async function fetchWebApp(path, options = {}, authOverride = null) {
@@ -363,7 +370,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         const { response } = await fetchWebApp(
-          `/api/v1/workspaces/${workspaceId}/live-context/chat`,
+          '/api/v1/extension/live-context/chat',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

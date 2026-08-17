@@ -47,49 +47,45 @@ function panelUrl(base) {
   return `${normalizeWebAppUrl(base)}/extension/live?embed=1`;
 }
 
-function postContextToFrame(context) {
-  if (!context || !appFrame?.contentWindow) {
-    return;
-  }
-  appFrame.contentWindow.postMessage(
-    {
-      type: 'APROKO_LIVE_CONTEXT',
-      payload: context,
-    },
-    iframeTargetOrigin(),
-  );
-}
-
-function postHoverToFrame(message) {
+function postMessageToFrame(message) {
   if (!appFrame?.contentWindow) {
     return;
   }
-  appFrame.contentWindow.postMessage(
-    {
-      type: 'APROKO_HOVER_UPDATED',
-      hover: message.hover,
-      activeHoverContext: message.activeHoverContext || '',
-    },
-    iframeTargetOrigin(),
-  );
+  const targetOrigin = iframeTargetOrigin();
+  appFrame.contentWindow.postMessage(message, targetOrigin || '*');
+}
+
+function postContextToFrame(context) {
+  if (!context) {
+    return;
+  }
+  postMessageToFrame({
+    type: 'APROKO_LIVE_CONTEXT',
+    payload: context,
+  });
+}
+
+function postHoverToFrame(message) {
+  postMessageToFrame({
+    type: 'APROKO_HOVER_UPDATED',
+    hover: message.hover,
+    activeHoverContext: message.activeHoverContext || '',
+  });
 }
 
 function postAuthToFrame(auth) {
-  if (!auth?.token || !appFrame?.contentWindow) {
+  if (!auth?.token) {
     return;
   }
-  appFrame.contentWindow.postMessage(
-    {
-      type: 'APROKO_EXTENSION_AUTH',
-      auth: {
-        token: auth.token,
-        workspaceId: auth.workspaceId,
-        name: auth.name ?? null,
-        role: auth.role ?? null,
-      },
+  postMessageToFrame({
+    type: 'APROKO_EXTENSION_AUTH',
+    auth: {
+      token: auth.token,
+      workspaceId: auth.workspaceId,
+      name: auth.name ?? null,
+      role: auth.role ?? null,
     },
-    iframeTargetOrigin(),
-  );
+  });
 }
 
 async function pushExtensionAuth() {
@@ -137,11 +133,6 @@ window.addEventListener('message', (event) => {
     return;
   }
 
-  const frameOrigin = iframeTargetOrigin();
-  if (frameOrigin && event.origin !== frameOrigin) {
-    return;
-  }
-
   if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
     void pushExtensionAuth();
     return;
@@ -159,28 +150,22 @@ window.addEventListener('message', (event) => {
       },
       (response) => {
         if (chrome.runtime.lastError) {
-          appFrame.contentWindow?.postMessage(
-            {
-              type: 'APROKO_EMBED_ASK_RESULT',
-              requestId: event.data.requestId,
-              ok: false,
-              error: chrome.runtime.lastError.message,
-            },
-            iframeTargetOrigin(),
-          );
+          postMessageToFrame({
+            type: 'APROKO_EMBED_ASK_RESULT',
+            requestId: event.data.requestId,
+            ok: false,
+            error: chrome.runtime.lastError.message,
+          });
           return;
         }
 
-        appFrame.contentWindow?.postMessage(
-          {
-            type: 'APROKO_EMBED_ASK_RESULT',
-            requestId: event.data.requestId,
-            ok: Boolean(response?.ok),
-            sse: response?.sse,
-            error: response?.error,
-          },
-          iframeTargetOrigin(),
-        );
+        postMessageToFrame({
+          type: 'APROKO_EMBED_ASK_RESULT',
+          requestId: event.data.requestId,
+          ok: Boolean(response?.ok),
+          sse: response?.sse,
+          error: response?.error,
+        });
       },
     );
   }

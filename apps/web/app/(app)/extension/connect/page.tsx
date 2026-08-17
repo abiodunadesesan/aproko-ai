@@ -208,6 +208,7 @@ function ExtensionConnectContent() {
         document.documentElement.dataset.aprokoExtensionWorkspaceId = payload.data.workspaceId;
         document.documentElement.dataset.aprokoExtensionWorkspaceName = payload.data.name ?? '';
         document.documentElement.dataset.aprokoExtensionRole = payload.data.role ?? '';
+        window.postMessage({ type: 'APROKO_HANDOFF_READY' }, window.location.origin);
       } catch {
         // Extension content script retries while this page stays open.
       }

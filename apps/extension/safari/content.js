@@ -651,4 +651,26 @@ function bridgeExtensionHandoffFromConnectPage() {
   }, 500);
 }
 
+window.addEventListener('message', (event) => {
+  if (event.source !== window || event.origin !== location.origin) {
+    return;
+  }
+  if (event.data?.type !== 'APROKO_HANDOFF_READY') {
+    return;
+  }
+
+  const token = document.documentElement.dataset.aprokoExtensionHandoff;
+  if (!token) {
+    return;
+  }
+
+  chrome.runtime.sendMessage({
+    type: 'APROKO_STORE_HANDOFF',
+    token,
+    workspaceId: document.documentElement.dataset.aprokoExtensionWorkspaceId || '',
+    name: document.documentElement.dataset.aprokoExtensionWorkspaceName || null,
+    role: document.documentElement.dataset.aprokoExtensionRole || null,
+  });
+});
+
 bridgeExtensionHandoffFromConnectPage();

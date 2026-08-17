@@ -19,10 +19,16 @@ import {
 } from '@/lib/live-context/sse-client';
 import { cn } from '@/lib/utils';
 import {
+  EXTENSION_LIVE_CONTEXT_CHAT_PATH,
+  extensionAuthHeaders,
+  fetchExtensionSession,
+  workspaceLiveContextChatPath,
+} from '@/lib/extension/embed-api';
+import {
   fetchLiveContextChatViaExtensionProxy,
   shouldProxyLiveContextChatThroughExtension,
 } from '@/lib/extension/embed-ask';
-import { isExtensionEmbedFrame, openInExtensionBrowserTab } from '@/lib/extension/embed-frame';
+import { openInExtensionBrowserTab } from '@/lib/extension/embed-frame';
 
 const mono = 'rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] dark:bg-zinc-800';
 
@@ -216,6 +222,10 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   const [lines, setLines] = useState<ChatLine[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authValidated, setAuthValidated] = useState(false);
+
+  const visibleWorkspaceError =
+    workspaceError && !extensionAuth?.workspaceId && !authValidated ? workspaceError : null;
 
   useEffect(() => {
     setWebAppUrl(window.location.origin);
@@ -228,7 +238,36 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     if (!embed || !extensionAuth?.token) {
       return;
     }
+
     setError(null);
+    let cancelled = false;
+
+    void fetchExtensionSession(extensionAuth.token).then((session) => {
+      if (cancelled) {
+        return;
+      }
+      if (!session) {
+        setAuthValidated(false);
+        setError('Session expired. Open the connect checklist in a browser tab, then reload the panel.');
+        return;
+      }
+
+      setAuthValidated(true);
+      setExtensionAuth((current) =>
+        current
+          ? {
+              ...current,
+              workspaceId: session.workspaceId,
+              name: session.name,
+              role: session.role,
+            }
+          : current,
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [embed, extensionAuth?.token]);
 
   useEffect(() => {
@@ -342,12 +381,15 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     };
 
     try {
-      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (extensionAuth?.token) {
-        authHeaders.Authorization = `Bearer ext.${extensionAuth.token}`;
-      }
+      const authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...extensionAuthHeaders(extensionAuth?.token),
+      };
 
-      const chatUrl = `/api/v1/workspaces/${activeWorkspaceId}/live-context/chat`;
+      const chatUrl = embed
+        ? EXTENSION_LIVE_CONTEXT_CHAT_PATH
+        : workspaceLiveContextChatPath(activeWorkspaceId);
+
       let response = await fetch(chatUrl, {
         method: 'POST',
         credentials: 'include',
@@ -484,8 +526,8 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       <AppPanel>
         <AppPanelHeader title="Ask about this page" />
         <AppPanelBody className="space-y-4">
-          {(workspaceError || error) && (
-            <p className="text-sm text-red-600">{workspaceError ?? error}</p>
+          {(visibleWorkspaceError || error) && (
+            <p className="text-sm text-red-600">{visibleWorkspaceError ?? error}</p>
           )}
           <div className="space-y-3">
             {lines.map((line, index) => (
@@ -529,7 +571,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   );
 
   if (embed) {
-    const needsSignIn = !isLoading && !activeWorkspaceId;
+    const needsSignIn = !isLoading && !activeWorkspaceId && !extensionAuth?.token;
 
     return (
       <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">
