@@ -347,14 +347,25 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
         authHeaders.Authorization = `Bearer ext.${extensionAuth.token}`;
       }
 
-      const response = shouldProxyLiveContextChatThroughExtension(embed)
-        ? await fetchLiveContextChatViaExtensionProxy(activeWorkspaceId, requestBody)
-        : await fetch(`/api/v1/workspaces/${activeWorkspaceId}/live-context/chat`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: authHeaders,
-            body: JSON.stringify(requestBody),
-          });
+      const chatUrl = `/api/v1/workspaces/${activeWorkspaceId}/live-context/chat`;
+      let response = await fetch(chatUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: authHeaders,
+        body: JSON.stringify(requestBody),
+      });
+
+      if (
+        !response.ok &&
+        response.status === 401 &&
+        shouldProxyLiveContextChatThroughExtension(embed)
+      ) {
+        response = await fetchLiveContextChatViaExtensionProxy(activeWorkspaceId, requestBody, {
+          token: extensionAuth?.token ?? null,
+          name: extensionAuth?.name ?? null,
+          role: extensionAuth?.role ?? null,
+        });
+      }
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);

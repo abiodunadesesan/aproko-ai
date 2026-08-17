@@ -19,10 +19,17 @@ export type LiveContextChatRequestBody = {
   userQuery: string;
 };
 
+export type ExtensionEmbedAuth = {
+  token?: string | null;
+  name?: string | null;
+  role?: string | null;
+};
+
 /** Proxy live-context chat through the extension background (handoff token + cookies). */
 export function fetchLiveContextChatViaExtensionProxy(
   workspaceId: string,
   body: LiveContextChatRequestBody,
+  auth?: ExtensionEmbedAuth,
 ): Promise<Response> {
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID();
@@ -62,6 +69,9 @@ export function fetchLiveContextChatViaExtensionProxy(
         requestId,
         workspaceId,
         body,
+        token: auth?.token ?? null,
+        workspaceName: auth?.name ?? null,
+        workspaceRole: auth?.role ?? null,
       },
       '*',
     );

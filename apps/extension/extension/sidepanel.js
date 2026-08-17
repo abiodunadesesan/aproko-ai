@@ -153,6 +153,9 @@ window.addEventListener('message', (event) => {
         type: 'APROKO_PROXY_LIVE_CONTEXT_CHAT',
         workspaceId: event.data.workspaceId,
         body: event.data.body,
+        token: event.data.token ?? null,
+        workspaceName: event.data.workspaceName ?? null,
+        workspaceRole: event.data.workspaceRole ?? null,
       },
       (response) => {
         if (chrome.runtime.lastError) {

@@ -57,9 +57,9 @@ async function getExtensionAuth() {
   return stored.extensionHandoff || null;
 }
 
-async function fetchWebAppJson(path, options = {}) {
+async function fetchWebApp(path, options = {}, authOverride = null) {
   const settings = await getSettings();
-  const auth = await getExtensionAuth();
+  const auth = authOverride || (await getExtensionAuth());
   const url = `${settings.webAppUrl}${path}`;
   const headers = { ...(options.headers || {}) };
   if (auth?.token) {
@@ -72,6 +72,11 @@ async function fetchWebAppJson(path, options = {}) {
     credentials: 'include',
     cache: 'no-store',
   });
+  return { response, auth };
+}
+
+async function fetchWebAppJson(path, options = {}, authOverride = null) {
+  const { response, auth } = await fetchWebApp(path, options, authOverride);
   const json = await response.json().catch(() => null);
   return { response, json, auth };
 }
@@ -344,20 +349,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           throw new Error('Missing workspace');
         }
 
-        const { response } = await fetchWebAppJson(
+        const authOverride = message.token
+          ? {
+              token: message.token,
+              workspaceId,
+              name: message.workspaceName ?? null,
+              role: message.workspaceRole ?? null,
+            }
+          : null;
+
+        if (authOverride?.token) {
+          await storeHandoff(authOverride);
+        }
+
+        const { response } = await fetchWebApp(
           `/api/v1/workspaces/${workspaceId}/live-context/chat`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(message.body ?? {}),
           },
+          authOverride,
         );
 
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
           sendResponse({
             ok: false,
-            error: payload?.error || `Ask failed (${response.status})`,
+            error:
+              payload?.error ||
+              (response.status === 401
+                ? 'Session expired. Open the connect checklist in a browser tab, then reload the panel.'
+                : `Ask failed (${response.status})`),
           });
           return;
         }
