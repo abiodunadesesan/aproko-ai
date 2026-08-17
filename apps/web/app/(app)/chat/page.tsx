@@ -42,7 +42,6 @@ import {
   listChatModels,
   type ChatModel,
 } from '@/lib/ai/chat-models';
-import { cn } from '@/lib/utils';
 
 function lastSessionStorageKey(workspaceId: string) {
   return `aproko.chat.last-session.${workspaceId}`;

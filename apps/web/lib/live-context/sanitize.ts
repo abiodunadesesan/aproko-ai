@@ -151,7 +151,7 @@ function isPageChromeLine(line: string): boolean {
 
 function scoreContentLine(line: string): number {
   let score = Math.min(line.length, 160) / 20;
-  if (/\?$/.test(line) || /^\d+[\).:]/.test(line)) {
+  if (/\?$/.test(line) || /^\d+[).:]/.test(line)) {
     score += 8;
   }
   if (/\b(quiz|question|characteristic|organism|definition|explain|choose|select)\b/i.test(line)) {
@@ -218,7 +218,7 @@ export function summarizePageSnapshot(
 
   const topicBits = highlights
     .slice(0, 3)
-    .map((item) => item.replace(/^\d+[\).:]\s*/, '').trim())
+    .map((item) => item.replace(/^\d+[).:]\s*/, '').trim())
     .filter((item) => item.toLowerCase() !== lead.toLowerCase());
 
   let summary: string;
