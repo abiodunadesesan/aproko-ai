@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { liveContextPreflightResponse, withLiveContextCors } from '@/lib/live-context/cors';
+import { resolveExtensionRequestAuth } from '@/lib/extension/request-auth';
 import { handleLiveContextSolveRequest } from '@/lib/live-context/solve-route';
 import { resolveWorkspaceForUser } from '@/lib/storage/workspaces';
 
@@ -15,12 +15,20 @@ export async function OPTIONS(request: Request) {
 export async function POST(request: Request) {
   const respond = (response: Response) => withLiveContextCors(response, request);
 
-  const { userId } = await auth();
+  const resolved = await resolveExtensionRequestAuth(request);
+  const userId = resolved?.userId ?? null;
   if (!userId) {
     return respond(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
-  const workspace = await resolveWorkspaceForUser(userId);
+  const workspace =
+    resolved?.source === 'extension-handoff' && resolved.handoff
+      ? {
+          workspaceId: resolved.handoff.workspaceId,
+          name: resolved.handoff.workspaceName,
+          role: resolved.handoff.role,
+        }
+      : await resolveWorkspaceForUser(userId);
   if (!workspace?.workspaceId) {
     return respond(NextResponse.json({ error: 'Failed to resolve workspace' }, { status: 500 }));
   }

@@ -46,6 +46,31 @@ function postHoverToFrame(message) {
   );
 }
 
+function postAuthToFrame(auth) {
+  if (!auth?.token || !appFrame?.contentWindow) {
+    return;
+  }
+  appFrame.contentWindow.postMessage(
+    {
+      type: 'APROKO_EXTENSION_AUTH',
+      auth: {
+        token: auth.token,
+        workspaceId: auth.workspaceId,
+        name: auth.name ?? null,
+        role: auth.role ?? null,
+      },
+    },
+    webAppUrl,
+  );
+}
+
+async function pushExtensionAuth() {
+  const response = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
+  if (response?.ok && response.auth?.token) {
+    postAuthToFrame(response.auth);
+  }
+}
+
 async function loadSettings() {
   const stored = await chrome.storage.sync.get({ webAppUrl: DEFAULT_WEB_APP_URL });
   webAppUrl = String(stored.webAppUrl || DEFAULT_WEB_APP_URL).replace(/\/$/, '');
@@ -71,8 +96,20 @@ async function loadStoredContext() {
 
 appFrame.addEventListener('load', () => {
   chrome.runtime.sendMessage({ type: 'APROKO_CLEAR_BADGE' });
-  if (lastContext) {
-    setTimeout(() => postContextToFrame(lastContext), 250);
+  setTimeout(() => {
+    void pushExtensionAuth();
+    if (lastContext) {
+      postContextToFrame(lastContext);
+    }
+  }, 250);
+});
+
+window.addEventListener('message', (event) => {
+  if (event.source !== appFrame?.contentWindow) {
+    return;
+  }
+  if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
+    void pushExtensionAuth();
   }
 });
 
@@ -106,6 +143,9 @@ chrome.runtime.onMessage.addListener((message) => {
     lastContext = message.context;
     postContextToFrame(message.context);
     setStatus('Captured — ask in the panel below');
+  }
+  if (message?.type === 'APROKO_EXTENSION_AUTH_UPDATED') {
+    void pushExtensionAuth();
   }
   if (message?.type === 'APROKO_HOVER_FANOUT' || message?.type === 'APROKO_HOVER_UPDATED') {
     postHoverToFrame(message);

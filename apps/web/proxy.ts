@@ -57,6 +57,11 @@ export default clerkMiddleware(
     if (isProtectedApi(req)) {
       const { userId } = await auth();
       if (!userId) {
+        const authHeader = req.headers.get('Authorization')?.trim();
+        if (authHeader?.startsWith('Bearer ext.')) {
+          // Route handlers validate extension handoff tokens.
+          return;
+        }
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       return;

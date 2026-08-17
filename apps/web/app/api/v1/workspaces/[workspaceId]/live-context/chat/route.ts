@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import type { ChatModel } from '@/lib/ai/chat-models';
 import { enforceRateLimit, rateLimitPolicies } from '@/lib/api/rate-limit';
 import { forbidUnlessWorkspaceMember } from '@/lib/api/workspace-access';
@@ -23,8 +22,9 @@ import {
 } from '@/lib/live-context/sanitize';
 import { trackServerEvent } from '@/lib/observability/server';
 import type { ChatGenerationStream } from '@/lib/ai/chat-generation';
+import { resolveExtensionRequestAuth } from '@/lib/extension/request-auth';
 
-type AuthDependency = () => Promise<{ userId: string | null }>;
+type AuthDependency = (request: Request) => Promise<{ userId: string | null }>;
 
 type LiveContextChatDependencies = {
   auth: AuthDependency;
@@ -120,7 +120,7 @@ export function createLiveContextChatRouteHandlers(deps: LiveContextChatDependen
     POST: async (request: Request, context: RouteContext) => {
       const respond = (response: Response) => withLiveContextCors(response, request);
 
-      const { userId } = await deps.auth();
+      const { userId } = await deps.auth(request);
       if (!userId) {
         return respond(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
       }
@@ -212,9 +212,9 @@ export function createLiveContextChatRouteHandlers(deps: LiveContextChatDependen
 }
 
 export const { OPTIONS, POST } = createLiveContextChatRouteHandlers({
-  auth: async () => {
-    const { userId } = await auth();
-    return { userId };
+  auth: async (request) => {
+    const resolved = await resolveExtensionRequestAuth(request);
+    return { userId: resolved?.userId ?? null };
   },
   streamLiveContextGeneration,
 });

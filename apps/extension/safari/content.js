@@ -598,3 +598,57 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
   }
 });
+
+function bridgeExtensionHandoffFromConnectPage() {
+  if (!location.pathname.includes('/extension/connect')) {
+    return;
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('from') !== 'extension') {
+    return;
+  }
+
+  function publishHandoff() {
+    const token = document.documentElement.dataset.aprokoExtensionHandoff;
+    if (!token) {
+      return false;
+    }
+
+    chrome.runtime.sendMessage({
+      type: 'APROKO_STORE_HANDOFF',
+      token,
+      workspaceId: document.documentElement.dataset.aprokoExtensionWorkspaceId || '',
+      name: document.documentElement.dataset.aprokoExtensionWorkspaceName || null,
+      role: document.documentElement.dataset.aprokoExtensionRole || null,
+    });
+    return true;
+  }
+
+  if (publishHandoff()) {
+    return;
+  }
+
+  const observer = new MutationObserver(() => {
+    if (publishHandoff()) {
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: [
+      'data-aproko-extension-handoff',
+      'data-aproko-extension-workspace-id',
+    ],
+  });
+
+  let attempts = 0;
+  const timer = window.setInterval(() => {
+    if (publishHandoff() || ++attempts >= 30) {
+      window.clearInterval(timer);
+      observer.disconnect();
+    }
+  }, 500);
+}
+
+bridgeExtensionHandoffFromConnectPage();

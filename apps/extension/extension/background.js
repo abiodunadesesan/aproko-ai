@@ -18,6 +18,47 @@ async function getSettings() {
   };
 }
 
+async function storeHandoff(auth) {
+  if (!auth?.token || !auth?.workspaceId) {
+    return;
+  }
+
+  await chrome.storage.session.set({
+    extensionHandoff: {
+      token: auth.token,
+      workspaceId: auth.workspaceId,
+      name: auth.name ?? null,
+      role: auth.role ?? null,
+      storedAt: Date.now(),
+    },
+  });
+  chrome.runtime.sendMessage({ type: 'APROKO_EXTENSION_AUTH_UPDATED' }).catch(() => {});
+}
+
+async function getExtensionAuth() {
+  const stored = await chrome.storage.session.get(['extensionHandoff']);
+  return stored.extensionHandoff || null;
+}
+
+async function fetchWebAppJson(path, options = {}) {
+  const settings = await getSettings();
+  const auth = await getExtensionAuth();
+  const url = `${settings.webAppUrl}${path}`;
+  const headers = { ...(options.headers || {}) };
+  if (auth?.token) {
+    headers.Authorization = `Bearer ext.${auth.token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: auth?.token ? 'omit' : 'include',
+    cache: 'no-store',
+  });
+  const json = await response.json().catch(() => null);
+  return { response, json, auth };
+}
+
 async function captureActiveTabContext() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
@@ -170,18 +211,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const settings = await getSettings();
         const webAppUrl = settings.webAppUrl;
-        // Prefer flat extension path (resolves workspace server-side).
-        // Keep workspace-scoped path as fallback for older web deploys.
         const solveUrls = [
           `${webAppUrl}/api/v1/live-context/solve`,
           null,
         ];
 
-        const workspaceRes = await fetch(`${webAppUrl}/api/v1/workspaces/current`, {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        const workspacePayload = await workspaceRes.json().catch(() => null);
+        const { response: workspaceRes, json: workspacePayload, auth } = await fetchWebAppJson(
+          '/api/v1/workspaces/current',
+        );
         if (!workspaceRes.ok || !workspacePayload?.data?.workspaceId) {
           throw new Error(
             workspacePayload?.error ||
@@ -189,7 +226,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           );
         }
 
-        const workspaceId = workspacePayload.data.workspaceId;
+        const workspaceId = auth?.workspaceId || workspacePayload.data.workspaceId;
         solveUrls[1] = `${webAppUrl}/api/v1/workspaces/${workspaceId}/live-context/solve`;
 
         const context = message.context || {};
@@ -206,14 +243,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
 
         let lastError = 'Solve failed';
+        const solveHeaders = { 'Content-Type': 'application/json' };
+        if (auth?.token) {
+          solveHeaders.Authorization = `Bearer ext.${auth.token}`;
+        }
+
         for (const solveUrl of solveUrls) {
           if (!solveUrl) {
             continue;
           }
           const solveRes = await fetch(solveUrl, {
             method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: auth?.token ? 'omit' : 'include',
+            headers: solveHeaders,
             body,
           });
           const solvePayload = await solveRes.json().catch(() => null);
@@ -257,6 +299,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'APROKO_CLEAR_BADGE') {
     void setCaptureBadge('');
     sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message?.type === 'APROKO_STORE_HANDOFF') {
+    void storeHandoff(message).then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
+  if (message?.type === 'APROKO_GET_EXTENSION_AUTH') {
+    getExtensionAuth()
+      .then((auth) => sendResponse({ ok: true, auth }))
+      .catch((error) =>
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Auth failed',
+        }),
+      );
     return true;
   }
 

@@ -27,6 +27,40 @@ function ExtensionConnectContent() {
 
   const signedIn = Boolean(workspaceId) && !isLoading;
 
+  useEffect(() => {
+    if (!fromExtension || !signedIn) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function mintHandoffToken() {
+      try {
+        const response = await fetch('/api/v1/extension/handoff', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        const payload = await response.json().catch(() => null);
+        if (cancelled || !response.ok || !payload?.data?.token) {
+          return;
+        }
+
+        document.documentElement.dataset.aprokoExtensionHandoff = payload.data.token;
+        document.documentElement.dataset.aprokoExtensionWorkspaceId = payload.data.workspaceId;
+        document.documentElement.dataset.aprokoExtensionWorkspaceName = payload.data.name ?? '';
+        document.documentElement.dataset.aprokoExtensionRole = payload.data.role ?? '';
+      } catch {
+        // Extension content script retries while this page stays open.
+      }
+    }
+
+    void mintHandoffToken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fromExtension, signedIn]);
+
   return (
     <AppPageShell pageId="extensionConnect">
       <AppPageFrame>
@@ -95,8 +129,12 @@ function ExtensionConnectContent() {
                   Panel Settings → Web app URL = <code className={mono}>{origin}</code>.
                 </li>
                 <li>
-                  The panel embeds this signed-in app (cookies work there). Extension-only fetch
-                  cannot see Clerk cookies.
+                  After sign-in on this page, a short-lived session token is passed to the extension
+                  automatically. Return to the panel and click <strong>Reload panel</strong> if needed.
+                </li>
+                <li>
+                  The embedded panel cannot read Clerk cookies directly — the handoff token bridges
+                  that gap.
                 </li>
                 <li>
                   Capture with <kbd className={mono}>Ctrl/Cmd+Shift+Y</kbd>, then ask in the embedded

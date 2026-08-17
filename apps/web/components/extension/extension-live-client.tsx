@@ -191,8 +191,17 @@ function PageSnapshotCard({
   );
 }
 
+type ExtensionAuthState = {
+  token: string;
+  workspaceId: string;
+  name: string | null;
+  role: string | null;
+};
+
 export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   const { workspaceId, isLoading, error: workspaceError, refresh } = useWorkspace();
+  const [extensionAuth, setExtensionAuth] = useState<ExtensionAuthState | null>(null);
+  const activeWorkspaceId = extensionAuth?.workspaceId ?? workspaceId;
   const [webAppUrl, setWebAppUrl] = useState('');
   const [synced, setSynced] = useState<SyncedTab | null>(null);
   const [hoverText, setHoverText] = useState('');
@@ -206,11 +215,12 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (!embed || workspaceId || isLoading) {
+    if (!embed || activeWorkspaceId || isLoading) {
       return;
     }
 
     const timer = window.setInterval(() => {
+      window.parent.postMessage({ type: 'APROKO_REQUEST_EXTENSION_AUTH' }, '*');
       void refresh();
     }, 3000);
 
@@ -228,7 +238,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       window.removeEventListener('focus', onVisibilityChange);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [embed, workspaceId, isLoading, refresh]);
+  }, [embed, activeWorkspaceId, isLoading, refresh]);
 
   useEffect(() => {
     function applyLiveContextPayload(payload: SyncedTab | undefined) {
@@ -248,6 +258,16 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
 
     function onMessage(event: MessageEvent) {
       if (!isExtensionMessageOrigin(event.origin, window.location.origin)) {
+        return;
+      }
+
+      if (event.data?.type === 'APROKO_EXTENSION_AUTH' && event.data.auth?.token) {
+        setExtensionAuth({
+          token: event.data.auth.token,
+          workspaceId: event.data.auth.workspaceId,
+          name: event.data.auth.name ?? null,
+          role: event.data.auth.role ?? null,
+        });
         return;
       }
 
@@ -284,7 +304,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   }, [embed]);
 
   const ask = useCallback(async () => {
-    if (!workspaceId || !synced || !query.trim() || streaming) {
+    if (!activeWorkspaceId || !synced || !query.trim() || streaming) {
       return;
     }
 
@@ -294,11 +314,16 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     setStreaming(true);
     setLines((prev) => [...prev, { role: 'user', content: userQuery }, { role: 'assistant', content: '' }]);
 
+    const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (extensionAuth?.token) {
+      authHeaders.Authorization = `Bearer ext.${extensionAuth.token}`;
+    }
+
     try {
-      const response = await fetch(`/api/v1/workspaces/${workspaceId}/live-context/chat`, {
+      const response = await fetch(`/api/v1/workspaces/${activeWorkspaceId}/live-context/chat`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: extensionAuth?.token ? 'omit' : 'include',
+        headers: authHeaders,
         body: JSON.stringify({
           url: synced.url,
           title: synced.title,
@@ -368,7 +393,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     } finally {
       setStreaming(false);
     }
-  }, [workspaceId, synced, query, streaming, hoverText]);
+  }, [activeWorkspaceId, extensionAuth?.token, synced, query, streaming, hoverText]);
 
   const body = (
     <div className="space-y-6">
@@ -451,7 +476,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={isLoading ? 'Loading workspace…' : 'Ask about the synced page'}
-              disabled={!synced || !workspaceId || streaming}
+              disabled={!synced || !activeWorkspaceId || streaming}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
@@ -461,7 +486,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
             />
             <Button
               onClick={() => void ask()}
-              disabled={!synced || !workspaceId || streaming || !query.trim()}
+              disabled={!synced || !activeWorkspaceId || streaming || !query.trim()}
             >
               Ask
             </Button>
@@ -472,7 +497,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   );
 
   if (embed) {
-    const needsSignIn = !isLoading && !workspaceId;
+    const needsSignIn = !isLoading && !activeWorkspaceId;
 
     return (
       <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">
@@ -480,6 +505,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
           <ExtensionEmbedSignIn
             webAppUrl={webAppUrl || window.location.origin}
             onReload={() => {
+              window.parent.postMessage({ type: 'APROKO_REQUEST_EXTENSION_AUTH' }, '*');
               void refresh();
             }}
           />

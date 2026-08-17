@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { resolveExtensionRequestAuth } from '@/lib/extension/request-auth';
 import { resolveWorkspaceForUser, type ResolvedWorkspace } from '@/lib/storage/workspaces';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 
-type AuthDependency = () => Promise<{ userId: string | null }>;
+type AuthDependency = (request: Request) => Promise<{ userId: string | null }>;
 
 type CurrentWorkspaceRouteDependencies = {
   auth: AuthDependency;
@@ -21,13 +21,31 @@ function toPayload(workspace: ResolvedWorkspace) {
 
 export function createCurrentWorkspaceRouteHandlers(deps: CurrentWorkspaceRouteDependencies) {
   return {
-    GET: async () => {
+    GET: async (request: Request) => {
       const startedAtMs = Date.now();
-      const { userId } = await deps.auth();
+      const resolved = await resolveExtensionRequestAuth(request);
+      const userId = resolved?.userId ?? null;
       if (!userId) {
         return withPerformanceHeaders(
           NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
           startedAtMs,
+        );
+      }
+
+      if (resolved?.source === 'extension-handoff' && resolved.handoff) {
+        return withPerformanceHeaders(
+          NextResponse.json({
+            data: {
+              workspaceId: resolved.handoff.workspaceId,
+              name: resolved.handoff.workspaceName,
+              slug: resolved.handoff.workspaceId,
+              role: resolved.handoff.role,
+            },
+          }),
+          startedAtMs,
+          {
+            cacheControl: 'private, max-age=30, stale-while-revalidate=120',
+          },
         );
       }
 
@@ -51,9 +69,9 @@ export function createCurrentWorkspaceRouteHandlers(deps: CurrentWorkspaceRouteD
 }
 
 export const { GET } = createCurrentWorkspaceRouteHandlers({
-  auth: async () => {
-    const { userId } = await auth();
-    return { userId };
+  auth: async (request) => {
+    const resolved = await resolveExtensionRequestAuth(request);
+    return { userId: resolved?.userId ?? null };
   },
   resolveWorkspaceForUser,
 });
