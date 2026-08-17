@@ -110,7 +110,7 @@ function ExtensionEmbedSignIn({
   webAppUrl: string;
   onReload: () => void;
 }) {
-  const signInUrl = `${webAppUrl.replace(/\/$/, '')}/sign-in?redirect_url=${encodeURIComponent('/extension/connect')}`;
+  const connectUrl = `${webAppUrl.replace(/\/$/, '')}/extension/connect?from=extension`;
 
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -122,14 +122,15 @@ function ExtensionEmbedSignIn({
           Open Aproko in a full browser tab
         </h2>
         <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-          Google sign-in cannot run inside the extension panel. Sign in in Safari first, then return
-          here and reload the panel.
+          Google sign-in cannot run inside the extension panel. We&apos;ll open Aproko in a new tab —
+          if you&apos;re already signed in you&apos;ll see your workspace; otherwise you&apos;ll be
+          asked to sign in, then return here.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button asChild size="sm">
-          <a href={signInUrl} target="_blank" rel="noopener noreferrer">
-            Open sign-in tab
+          <a href={connectUrl} target="_blank" rel="noopener noreferrer">
+            Open Aproko tab
           </a>
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={onReload}>
@@ -137,8 +138,10 @@ function ExtensionEmbedSignIn({
         </Button>
       </div>
       <p className="text-xs leading-5 text-zinc-500">
-        After sign-in, use <strong className="font-medium text-zinc-700 dark:text-zinc-200">Capture tab</strong>{' '}
-        or <kbd className={mono}>Cmd+Shift+Y</kbd>. Alt/Option-click solve works once you are signed in.
+        After the tab shows you&apos;re connected, return here — the panel checks every few seconds,
+        or click <strong className="font-medium text-zinc-700 dark:text-zinc-200">Reload panel</strong>.
+        Then use <strong className="font-medium text-zinc-700 dark:text-zinc-200">Capture tab</strong>{' '}
+        or <kbd className={mono}>Cmd+Shift+Y</kbd>.
       </p>
     </div>
   );
@@ -211,7 +214,20 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       void refresh();
     }, 3000);
 
-    return () => window.clearInterval(timer);
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        void refresh();
+      }
+    }
+
+    window.addEventListener('focus', onVisibilityChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onVisibilityChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [embed, workspaceId, isLoading, refresh]);
 
   useEffect(() => {

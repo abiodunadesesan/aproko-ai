@@ -12,7 +12,7 @@ test.describe('Extension live context embed UI', () => {
 
     await page.goto('/extension/live?embed=1', { waitUntil: 'commit', timeout: 90_000 });
     await expect(page.getByText('Sign in required')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole('link', { name: 'Open sign-in tab' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Aproko tab' })).toBeVisible();
   });
 
   test('embed panel renders synced context and streams assistant reply', async ({ page }) => {

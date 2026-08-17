@@ -54,7 +54,7 @@ async function loadSettings() {
   if (hoverEnabledEl) {
     hoverEnabledEl.checked = hoverEnabled !== false;
   }
-  connectLink.href = `${webAppUrl}/extension/connect`;
+  connectLink.href = `${webAppUrl}/extension/connect?from=extension`;
   const nextSrc = panelUrl(webAppUrl);
   if (appFrame.src !== nextSrc) {
     appFrame.src = nextSrc;
@@ -96,7 +96,7 @@ captureBtn.addEventListener('click', () => {
 saveSettingsBtn.addEventListener('click', async () => {
   webAppUrl = webAppUrlEl.value.trim().replace(/\/$/, '') || DEFAULT_WEB_APP_URL;
   await chrome.storage.sync.set({ webAppUrl });
-  connectLink.href = `${webAppUrl}/extension/connect`;
+  connectLink.href = `${webAppUrl}/extension/connect?from=extension`;
   appFrame.src = panelUrl(webAppUrl);
   setStatus('Settings saved — sign in at the web app if the panel asks you to');
 });
