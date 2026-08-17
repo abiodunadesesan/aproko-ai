@@ -2,18 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 // Lightweight parse mirror of solve.ts normalization rules for regression safety.
-function normalizeSolveResult(value) {
-  const obj = value && typeof value === 'object' ? value : {};
+function normalizeSolveResult(value: unknown) {
+  const obj = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
   const kindRaw = typeof obj.kind === 'string' ? obj.kind.toLowerCase() : 'explain';
-  const kind = kindRaw === 'mcq' || kindRaw === 'short' || kindRaw === 'explain' ? kindRaw : 'explain';
+  const kind =
+    kindRaw === 'mcq' || kindRaw === 'short' || kindRaw === 'explain' ? kindRaw : 'explain';
   return {
     kind,
     optionKey:
       typeof obj.optionKey === 'string' && obj.optionKey.trim()
         ? obj.optionKey.trim().toUpperCase().slice(0, 4)
         : null,
-    fillText:
-      typeof obj.fillText === 'string' && obj.fillText.trim() ? obj.fillText.trim() : null,
+    fillText: typeof obj.fillText === 'string' && obj.fillText.trim() ? obj.fillText.trim() : null,
   };
 }
 
