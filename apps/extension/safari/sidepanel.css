@@ -1,25 +1,29 @@
 :root {
   color-scheme: light dark;
-  --bg: #fafaf9;
-  --fg: #1c1917;
-  --muted: #78716c;
+  --bg: #fafafa;
+  --fg: #18181b;
+  --muted: #71717a;
   --card: #ffffff;
-  --border: #e7e5e4;
-  --accent: #d97706;
-  --accent-soft: rgba(217, 119, 6, 0.12);
-  --accent-strong: #b45309;
+  --border: #e4e4e7;
+  --accent: #18181b;
+  --accent-soft: rgba(24, 24, 27, 0.06);
+  --accent-strong: #27272a;
+  --accent-fg: #fafafa;
+  --ring: #a1a1aa;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c0a09;
-    --fg: #fafaf9;
-    --muted: #a8a29e;
-    --card: #1c1917;
-    --border: #292524;
-    --accent: #f59e0b;
-    --accent-soft: rgba(245, 158, 11, 0.14);
-    --accent-strong: #fbbf24;
+    --bg: #09090b;
+    --fg: #fafafa;
+    --muted: #a1a1aa;
+    --card: #18181b;
+    --border: #27272a;
+    --accent: #fafafa;
+    --accent-soft: rgba(250, 250, 250, 0.08);
+    --accent-strong: #e4e4e7;
+    --accent-fg: #18181b;
+    --ring: #52525b;
   }
 }
 
@@ -68,7 +72,7 @@ body.shell {
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--muted);
   font-weight: 600;
 }
 
@@ -129,8 +133,8 @@ input {
 button {
   border: 0;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  color: #fffbeb;
+  background: var(--accent);
+  color: var(--accent-fg);
   padding: 8px 12px;
   font: inherit;
   font-weight: 600;
@@ -139,5 +143,7 @@ button {
 }
 
 a {
-  color: var(--accent);
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

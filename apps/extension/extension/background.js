@@ -104,7 +104,7 @@ async function captureActiveTabContext() {
 
 async function setCaptureBadge(text) {
   try {
-    await chrome.action.setBadgeBackgroundColor({ color: '#d97706' });
+    await chrome.action.setBadgeBackgroundColor({ color: '#18181b' });
     await chrome.action.setBadgeText({ text });
   } catch {
     // Older Chrome / no action badge support.

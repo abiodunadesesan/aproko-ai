@@ -14,6 +14,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "test:e2e:web": "pnpm --filter @aproko/web e2e",
+    "test:e2e:extension": "pnpm --filter @aproko/web exec playwright test e2e/extension-live.spec.ts e2e/extension-chrome.spec.ts e2e/extension-safari.spec.ts",
     "test:e2e:web:headed": "pnpm --filter @aproko/web e2e:headed",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -221,17 +221,17 @@ function ensureCursorTip() {
     <style>
       .tip {
         font: 12px/1.4 ui-sans-serif, system-ui, sans-serif;
-        background: linear-gradient(160deg, rgba(24,24,27,0.96), rgba(39,28,12,0.96));
+        background: rgba(24, 24, 27, 0.96);
         color: #fafafa;
-        border: 1px solid rgba(245,158,11,0.45);
+        border: 1px solid rgba(228, 228, 231, 0.28);
         border-radius: 12px;
         padding: 8px 10px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.28), 0 0 0 1px rgba(245,158,11,0.08);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
         white-space: pre-wrap;
         word-break: break-word;
       }
-      .tip strong { color: #fbbf24; font-weight: 600; }
-      .tip .meta { color: #d6d3d1; font-size: 10px; margin-top: 4px; opacity: 0.9; }
+      .tip strong { color: #fafafa; font-weight: 600; }
+      .tip .meta { color: #a1a1aa; font-size: 10px; margin-top: 4px; opacity: 0.9; }
     </style>
     <div class="tip" id="tip"></div>
   `;
@@ -279,7 +279,7 @@ function highlightEl(el) {
     return;
   }
   el.setAttribute('data-aproko-highlight', '1');
-  el.style.outline = '2px solid #d97706';
+  el.style.outline = '2px solid #18181b';
   el.style.outlineOffset = '2px';
   el.style.backgroundColor = 'rgba(217,119,6,0.12)';
 }
@@ -508,10 +508,10 @@ function ensureCaptureChip() {
       button {
         font: 600 12px ui-sans-serif, system-ui, sans-serif;
         border: 0; border-radius: 999px;
-        background: linear-gradient(135deg, #d97706, #b45309);
-        color: #fffbeb;
+        background: #18181b;
+        color: #fafafa;
         padding: 10px 14px; cursor: pointer;
-        box-shadow: 0 10px 28px rgba(217,119,6,0.35);
+        box-shadow: 0 10px 28px rgba(24, 24, 27, 0.22);
       }
       .hint { margin: 6px 0 0; font: 11px/1.3 ui-sans-serif, system-ui, sans-serif; color: #78716c; text-align: right; max-width: 220px; }
     </style>

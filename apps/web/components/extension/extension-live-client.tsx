@@ -12,6 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { parseHoverFocus, summarizePageSnapshot } from '@/lib/live-context/sanitize';
+import {
+  parseLiveContextSseEventsFromBuffer,
+  readLiveContextSseDelta,
+  readLiveContextSseError,
+} from '@/lib/live-context/sse-client';
 import { cn } from '@/lib/utils';
 
 const mono = 'rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] dark:bg-zinc-800';
@@ -38,32 +43,6 @@ function isExtensionMessageOrigin(origin: string, pageOrigin: string): boolean {
   );
 }
 
-function parseSseEventsFromBuffer(buffer: string): {
-  events: Array<{ event: string; data: string }>;
-  rest: string;
-} {
-  const events: Array<{ event: string; data: string }> = [];
-  const parts = buffer.split('\n\n');
-  const rest = parts.pop() ?? '';
-
-  for (const part of parts) {
-    let event = 'message';
-    const dataLines: string[] = [];
-    for (const line of part.split('\n')) {
-      if (line.startsWith('event:')) {
-        event = line.slice(6).trim();
-      } else if (line.startsWith('data:')) {
-        dataLines.push(line.slice(5).trim());
-      }
-    }
-    if (dataLines.length) {
-      events.push({ event, data: dataLines.join('\n') });
-    }
-  }
-
-  return { events, rest };
-}
-
 function CursorFocusCard({ raw }: { raw: string }) {
   const parsed = useMemo(() => parseHoverFocus(raw), [raw]);
   const hasPrimary = Boolean(parsed.primaryText);
@@ -73,20 +52,20 @@ function CursorFocusCard({ raw }: { raw: string }) {
       className={cn(
         'overflow-hidden rounded-2xl border transition-colors',
         hasPrimary
-          ? 'border-amber-500/35 bg-gradient-to-br from-amber-500/[0.12] via-amber-500/[0.04] to-transparent dark:from-amber-400/15 dark:via-amber-400/[0.05]'
+          ? 'border-zinc-300/70 bg-gradient-to-br from-zinc-100/90 via-zinc-50/50 to-transparent dark:border-zinc-700/70 dark:from-zinc-900/70 dark:via-zinc-900/30'
           : 'border-dashed border-black/[0.1] bg-zinc-50/80 dark:border-white/10 dark:bg-zinc-900/40',
       )}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-amber-500/15 px-3.5 py-2.5 dark:border-amber-400/15">
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-200/80 px-3.5 py-2.5 dark:border-zinc-800/80">
         <div className="flex items-center gap-2">
           <span
             className={cn(
               'inline-flex h-2 w-2 rounded-full',
-              hasPrimary ? 'animate-pulse bg-amber-500 dark:bg-amber-400' : 'bg-zinc-300 dark:bg-zinc-600',
+              hasPrimary ? 'animate-pulse bg-zinc-700 dark:bg-zinc-200' : 'bg-zinc-300 dark:bg-zinc-600',
             )}
             aria-hidden
           />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900 dark:text-amber-100">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-300">
             Cursor focus
           </p>
         </div>
@@ -95,7 +74,7 @@ function CursorFocusCard({ raw }: { raw: string }) {
       <div className="space-y-3 px-3.5 py-3">
         {hasPrimary ? (
           <>
-            <blockquote className="border-l-2 border-amber-500/50 pl-3 text-[14px] font-medium leading-6 text-zinc-900 dark:border-amber-400/50 dark:text-zinc-50">
+            <blockquote className="border-l-2 border-zinc-400/60 pl-3 text-[14px] font-medium leading-6 text-zinc-900 dark:border-zinc-500/60 dark:text-zinc-50">
               {parsed.primaryText.slice(0, 320)}
               {parsed.primaryText.length > 320 ? '…' : ''}
             </blockquote>
@@ -134,9 +113,9 @@ function ExtensionEmbedSignIn({
   const signInUrl = `${webAppUrl.replace(/\/$/, '')}/sign-in?redirect_url=${encodeURIComponent('/extension/connect')}`;
 
   return (
-    <div className="space-y-4 rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] to-transparent p-4 dark:from-amber-400/10">
+    <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800 dark:text-amber-200">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
           Sign in required
         </p>
         <h2 className="mt-1 text-base font-semibold text-zinc-900 dark:text-zinc-50">
@@ -236,6 +215,21 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   }, [embed, workspaceId, isLoading, refresh]);
 
   useEffect(() => {
+    function applyLiveContextPayload(payload: SyncedTab | undefined) {
+      if (!payload?.url || !payload.pageText) {
+        return;
+      }
+      const hover = payload.activeHoverContext || '';
+      setHoverText(hover);
+      setSynced({
+        url: payload.url,
+        title: payload.title || 'Untitled',
+        pageText: payload.pageText,
+        activeHoverContext: hover,
+        capturedAt: payload.capturedAt || new Date().toISOString(),
+      });
+    }
+
     function onMessage(event: MessageEvent) {
       if (!isExtensionMessageOrigin(event.origin, window.location.origin)) {
         return;
@@ -254,24 +248,24 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       if (event.data?.type !== 'APROKO_LIVE_CONTEXT') {
         return;
       }
-      const payload = event.data.payload as SyncedTab | undefined;
-      if (!payload?.url || !payload.pageText) {
-        return;
-      }
-      const hover = payload.activeHoverContext || '';
-      setHoverText(hover);
-      setSynced({
-        url: payload.url,
-        title: payload.title || 'Untitled',
-        pageText: payload.pageText,
-        activeHoverContext: hover,
-        capturedAt: payload.capturedAt || new Date().toISOString(),
-      });
+      applyLiveContextPayload(event.data.payload as SyncedTab | undefined);
     }
 
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, []);
+    if (embed) {
+      (
+        window as Window & { __aprokoLiveContextInject?: (payload: SyncedTab) => void }
+      ).__aprokoLiveContextInject = applyLiveContextPayload;
+    }
+
+    return () => {
+      window.removeEventListener('message', onMessage);
+      if (embed) {
+        delete (window as Window & { __aprokoLiveContextInject?: (payload: SyncedTab) => void })
+          .__aprokoLiveContextInject;
+      }
+    };
+  }, [embed]);
 
   const ask = useCallback(async () => {
     if (!workspaceId || !synced || !query.trim() || streaming) {
@@ -320,35 +314,24 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
           break;
         }
         buffer += decoder.decode(value, { stream: true });
-        const parsed = parseSseEventsFromBuffer(buffer);
+        const parsed = parseLiveContextSseEventsFromBuffer(buffer);
         buffer = parsed.rest;
 
         for (const event of parsed.events) {
           if (event.event === 'delta') {
-            try {
-              const data = JSON.parse(event.data) as { text?: string };
-              if (data.text) {
-                assistant += data.text;
-                const snapshot = assistant;
-                setLines((prev) => {
-                  const next = [...prev];
-                  next[next.length - 1] = { role: 'assistant', content: snapshot };
-                  return next;
-                });
-              }
-            } catch {
-              // ignore malformed delta
+            const delta = readLiveContextSseDelta(event.payload);
+            if (delta) {
+              assistant += delta;
+              const snapshot = assistant;
+              setLines((prev) => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'assistant', content: snapshot };
+                return next;
+              });
             }
           }
           if (event.event === 'error') {
-            let message = 'Stream error';
-            try {
-              const data = JSON.parse(event.data) as { error?: string };
-              message = data.error || message;
-            } catch {
-              // ignore malformed error payload
-            }
-            throw new Error(message);
+            throw new Error(readLiveContextSseError(event.payload));
           }
         }
       }
@@ -438,7 +421,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
                 className={cn(
                   'rounded-xl px-3 py-2 text-sm',
                   line.role === 'user'
-                    ? 'bg-amber-500/10 text-zinc-900 dark:text-amber-50'
+                    ? 'bg-zinc-200/70 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
                     : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100',
                 )}
               >

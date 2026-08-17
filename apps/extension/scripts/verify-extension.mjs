@@ -104,6 +104,9 @@ assertIncludes(safariBackground, 'safari-web-extension', 'Safari restricted URL 
 assertIncludes(chromeBackground, '/api/v1/live-context/solve', 'Solve flat API path');
 assertExcludes(chromeBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
 assertExcludes(safariBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
+assertExcludes(chromeSidepanelCss, '#d97706', 'Extension UI must not use orange accent');
+assertExcludes(chromeContent, '#d97706', 'Content script must not use orange accent');
+assertIncludes(chromeSidepanelCss, '--accent: #18181b', 'Extension uses zinc primary accent');
 
 assertEqual(chromeContent, safariContent, 'content.js must match between Chrome and Safari');
 assertEqual(chromeSidepanelCss, safariSidepanelCss, 'sidepanel.css must match between Chrome and Safari');

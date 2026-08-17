@@ -23,6 +23,22 @@ This suite covers smoke checks and critical user journeys for `apps/web`.
 - Billing checkout from plan selection shows staging pending message (mocked checkout API)
 - Billing webhook POST returns structured payload when Stripe is not configured
 
+### Extension live context (`extension-live.spec.ts`)
+
+- Embed panel shows sign-in guidance when workspace is unavailable
+- Synced context + mocked SSE streams an assistant reply (no generic “Stream error”)
+- Neutral zinc styling (no orange accent on primary controls)
+
+### Chrome extension shell (`extension-chrome.spec.ts`)
+
+- Loads unpacked MV3 package and opens `sidepanel.html`
+- Capture tab control + min popup width
+
+### Safari extension shell (`extension-safari.spec.ts`)
+
+- Loads Safari package popup HTML with Safari branding
+- Capture tab control + sign-in guidance copy
+
 ## Run locally
 
 From repo root:
