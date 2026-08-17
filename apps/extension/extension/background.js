@@ -203,7 +203,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           userQuery:
             context.userQuery ||
             'Solve the clicked question using the full page and cursor focus.',
-          model: 'groq:llama-3.1-8b-instant',
         });
 
         let lastError = 'Solve failed';

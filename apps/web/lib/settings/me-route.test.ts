@@ -125,7 +125,7 @@ test('me PATCH saves preferences', async () => {
       full_name: 'Aproko User',
       avatar_url: null,
       preferences: input.preferences ?? {
-        defaultChatModel: 'groq:llama-3.1-8b-instant',
+        defaultChatModel: 'groq:openai/gpt-oss-20b',
         autoMemoryCapture: true,
       },
     }),

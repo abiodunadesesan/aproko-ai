@@ -9,7 +9,7 @@ const MAX_INPUT_CHARS = 12_000;
 
 /** Prefer free/fast providers first, then paid ones. */
 const POLISH_MODEL_PREFERENCE: ChatModel[] = [
-  'groq:llama-3.1-8b-instant',
+  'groq:openai/gpt-oss-20b',
   'google:gemini-3.5-flash',
   'openai:gpt-4o-mini',
   'anthropic:claude-sonnet-5',

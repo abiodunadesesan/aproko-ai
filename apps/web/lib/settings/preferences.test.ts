@@ -34,11 +34,21 @@ test('parsePreferencesPatch rejects invalid model', () => {
 
 test('parsePreferencesPatch accepts valid partial patch', () => {
   const result = parsePreferencesPatch({
-    defaultChatModel: 'groq:llama-3.1-8b-instant',
+    defaultChatModel: 'groq:openai/gpt-oss-20b',
     autoMemoryCapture: true,
   });
   assert.equal(result.ok, true);
   if (result.ok) {
-    assert.equal(result.preferences.defaultChatModel, 'groq:llama-3.1-8b-instant');
+    assert.equal(result.preferences.defaultChatModel, 'groq:openai/gpt-oss-20b');
   }
+});
+
+test('normalizeUserPreferences remaps deprecated Groq model', () => {
+  assert.deepEqual(
+    normalizeUserPreferences({ defaultChatModel: 'groq:llama-3.1-8b-instant' }),
+    {
+      defaultChatModel: 'groq:openai/gpt-oss-20b',
+      autoMemoryCapture: true,
+    },
+  );
 });

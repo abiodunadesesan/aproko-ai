@@ -35,18 +35,26 @@ const chromeManifest = JSON.parse(chromeManifestRaw);
 const safariVersion = chromeManifest.version || '0.0.0';
 
 const chromeBackground = await readFile(path.join(chromeDir, 'background.js'), 'utf8');
-const safariBackground = chromeBackground
-  .replace(
-    /function isRestrictedTabUrl\(url\) \{[\s\S]*?\}/,
-    `function isRestrictedTabUrl(url) {
+const chromeRestrictedUrlFn = `function isRestrictedTabUrl(url) {
+  if (!url) {
+    return true;
+  }
+  return /^(chrome|chrome-extension|chrome-search|chrome-untrusted|devtools|edge|about|view-source):/i.test(
+    url,
+  );
+}`;
+
+const safariRestrictedUrlFn = `function isRestrictedTabUrl(url) {
   if (!url) {
     return true;
   }
   return /^(chrome|chrome-extension|chrome-search|chrome-untrusted|devtools|edge|about|view-source|safari-extension|safari-web-extension|resource):/i.test(
     url,
   );
-}`,
-  )
+}`;
+
+const safariBackground = chromeBackground
+  .replace(chromeRestrictedUrlFn, safariRestrictedUrlFn)
   .replace(
     /chrome\.runtime\.onInstalled\.addListener\(async \(\) => \{\s*await chrome\.sidePanel\.setPanelBehavior\(\{ openPanelOnActionClick: true \}\);\s*await setCaptureBadge\(''\);\s*\}\);/,
     `chrome.runtime.onInstalled.addListener(async () => {

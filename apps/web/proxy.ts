@@ -63,6 +63,15 @@ export default clerkMiddleware(
     }
 
     if (isProtectedPage(req)) {
+      // Extension side panel / Safari popup embeds this route in an iframe.
+      // Do not redirect to Clerk sign-in inside the iframe — Google OAuth breaks there.
+      if (
+        pathname === '/extension/live' &&
+        req.nextUrl.searchParams.get('embed') === '1'
+      ) {
+        return;
+      }
+
       const returnTo = `${pathname}${req.nextUrl.search}`;
       const signInUrl = new URL('/sign-in', req.url);
       signInUrl.searchParams.set('redirect_url', returnTo);

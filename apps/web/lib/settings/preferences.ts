@@ -1,4 +1,4 @@
-import { isChatModel, type ChatModel } from '@/lib/ai/chat-models';
+import { isChatModel, normalizeChatModel, type ChatModel } from '@/lib/ai/chat-models';
 
 export type UserPreferences = {
   defaultChatModel: ChatModel;
@@ -6,7 +6,7 @@ export type UserPreferences = {
 };
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
-  defaultChatModel: 'groq:llama-3.1-8b-instant',
+  defaultChatModel: 'groq:openai/gpt-oss-20b',
   autoMemoryCapture: true,
 };
 
@@ -15,9 +15,8 @@ export function normalizeUserPreferences(raw: unknown): UserPreferences {
     raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
 
   const modelCandidate = typeof source.defaultChatModel === 'string' ? source.defaultChatModel : '';
-  const defaultChatModel = isChatModel(modelCandidate)
-    ? modelCandidate
-    : DEFAULT_USER_PREFERENCES.defaultChatModel;
+  const defaultChatModel =
+    normalizeChatModel(modelCandidate) ?? DEFAULT_USER_PREFERENCES.defaultChatModel;
 
   const autoMemoryCapture =
     typeof source.autoMemoryCapture === 'boolean'

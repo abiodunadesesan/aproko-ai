@@ -8,10 +8,6 @@ function isRestrictedTabUrl(url) {
     url,
   );
 }
-  return /^(chrome|chrome-extension|chrome-search|chrome-untrusted|devtools|edge|about|view-source):/i.test(
-    url,
-  );
-}
 
 async function getSettings() {
   const stored = await chrome.storage.sync.get({
@@ -207,7 +203,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           userQuery:
             context.userQuery ||
             'Solve the clicked question using the full page and cursor focus.',
-          model: 'groq:llama-3.1-8b-instant',
         });
 
         let lastError = 'Solve failed';

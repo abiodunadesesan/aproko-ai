@@ -12,7 +12,7 @@ const memoryCaptureDeps = {
     full_name: null,
     avatar_url: null,
     preferences: {
-      defaultChatModel: 'groq:llama-3.1-8b-instant' as const,
+      defaultChatModel: 'groq:openai/gpt-oss-20b' as const,
       autoMemoryCapture: true,
     },
   }),

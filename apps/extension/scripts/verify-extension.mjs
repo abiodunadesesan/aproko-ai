@@ -1,18 +1,19 @@
+#!/usr/bin/env node
+/**
+ * Full verification for Chrome + Safari extension packages.
+ */
 import { access, constants, readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const execFileAsync = promisify(execFile);
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const chromeDir = path.join(root, 'extension');
+const safariDir = path.join(root, 'safari');
 
-async function verifyPackage(label, dir, required) {
-  for (const relative of required) {
-    const target = path.join(dir, relative);
-    await access(target, constants.R_OK);
-  }
-  console.log(`OK ${label} (${required.length} files in ${dir})`);
-}
-
-const chromeRequired = [
+const required = [
   'manifest.json',
   'background.js',
   'content.js',
@@ -24,19 +25,96 @@ const chromeRequired = [
   'icons/icon128.png',
 ];
 
-const safariRequired = [...chromeRequired, 'README.md'];
+async function assertReadable(label, dir, files) {
+  for (const relative of files) {
+    await access(path.join(dir, relative), constants.R_OK);
+  }
+  console.log(`✔ ${label} package files (${files.length})`);
+}
 
-await verifyPackage('Chrome', path.join(root, 'extension'), chromeRequired);
-await verifyPackage('Safari', path.join(root, 'safari'), safariRequired);
+async function assertJsSyntax(label, dir, files) {
+  for (const relative of files) {
+    const target = path.join(dir, relative);
+    await execFileAsync('node', ['--check', target]);
+  }
+  console.log(`✔ ${label} JavaScript syntax (${files.length} files)`);
+}
 
-const safariManifest = JSON.parse(
-  await readFile(path.join(root, 'safari', 'manifest.json'), 'utf8'),
+async function readJson(dir, relative) {
+  return JSON.parse(await readFile(path.join(dir, relative), 'utf8'));
+}
+
+async function readText(dir, relative) {
+  return readFile(path.join(dir, relative), 'utf8');
+}
+
+function assertEqual(actual, expected, message) {
+  if (actual !== expected) {
+    throw new Error(`${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
+}
+
+function assertIncludes(haystack, needle, message) {
+  if (!haystack.includes(needle)) {
+    throw new Error(`${message}: expected to include ${JSON.stringify(needle)}`);
+  }
+}
+
+function assertExcludes(haystack, needle, message) {
+  if (haystack.includes(needle)) {
+    throw new Error(`${message}: must not include ${JSON.stringify(needle)}`);
+  }
+}
+
+await assertReadable('Chrome', chromeDir, required);
+await assertReadable('Safari', safariDir, [...required, 'README.md']);
+
+const jsFiles = ['background.js', 'content.js', 'sidepanel.js'];
+await assertJsSyntax('Chrome', chromeDir, jsFiles);
+await assertJsSyntax('Safari', safariDir, jsFiles);
+
+const chromeManifest = await readJson(chromeDir, 'manifest.json');
+const safariManifest = await readJson(safariDir, 'manifest.json');
+
+assertEqual(chromeManifest.manifest_version, 3, 'Chrome manifest_version');
+assertEqual(safariManifest.manifest_version, 3, 'Safari manifest_version');
+assertEqual(
+  chromeManifest.version,
+  safariManifest.version,
+  'Chrome and Safari versions must match',
 );
-if (safariManifest.side_panel) {
-  throw new Error('Safari manifest must not include side_panel');
-}
-if (safariManifest.action?.default_popup !== 'sidepanel.html') {
-  throw new Error('Safari manifest must set action.default_popup to sidepanel.html');
-}
+assertIncludes(JSON.stringify(chromeManifest), 'side_panel', 'Chrome manifest must include side_panel');
+assertExcludes(JSON.stringify(safariManifest), 'side_panel', 'Safari manifest must not include side_panel');
+assertEqual(
+  safariManifest.action?.default_popup,
+  'sidepanel.html',
+  'Safari popup path',
+);
 
-console.log('Aproko extension packages OK (Chrome + Safari)');
+const chromeBackground = await readText(chromeDir, 'background.js');
+const safariBackground = await readText(safariDir, 'background.js');
+const chromeContent = await readText(chromeDir, 'content.js');
+const safariContent = await readText(safariDir, 'content.js');
+const chromeSidepanelCss = await readText(chromeDir, 'sidepanel.css');
+const safariSidepanelCss = await readText(safariDir, 'sidepanel.css');
+
+assertIncludes(chromeBackground, 'chrome.sidePanel', 'Chrome background uses sidePanel API');
+assertExcludes(safariBackground, 'chrome.sidePanel.setPanelBehavior', 'Safari background must not call sidePanel');
+assertIncludes(safariBackground, 'safari-web-extension', 'Safari restricted URL patterns');
+assertIncludes(chromeBackground, '/api/v1/live-context/solve', 'Solve flat API path');
+assertExcludes(chromeBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
+assertExcludes(safariBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
+
+assertEqual(chromeContent, safariContent, 'content.js must match between Chrome and Safari');
+assertEqual(chromeSidepanelCss, safariSidepanelCss, 'sidepanel.css must match between Chrome and Safari');
+assertIncludes(chromeSidepanelCss, 'min-width: 400px', 'Popup min-width for Safari toolbar popup');
+
+const safariSidepanelHtml = await readText(safariDir, 'sidepanel.html');
+assertIncludes(safariSidepanelHtml, 'Safari v', 'Safari sidepanel branding');
+assertIncludes(safariSidepanelHtml, 'full browser tab', 'Safari sign-in guidance');
+
+console.log('✔ Chrome manifest v' + chromeManifest.version);
+console.log('✔ Safari manifest v' + safariManifest.version);
+console.log('✔ Chrome/Safari parity + API wiring');
+console.log('');
+console.log('Aproko extension full verify OK (Chrome + Safari)');

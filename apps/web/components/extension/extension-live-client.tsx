@@ -124,6 +124,47 @@ function CursorFocusCard({ raw }: { raw: string }) {
   );
 }
 
+function ExtensionEmbedSignIn({
+  webAppUrl,
+  onReload,
+}: {
+  webAppUrl: string;
+  onReload: () => void;
+}) {
+  const signInUrl = `${webAppUrl.replace(/\/$/, '')}/sign-in?redirect_url=${encodeURIComponent('/extension/connect')}`;
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] to-transparent p-4 dark:from-amber-400/10">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800 dark:text-amber-200">
+          Sign in required
+        </p>
+        <h2 className="mt-1 text-base font-semibold text-zinc-900 dark:text-zinc-50">
+          Open Aproko in a full browser tab
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+          Google sign-in cannot run inside the extension panel. Sign in in Safari first, then return
+          here and reload the panel.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="sm">
+          <a href={signInUrl} target="_blank" rel="noopener noreferrer">
+            Open sign-in tab
+          </a>
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onReload}>
+          Reload panel
+        </Button>
+      </div>
+      <p className="text-xs leading-5 text-zinc-500">
+        After sign-in, use <strong className="font-medium text-zinc-700 dark:text-zinc-200">Capture tab</strong>{' '}
+        or <kbd className={mono}>Cmd+Shift+Y</kbd>. Alt/Option-click solve works once you are signed in.
+      </p>
+    </div>
+  );
+}
+
 function PageSnapshotCard({
   title,
   pageText,
@@ -169,7 +210,7 @@ function PageSnapshotCard({
 }
 
 export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
-  const { workspaceId, isLoading, error: workspaceError } = useWorkspace();
+  const { workspaceId, isLoading, error: workspaceError, refresh } = useWorkspace();
   const [webAppUrl, setWebAppUrl] = useState('');
   const [synced, setSynced] = useState<SyncedTab | null>(null);
   const [hoverText, setHoverText] = useState('');
@@ -181,6 +222,18 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   useEffect(() => {
     setWebAppUrl(window.location.origin);
   }, []);
+
+  useEffect(() => {
+    if (!embed || workspaceId || isLoading) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void refresh();
+    }, 3000);
+
+    return () => window.clearInterval(timer);
+  }, [embed, workspaceId, isLoading, refresh]);
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -244,7 +297,6 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
           activeHoverContext: synced.activeHoverContext || hoverText || '',
           capturedAt: synced.capturedAt,
           userQuery,
-          model: 'groq:llama-3.1-8b-instant',
         }),
       });
 
@@ -421,7 +473,22 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   );
 
   if (embed) {
-    return <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">{body}</div>;
+    const needsSignIn = !isLoading && !workspaceId;
+
+    return (
+      <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">
+        {needsSignIn ? (
+          <ExtensionEmbedSignIn
+            webAppUrl={webAppUrl || window.location.origin}
+            onReload={() => {
+              void refresh();
+            }}
+          />
+        ) : (
+          body
+        )}
+      </div>
+    );
   }
 
   return (

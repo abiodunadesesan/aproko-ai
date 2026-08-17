@@ -6,8 +6,8 @@ import {
 import {
   DEFAULT_CHAT_MODEL,
   getConfiguredChatModels,
-  isChatModel,
   isModelConfigured,
+  normalizeChatModel,
   resolveLanguageModel,
   type ChatModel,
 } from '@/lib/ai/chat-models';
@@ -22,12 +22,12 @@ export function canGenerateLiveContext(model: ChatModel): boolean {
 
 /** Prefer an explicitly requested configured model, else Groq, else app default, else any. */
 export function resolveLiveContextModel(requested?: string | null): ChatModel | null {
-  const trimmed = requested?.trim();
-  if (trimmed && isChatModel(trimmed) && isModelConfigured(trimmed)) {
-    return trimmed;
+  const normalized = normalizeChatModel(requested);
+  if (normalized && isModelConfigured(normalized)) {
+    return normalized;
   }
 
-  const groqModel: ChatModel = 'groq:llama-3.1-8b-instant';
+  const groqModel: ChatModel = 'groq:openai/gpt-oss-20b';
   if (isModelConfigured(groqModel)) {
     return groqModel;
   }

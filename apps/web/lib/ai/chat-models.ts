@@ -8,23 +8,39 @@ export type ChatModel =
   | 'openai:gpt-4o-mini'
   | 'anthropic:claude-sonnet-5'
   | 'google:gemini-3.5-flash'
-  | 'groq:llama-3.1-8b-instant';
+  | 'groq:openai/gpt-oss-20b';
 
 const CHAT_MODELS: ChatModel[] = [
   'openai:gpt-4o-mini',
   'anthropic:claude-sonnet-5',
   'google:gemini-3.5-flash',
-  'groq:llama-3.1-8b-instant',
+  'groq:openai/gpt-oss-20b',
 ];
 
-export const DEFAULT_CHAT_MODEL: ChatModel = 'groq:llama-3.1-8b-instant';
+export const DEFAULT_CHAT_MODEL: ChatModel = 'groq:openai/gpt-oss-20b';
+
+/** Groq retired llama-3.1-8b-instant; remap stored preferences and old clients. */
+const DEPRECATED_CHAT_MODEL_ALIASES: Record<string, ChatModel> = {
+  'groq:llama-3.1-8b-instant': 'groq:openai/gpt-oss-20b',
+};
 
 const CHAT_MODEL_LABELS: Record<ChatModel, string> = {
   'openai:gpt-4o-mini': 'GPT-4o Mini',
   'anthropic:claude-sonnet-5': 'Claude Sonnet 5',
   'google:gemini-3.5-flash': 'Gemini 3.5 Flash',
-  'groq:llama-3.1-8b-instant': 'Llama 3.1 8B (Groq)',
+  'groq:openai/gpt-oss-20b': 'GPT OSS 20B (Groq)',
 };
+
+export function normalizeChatModel(value: string | null | undefined): ChatModel | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (isChatModel(trimmed)) {
+    return trimmed;
+  }
+  return DEPRECATED_CHAT_MODEL_ALIASES[trimmed] ?? null;
+}
 
 export function isChatModel(value: string): value is ChatModel {
   return CHAT_MODELS.includes(value as ChatModel);
