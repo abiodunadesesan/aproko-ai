@@ -8,13 +8,15 @@ Privacy: `https://aprokoai.vercel.app/privacy` (must be live before submit)
 
 ## 0) Blockers to clear first
 
-| Gate | Why | Action |
-| --- | --- | --- |
-| Production web deploy | `/extension/connect` and `/extension/live` must load for signed-in users | Fix CI/deploy (lockfile + lint), push `main`, confirm Vercel green |
-| Privacy policy live | CWS requires a working privacy policy URL | Verify `/privacy` shows **Browser extension (Live Context)** section |
-| Backend keys on Vercel | Solve/chat need `GROQ_API_KEY` (or configured provider) | Set in Vercel Production env |
-| Clerk production | Extension iframe + API cookies | Same Chrome profile signed in at production app URL |
-| Developer account | Required to publish | [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) — one-time $5 fee |
+**You can ship production + keep using Load unpacked without paying the CWS fee.** Payment is only required when you click **Submit for review** in the Developer Dashboard.
+
+| Gate                   | Why                                                                      | Action                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Production web deploy  | `/extension/connect` and `/extension/live` must load for signed-in users | Fix CI/deploy (lockfile + lint), push `main`, confirm Vercel green                                                                        |
+| Privacy policy live    | CWS requires a working privacy policy URL                                | Verify `/privacy` shows **Browser extension (Live Context)** section                                                                      |
+| Backend keys on Vercel | Solve/chat need `GROQ_API_KEY` (or configured provider)                  | Set in Vercel Production env                                                                                                              |
+| Clerk production       | Extension iframe + API cookies                                           | Same Chrome profile signed in at production app URL                                                                                       |
+| Developer account      | Required to **publish** (not for local/unpacked testing)                 | [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) — **$5 one-time fee (defer until ready to submit)** |
 
 ## 1) Pre-flight smoke (production)
 
@@ -57,7 +59,7 @@ Upload **only** the contents of `apps/extension/extension` (the script does this
    - Optional: small promo tile 440×280, marquee 1400×560
 5. **Privacy** tab:
    - Privacy policy URL: `https://aprokoai.vercel.app/privacy`
-   - Single purpose: *Help signed-in Aproko users ask questions about the webpage they are viewing using user-initiated capture and optional cursor focus.*
+   - Single purpose: _Help signed-in Aproko users ask questions about the webpage they are viewing using user-initiated capture and optional cursor focus._
 6. **Distribution** tab:
    - Visibility: Public (or Unlisted for beta)
    - Regions: as needed
@@ -66,15 +68,15 @@ Upload **only** the contents of `apps/extension/extension` (the script does this
 
 Use `docs/12-backlog/extension-store-permissions-justification.md` for detail. Summary for the dashboard:
 
-| Question area | Answer |
-| --- | --- |
-| **What user data do you collect?** | Page text and URL from the active tab when the user captures or Alt/Option-clicks; cursor-focused text snippet when hover is enabled; account session via signed-in Aproko web app (cookies). |
-| **How is it used?** | To generate learning assistance (chat/solve) in the user’s Aproko workspace. |
-| **Is data sold?** | No. |
-| **Is data used for unrelated purposes?** | No — only to provide the extension feature tied to Aproko. |
-| **Where is data sent?** | Aproko API (`aprokoai.vercel.app` / configured app origin); AI provider for generation when user triggers chat/solve. |
-| **Retention** | Capture payload is ephemeral for the request; not saved as a library source unless user saves in the web app. |
-| **User control** | Disable cursor hover in extension settings; uninstall extension; sign out of Aproko. |
+| Question area                            | Answer                                                                                                                                                                                        |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What user data do you collect?**       | Page text and URL from the active tab when the user captures or Alt/Option-clicks; cursor-focused text snippet when hover is enabled; account session via signed-in Aproko web app (cookies). |
+| **How is it used?**                      | To generate learning assistance (chat/solve) in the user’s Aproko workspace.                                                                                                                  |
+| **Is data sold?**                        | No.                                                                                                                                                                                           |
+| **Is data used for unrelated purposes?** | No — only to provide the extension feature tied to Aproko.                                                                                                                                    |
+| **Where is data sent?**                  | Aproko API (`aprokoai.vercel.app` / configured app origin); AI provider for generation when user triggers chat/solve.                                                                         |
+| **Retention**                            | Capture payload is ephemeral for the request; not saved as a library source unless user saves in the web app.                                                                                 |
+| **User control**                         | Disable cursor hover in extension settings; uninstall extension; sign out of Aproko.                                                                                                          |
 
 **Host permission `<all_urls>`:** Required so users can use live context on arbitrary study sites (LMS, articles, quizzes). Full-page text is read **only** on explicit user actions (Capture / Alt-click solve), not on a background timer.
 
