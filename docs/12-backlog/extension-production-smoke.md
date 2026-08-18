@@ -38,13 +38,26 @@ Rebuild the Xcode wrapper. Repeat connect → capture → Ask. There is **no** R
 
 ## Pass / fail
 
-| Check | Pass |
-| --- | --- |
-| Connect handoff, then Ask in panel | |
-| Capture + hover + H shortcut | |
-| Solve Alt-click | |
-| Privacy URL opens | |
-| Tab audio opt-in only (Chrome) | |
-| Safari Ask without tabCapture | |
+| Check                              | Pass |
+| ---------------------------------- | ---- |
+| Connect handoff, then Ask in panel |      |
+| Capture + hover + H shortcut       |      |
+| Solve Alt-click                    |      |
+| Privacy URL opens                  |      |
+| Tab audio opt-in only (Chrome)     |      |
+| Safari Ask without tabCapture      |      |
 
 If Ask is Unauthorized after connect: confirm production includes `/api/v1/extension/*` middleware bypass + handoff mint on `/extension/connect`.
+
+## Automated probe log (2026-08-18, production)
+
+| Check                                                | Result                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| `OPTIONS /api/chat` + `Origin: chrome-extension://…` | **204** + CORS headers                                       |
+| `POST /api/chat` unauthenticated                     | **401** JSON                                                 |
+| `GET /privacy`                                       | **200** — Browser extension, Record tab audio, connect token |
+| `GET /extension/connect` / `/extension/live`         | **307** (auth redirect — expected)                           |
+| `pnpm --filter @aproko/extension pack:chrome`        | **0.3.5** ZIP OK                                             |
+| `verify-extension.mjs`                               | Chrome + Safari parity OK                                    |
+
+Signed-in Capture → Ask, hover/H shortcuts, and Record tab audio still require manual pass in the owner browser profile.

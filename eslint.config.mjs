@@ -34,5 +34,14 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['apps/extension/scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
   eslintConfigPrettier,
 );

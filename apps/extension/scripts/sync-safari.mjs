@@ -79,10 +79,7 @@ await writeFile(
 );
 
 const sidepanelJs = await readFile(path.join(safariDir, 'sidepanel.js'), 'utf8');
-await writeFile(
-  path.join(safariDir, 'sidepanel.js'),
-  sidepanelJs.replace(/Chrome/g, 'Safari'),
-);
+await writeFile(path.join(safariDir, 'sidepanel.js'), sidepanelJs.replace(/Chrome/g, 'Safari'));
 
 const manifest = {
   manifest_version: 3,
@@ -93,9 +90,9 @@ const manifest = {
     default_title: 'Open Aproko Live Context',
     default_popup: 'sidepanel.html',
     default_icon: {
-      '16': 'icons/icon16.png',
-      '48': 'icons/icon48.png',
-      '128': 'icons/icon128.png',
+      16: 'icons/icon16.png',
+      48: 'icons/icon48.png',
+      128: 'icons/icon128.png',
     },
   },
   background: {
@@ -133,9 +130,9 @@ const manifest = {
     },
   ],
   icons: {
-    '16': 'icons/icon16.png',
-    '48': 'icons/icon48.png',
-    '128': 'icons/icon128.png',
+    16: 'icons/icon16.png',
+    48: 'icons/icon48.png',
+    128: 'icons/icon128.png',
   },
 };
 
@@ -171,10 +168,15 @@ Then open the generated Xcode project, run the macOS app target, and enable the 
 
 ## Use
 
-1. Sign in to Aproko at \`http://localhost:3000\` in Safari.
-2. Open the extension popup → Settings → Web app URL = your origin.
-3. On a normal webpage, press **Cmd+Shift+Y** to capture (or Capture in the popup).
+1. Sign in to Aproko in a **normal Safari tab**, then open **Open connect checklist** (handoff token). Clerk cookies do not reach the popup iframe.
+2. Open the extension popup → Settings → Web app URL = your origin (production: \`https://aprokoai.vercel.app\`).
+3. On a normal webpage, press **Cmd+Shift+Y** to capture (or Capture in the popup). **Cmd+Shift+H** pins hover text.
 4. Ask in the embedded live panel.
+5. Safari does **not** record tab audio (no \`tabCapture\`). Use the web app recorder on \`/transcripts\` or \`/dashboard\` instead.
+
+## Production smoke
+
+Follow \`docs/12-backlog/extension-production-smoke.md\`. Xcode wrapper lives at \`apps/extension/safari-app/Aproko Live Context/\` after converter runs.
 
 ## Sync after Chrome changes
 
