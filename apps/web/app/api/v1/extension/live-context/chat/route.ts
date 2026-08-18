@@ -30,12 +30,15 @@ export async function POST(request: Request) {
     return respond(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
+  const source = resolved?.source ?? null;
+  const handoff = resolved?.handoff ?? null;
+
   const workspace =
-    resolved.source === 'extension-handoff' && resolved.handoff
+    source === 'extension-handoff' && handoff
       ? {
-          workspaceId: resolved.handoff.workspaceId,
-          name: resolved.handoff.workspaceName,
-          role: resolved.handoff.role,
+          workspaceId: handoff.workspaceId,
+          name: handoff.workspaceName,
+          role: handoff.role,
         }
       : await resolveWorkspaceForUser(userId);
 

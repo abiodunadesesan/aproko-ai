@@ -28,6 +28,21 @@ export function ThemeToggle() {
     const next: AppTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     applyTheme(next);
+
+    // Cross-app theme sync to the extension (when running inside the extension-enabled web context).
+    try {
+      const maybeChrome = (globalThis as unknown as {
+        chrome?: { runtime?: { sendMessage?: unknown } };
+      }).chrome;
+      const sendMessage = maybeChrome?.runtime?.sendMessage;
+      if (typeof sendMessage === 'function') {
+        Promise.resolve(
+          sendMessage({ type: 'SET_THEME', theme: next }),
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore in non-extension contexts.
+    }
   }
 
   return (

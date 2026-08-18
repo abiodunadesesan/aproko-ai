@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { ExtensionRequestAuth } from '@/lib/extension/request-auth';
-import { resolveWorkspaceForUser, type ResolvedWorkspace } from '@/lib/storage/workspaces';
+import type { ResolvedWorkspace } from '@/lib/storage/workspaces';
 import { withPerformanceHeaders } from '@/lib/perf/http';
 
 type AuthDependency = (request: Request) => Promise<ExtensionRequestAuth | null>;
 
+type ResolveWorkspaceForUser = (workspaceId: string) => Promise<ResolvedWorkspace | null>;
+
 type CurrentWorkspaceRouteDependencies = {
   auth: AuthDependency;
-  resolveWorkspaceForUser: typeof resolveWorkspaceForUser;
+  resolveWorkspaceForUser: ResolveWorkspaceForUser;
 };
 
 function toPayload(workspace: ResolvedWorkspace) {

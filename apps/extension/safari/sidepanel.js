@@ -43,6 +43,23 @@ function setStatus(text) {
   statusEl.textContent = text || '';
 }
 
+function applyTheme(theme) {
+  const root = document.documentElement;
+  root.classList.remove('light');
+  root.classList.remove('dark');
+  root.classList.add(theme === 'dark' ? 'dark' : 'light');
+}
+
+async function syncStoredTheme() {
+  try {
+    const stored = await chrome.storage.local.get(['appTheme']);
+    applyTheme(stored.appTheme === 'dark' ? 'dark' : 'light');
+  } catch {
+    // default to light
+    applyTheme('light');
+  }
+}
+
 function panelUrl(base) {
   return `${normalizeWebAppUrl(base)}/extension/live?embed=1`;
 }
@@ -198,6 +215,11 @@ saveSettingsBtn.addEventListener('click', async () => {
 });
 
 chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === 'SET_THEME') {
+    applyTheme(message.theme === 'dark' ? 'dark' : 'light');
+    return;
+  }
+
   if (message?.type === 'APROKO_CONTEXT_UPDATED' && message.context) {
     lastContext = message.context;
     postContextToFrame(message.context);
@@ -215,6 +237,7 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 void loadSettings();
+void syncStoredTheme();
 void loadStoredContext();
 
 if (hoverEnabledEl) {

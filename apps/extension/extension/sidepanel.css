@@ -12,6 +12,19 @@
   --ring: #a1a1aa;
 }
 
+html.dark {
+  --bg: #09090b;
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --card: #18181b;
+  --border: #27272a;
+  --accent: #fafafa;
+  --accent-soft: rgba(250, 250, 250, 0.08);
+  --accent-strong: #e4e4e7;
+  --accent-fg: #18181b;
+  --ring: #52525b;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #09090b;

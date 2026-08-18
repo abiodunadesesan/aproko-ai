@@ -17,6 +17,7 @@ import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { ChatMessageThread } from '@/components/app/chat-message-thread';
 import { ChatPromptInput } from '@/components/app/chat-prompt-input';
+import { AuraBackground } from '@/components/AuraBackground';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -983,6 +984,7 @@ export default function ChatPage() {
         </Sheet>
 
         <div className="relative flex min-h-[calc(100svh-3rem)] flex-col bg-background">
+          <AuraBackground model={selectedModel} isStreaming={isSending} />
           <header className="flex shrink-0 items-center justify-between gap-3 border-b border-black/[0.04] px-4 py-3 backdrop-blur-xl dark:border-white/[0.05] md:px-6">
             <div className="flex min-w-0 items-start gap-2">
               <Button

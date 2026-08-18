@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-async function loadExtensionShell(page: import('@playwright/test').Page, packageDir: string) {
+async function loadExtensionShell(page: Page, packageDir: string) {
   const htmlPath = path.join(packageDir, 'sidepanel.html');
   const cssPath = path.join(packageDir, 'sidepanel.css');
   const [htmlRaw, cssRaw] = await Promise.all([

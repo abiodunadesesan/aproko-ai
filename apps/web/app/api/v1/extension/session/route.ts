@@ -16,13 +16,16 @@ export async function GET(request: Request) {
     return respond(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
-  if (resolved.source === 'extension-handoff' && resolved.handoff) {
+  const source = resolved?.source ?? null;
+  const handoff = resolved?.handoff ?? null;
+
+  if (source === 'extension-handoff' && handoff) {
     return respond(
       NextResponse.json({
         data: {
-          workspaceId: resolved.handoff.workspaceId,
-          name: resolved.handoff.workspaceName,
-          role: resolved.handoff.role,
+          workspaceId: handoff.workspaceId,
+          name: handoff.workspaceName,
+          role: handoff.role,
           source: 'extension-handoff',
         },
       }),

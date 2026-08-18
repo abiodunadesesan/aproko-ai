@@ -215,6 +215,21 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'SET_THEME') {
+    void (async () => {
+      try {
+        const theme = message.theme === 'dark' ? 'dark' : 'light';
+        await chrome.storage.local.set({ appTheme: theme });
+        // Fan-out to any open side-panels/popups.
+        await chrome.runtime.sendMessage({ type: 'SET_THEME', theme }).catch(() => {});
+        sendResponse({ ok: true });
+      } catch {
+        sendResponse({ ok: false });
+      }
+    })();
+    return true;
+  }
+
   if (message?.type === 'APROKO_HOVER_UPDATED') {
     const activeHoverContext = message.activeHoverContext || '';
     void chrome.storage.session.set({

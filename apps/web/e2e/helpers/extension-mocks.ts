@@ -1,8 +1,8 @@
-import type { Page } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 
 const WORKSPACE_ID = 'ws_e2e_user';
 
-function liveContextChatMockHandler(route: import('@playwright/test').Route) {
+function liveContextChatMockHandler(route: Route) {
   let userQuery = 'Summarize this page';
   try {
     const body = route.request().postDataJSON() as { userQuery?: string };
