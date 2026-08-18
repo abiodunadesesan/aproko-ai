@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Aproko Live Context",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Live tab scrape + cursor hover context for Aproko AI.",
   "action": {
     "default_title": "Open Aproko Live Context",
@@ -25,6 +25,13 @@
         "mac": "Command+Shift+Y"
       },
       "description": "Capture the active page for Aproko (then open the side panel from the toolbar)"
+    },
+    "capture-hover-context": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+H",
+        "mac": "Command+Shift+H"
+      },
+      "description": "Capture the text under the cursor for Aproko hover context"
     }
   },
   "permissions": ["activeTab", "scripting", "sidePanel", "commands", "storage", "tabs"],

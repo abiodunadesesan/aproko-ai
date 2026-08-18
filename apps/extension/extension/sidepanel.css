@@ -316,6 +316,15 @@ h1 {
   display: none;
 }
 
+.transcript-item .transcript-kind {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
 @keyframes feed-in {
   from {
     opacity: 0;
@@ -382,6 +391,14 @@ button {
 
 .secondary-btn {
   align-self: flex-start;
+  margin-top: auto;
+}
+
+.transcript-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-top: auto;
 }
 

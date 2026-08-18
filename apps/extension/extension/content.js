@@ -535,11 +535,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
     return true;
   }
-  if (message?.type === 'APROKO_GET_HOVER_CONTEXT') {
+  if (message?.type === 'APROKO_GET_HOVER_CONTEXT' || message?.type === 'APROKO_CAPTURE_HOVER') {
+    const hover =
+      state.activeHoverContext ||
+      resolveHoverContext(state.lastPointer.x, state.lastPointer.y);
+    if (!hover?.localText) {
+      sendResponse({
+        ok: false,
+        error: 'No hover target. Move the cursor over readable text, then press Cmd/Ctrl+Shift+H.',
+      });
+      return true;
+    }
     sendResponse({
       ok: true,
-      hover: state.activeHoverContext,
-      activeHoverContext: formatHoverForPrompt(state.activeHoverContext),
+      hover,
+      activeHoverContext: formatHoverForPrompt(hover),
     });
     return true;
   }

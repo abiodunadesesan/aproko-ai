@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
-import { Mic, Square, Upload } from 'lucide-react';
+import { Mic, Upload } from 'lucide-react';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import {
   AppPageFrame,
@@ -14,6 +14,7 @@ import {
 } from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
 import { TableSkeleton } from '@/components/app/table-skeleton';
+import { AudioRecorder } from '@/components/study/audio-recorder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -55,14 +56,6 @@ function isThisMonth(isoDate: string | null): boolean {
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
 }
 
-function formatDuration(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, '0');
-  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
-}
-
 export default function TranscriptsPage() {
   const { workspaceId, isLoading: isWorkspaceLoading, error: workspaceError } = useWorkspace();
   const [transcripts, setTranscripts] = useState<TranscriptSource[]>([]);
@@ -71,14 +64,8 @@ export default function TranscriptsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
 
   async function loadTranscripts() {
     setIsLoading(true);
@@ -101,12 +88,6 @@ export default function TranscriptsPage() {
 
   useEffect(() => {
     void loadTranscripts();
-    return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
-      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -163,75 +144,6 @@ export default function TranscriptsPage() {
       return;
     }
     await submitTranscriptFile(file);
-  }
-
-  async function startRecording() {
-    setError(null);
-    setNotice(null);
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Microphone recording is not supported in this browser.');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      chunksRef.current = [];
-
-      const preferredType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : '';
-
-      const recorder = preferredType
-        ? new MediaRecorder(stream, { mimeType: preferredType })
-        : new MediaRecorder(stream);
-
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        mediaRecorderRef.current = null;
-        chunksRef.current = [];
-
-        const extension = blob.type.includes('mp4') ? 'mp4' : 'webm';
-        const recording = new File([blob], `mic-recording-${Date.now()}.${extension}`, {
-          type: blob.type || 'audio/webm',
-        });
-        void submitTranscriptFile(recording);
-      };
-
-      recorder.start(1000);
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      timerRef.current = window.setInterval(() => {
-        setRecordingSeconds((value) => value + 1);
-      }, 1000);
-    } catch {
-      setError('Microphone permission was denied or unavailable.');
-    }
-  }
-
-  function stopRecording() {
-    if (timerRef.current) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setIsRecording(false);
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== 'inactive') {
-      recorder.stop();
-    }
   }
 
   if (isWorkspaceLoading || !workspaceId) {
@@ -307,37 +219,23 @@ export default function TranscriptsPage() {
               </Button>
             </form>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              {isRecording ? (
-                <Button
-                  className="w-full rounded-full sm:w-auto"
-                  disabled={isUploading}
-                  onClick={stopRecording}
-                  type="button"
-                  variant="destructive"
-                >
-                  <Square className="mr-1.5 h-4 w-4" />
-                  Stop ({formatDuration(recordingSeconds)})
-                </Button>
-              ) : (
-                <Button
-                  className="w-full rounded-full sm:w-auto"
-                  disabled={isUploading}
-                  onClick={() => void startRecording()}
-                  type="button"
-                  variant="outline"
-                >
-                  <Mic className="mr-1.5 h-4 w-4" />
-                  Record microphone
-                </Button>
-              )}
-              <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Text/subtitle files upload immediately. Audio is transcribed with Whisper via{' '}
-                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">GROQ_API_KEY</code>{' '}
-                (preferred) or{' '}
-                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">OPENAI_API_KEY</code>.
-              </p>
-            </div>
+            <AudioRecorder
+              compact
+              disabled={isUploading}
+              onBusyChange={setIsRecording}
+              onError={setError}
+              onSaved={(info) => {
+                setNotice(`Transcribed and saved “${info.name}”.`);
+                void loadTranscripts();
+              }}
+              workspaceId={workspaceId}
+            />
+            <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Text/subtitle files upload immediately. Audio is transcribed with Whisper via{' '}
+              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">GROQ_API_KEY</code>{' '}
+              (preferred) or{' '}
+              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">OPENAI_API_KEY</code>.
+            </p>
           </AppPanelBody>
         </AppPanel>
 

@@ -9,7 +9,7 @@
   <body class="shell">
     <header class="header">
       <div>
-        <p class="eyebrow">Aproko · Safari v0.3.3</p>
+        <p class="eyebrow">Aproko · Safari v0.3.4</p>
         <h1>Live context</h1>
       </div>
       <div class="header-actions">
@@ -46,12 +46,20 @@
 
     <section class="mode-panel" data-mode-panel="transcript" hidden>
       <div class="glass-card transcript-card">
-        <p class="card-title">Live transcript</p>
-        <p class="card-copy muted">
-          Capture a tab or open <a id="transcripts-link" href="#" target="_blank" rel="noreferrer">Transcripts</a>
-          in the web app to review speech-to-text output and generate study material.
+        <div class="hover-feed-header">
+          <p class="card-title">Live transcript</p>
+          <p class="card-copy muted">
+            Streaming page capture and cursor hover text. Press Cmd/Ctrl+Shift+H to pin the current hover block.
+          </p>
+        </div>
+        <ul id="live-transcript-list" class="hover-feed-list transcript-log" aria-live="polite"></ul>
+        <p id="live-transcript-empty" class="hover-feed-empty muted">
+          Capture a tab or hover readable text. Hover focus must be enabled in Settings.
         </p>
-        <button id="open-transcripts-btn" class="secondary-btn" type="button">Open transcripts</button>
+        <div class="transcript-actions">
+          <button id="open-transcripts-btn" class="secondary-btn" type="button">Open transcripts</button>
+          <a id="transcripts-link" href="#" target="_blank" rel="noreferrer">Saved transcripts</a>
+        </div>
       </div>
     </section>
 
@@ -83,6 +91,7 @@
         Sign in to Aproko in a <strong>full browser tab</strong> first (Settings → Open connect checklist).
         Google sign-in does not work inside this panel. After sign-in, click Reload in the panel or
         reopen it. Alt/Option-click solve works even when this panel is closed.
+        Shortcuts: Capture tab = Cmd/Ctrl+Shift+Y · Hover capture = Cmd/Ctrl+Shift+H.
       </p>
       <a id="connect-link" href="#" target="_blank" rel="noreferrer">Open connect checklist</a>
     </details>

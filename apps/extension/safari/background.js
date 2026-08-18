@@ -198,7 +198,61 @@ async function captureAndNotify() {
   return context;
 }
 
+async function captureHoverAndNotify() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    throw new Error('No active tab');
+  }
+  if (isRestrictedTabUrl(tab.url)) {
+    throw new Error(
+      'Cannot capture hover on this tab. Switch to a normal webpage (http/https), then try again.',
+    );
+  }
+
+  let response = null;
+  try {
+    response = await chrome.tabs.sendMessage(tab.id, { type: 'APROKO_CAPTURE_HOVER' });
+  } catch {
+    // Content script may not be injected yet.
+  }
+
+  if (!response?.ok || !response.hover?.localText) {
+    throw new Error(
+      response?.error ||
+        'No hover target. Move the cursor over readable text, then press Cmd/Ctrl+Shift+H.',
+    );
+  }
+
+  const activeHoverContext = response.activeHoverContext || '';
+  await chrome.storage.session.set({
+    lastHoverContext: activeHoverContext,
+    lastHoverAt: Date.now(),
+    lastHoverTabId: tab.id,
+  });
+  chrome.runtime
+    .sendMessage({
+      type: 'APROKO_HOVER_CAPTURED',
+      hover: response.hover,
+      activeHoverContext,
+      tabId: tab.id,
+    })
+    .catch(() => {});
+  await setCaptureBadge('H');
+  return {
+    hover: response.hover,
+    activeHoverContext,
+  };
+}
+
 chrome.commands.onCommand.addListener((command) => {
+  if (command === 'capture-hover-context') {
+    void captureHoverAndNotify().catch(async (error) => {
+      console.error('Aproko hover capture failed', error);
+      await setCaptureBadge('!');
+    });
+    return;
+  }
+
   if (command !== 'toggle-aproko-live-context') {
     return;
   }
@@ -335,6 +389,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           ok: false,
           error: error instanceof Error ? error.message : 'Capture failed',
+        }),
+      );
+    return true;
+  }
+
+  if (message?.type === 'APROKO_CAPTURE_HOVER_NOW') {
+    captureHoverAndNotify()
+      .then((payload) => sendResponse({ ok: true, ...payload }))
+      .catch((error) =>
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Hover capture failed',
         }),
       );
     return true;

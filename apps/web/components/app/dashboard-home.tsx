@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { AppReveal, AppStagger, AppStaggerItem } from '@/components/app/app-motion';
 import { DashboardWorkspace } from '@/components/dashboard-workspace';
+import { AudioRecorder } from '@/components/study/audio-recorder';
+import { useWorkspace } from '@/components/workspace/workspace-provider';
 import {
   AppPageFrame,
   AppPanel,
@@ -211,6 +213,7 @@ export function DashboardHome({
 }: DashboardHomeProps) {
   const metrics = buildMetrics(stats);
   const greeting = displayName ? `Welcome back, ${displayName}` : 'Welcome back';
+  const { workspaceId } = useWorkspace();
 
   return (
     <AppPageFrame className="sm:space-y-8" withAtmosphere={false}>
@@ -375,6 +378,16 @@ export function DashboardHome({
                           </Link>
                         );
                       })}
+                    </AppPanelBody>
+                  </AppPanel>
+
+                  <AppPanel>
+                    <AppPanelHeader
+                      description="User-initiated mic capture. Saved to Transcripts."
+                      title="Record a lecture"
+                    />
+                    <AppPanelBody className="pt-0 sm:pt-0">
+                      <AudioRecorder compact workspaceId={workspaceId} />
                     </AppPanelBody>
                   </AppPanel>
 

@@ -19,7 +19,7 @@ the desktop companion epic (`03-desktop-companion-v2.md`).
 ## Shipped MVP shape
 
 1. **Chrome Extension (Manifest V3)** — `apps/extension/extension` (v0.3+)
-   - Background service worker + `Ctrl/Cmd+Shift+Y` (capture only; panel opens via toolbar icon)
+   - Background service worker + `Ctrl/Cmd+Shift+Y` (full-page capture) and `Ctrl/Cmd+Shift+H` (hover-context capture); panel opens via toolbar icon
    - Content script: throttled cursor hover (`elementFromPoint`, ~175ms) + on-demand full-page scrape for “Capture tab” and Alt/Option-click solve
    - Shadow DOM capture chip + live hover preview
    - Side panel embeds `/extension/live?embed=1` (Clerk cookies)

@@ -101,6 +101,10 @@ const safariSidepanelCss = await readText(safariDir, 'sidepanel.css');
 assertIncludes(chromeBackground, 'chrome.sidePanel', 'Chrome background uses sidePanel API');
 assertExcludes(safariBackground, 'chrome.sidePanel.setPanelBehavior', 'Safari background must not call sidePanel');
 assertIncludes(safariBackground, 'safari-web-extension', 'Safari restricted URL patterns');
+assertIncludes(JSON.stringify(chromeManifest.commands), 'capture-hover-context', 'Hover capture command');
+assertIncludes(JSON.stringify(chromeManifest.commands), 'Ctrl+Shift+H', 'Hover capture shortcut');
+assertIncludes(JSON.stringify(safariManifest.commands), 'capture-hover-context', 'Safari hover capture command');
+assertIncludes(chromeBackground, 'capture-hover-context', 'Background handles hover capture command');
 assertIncludes(chromeBackground, '/api/v1/live-context/solve', 'Solve flat API path');
 assertExcludes(chromeBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
 assertExcludes(safariBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
@@ -115,6 +119,7 @@ assertIncludes(chromeSidepanelCss, 'min-width: 400px', 'Popup min-width for Safa
 const safariSidepanelHtml = await readText(safariDir, 'sidepanel.html');
 assertIncludes(safariSidepanelHtml, 'Safari v', 'Safari sidepanel branding');
 assertIncludes(safariSidepanelHtml, 'full browser tab', 'Safari sign-in guidance');
+assertIncludes(safariSidepanelHtml, 'live-transcript-list', 'Safari live transcript stream');
 
 console.log('✔ Chrome manifest v' + chromeManifest.version);
 console.log('✔ Safari manifest v' + safariManifest.version);

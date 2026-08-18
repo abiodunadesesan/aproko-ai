@@ -110,6 +110,13 @@ const manifest = {
       },
       description: 'Capture the active page for Aproko (then open the toolbar popup)',
     },
+    'capture-hover-context': {
+      suggested_key: {
+        default: 'Ctrl+Shift+H',
+        mac: 'Command+Shift+H',
+      },
+      description: 'Capture the text under the cursor for Aproko hover context',
+    },
   },
   permissions: ['activeTab', 'scripting', 'commands', 'storage', 'tabs'],
   host_permissions: [

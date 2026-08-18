@@ -30,6 +30,8 @@ leaving the browsing flow.
 | BE-6 | Capture requires explicit user action | Done |
 | BE-7 | Cursor focus structured UI + page topic summary | Done |
 | BE-8 | Safari Web Extension package (popup UI) | Done |
+| BE-9 | `Ctrl/Cmd+Shift+H` captures text under the cursor | Done |
+| BE-10 | Side panel Live Transcript streams page + hover text | Done |
 
 ## UX specification
 

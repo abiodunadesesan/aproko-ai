@@ -7,6 +7,7 @@ import { ArrowUpRight, MessageSquare } from 'lucide-react';
 import { ChatPromptInput } from '@/components/app/chat-prompt-input';
 import { AppPanel, AppPanelBody, AppPanelHeader } from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
+import { AudioRecorder } from '@/components/study/audio-recorder';
 import { FlashcardDeck } from '@/components/study/flashcard';
 import { PresentationBuilder } from '@/components/study/presentation-builder';
 import { QuizSimulator, type QuizSimulatorAttempt, type QuizSimulatorQuestion } from '@/components/study/quiz-simulator';
@@ -163,7 +164,7 @@ export function DashboardChatPanel() {
           description="Start a grounded conversation without leaving the dashboard."
           title="Quick ask"
         />
-        <AppPanelBody className="pt-0 sm:pt-0">
+        <AppPanelBody className="space-y-4 pt-0 sm:pt-0">
           <ChatPromptInput
             error={null}
             input={input}
@@ -175,6 +176,12 @@ export function DashboardChatPanel() {
             onToggleVoice={() => {}}
             textareaRef={textareaRef}
           />
+          <div className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-3.5 dark:border-white/[0.07] dark:bg-white/[0.03]">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Record a lecture
+            </p>
+            <AudioRecorder workspaceId={workspaceId} />
+          </div>
         </AppPanelBody>
       </AppPanel>
     </div>

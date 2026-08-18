@@ -24,6 +24,7 @@ test.describe('Chrome extension shell', () => {
 
     await expect(page.getByRole('heading', { name: 'Live context' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Capture tab' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Live Transcript' })).toBeVisible();
     await expect(page.locator('summary')).toContainText('Settings');
 
     const captureButton = page.getByRole('button', { name: 'Capture tab' });

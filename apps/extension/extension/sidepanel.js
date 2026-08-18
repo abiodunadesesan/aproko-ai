@@ -1,5 +1,6 @@
 const DEFAULT_WEB_APP_URL = 'https://aprokoai.vercel.app';
 const MAX_HOVER_FEED_ITEMS = 12;
+const MAX_TRANSCRIPT_ITEMS = 40;
 
 const captureBtn = document.getElementById('capture-btn');
 const statusEl = document.getElementById('status');
@@ -12,6 +13,7 @@ const openTranscriptsBtn = document.getElementById('open-transcripts-btn');
 const appFrame = document.getElementById('app-frame');
 const trackingIndicator = document.getElementById('tracking-indicator');
 const hoverFeedList = document.getElementById('hover-feed-list');
+const liveTranscriptList = document.getElementById('live-transcript-list');
 const modePills = Array.from(document.querySelectorAll('.mode-pill'));
 const modePanels = Array.from(document.querySelectorAll('.mode-panel'));
 
@@ -21,6 +23,7 @@ let activeMode = 'ask';
 let hoverEnabled = true;
 let trackingState = 'idle';
 let trackingResetTimer = null;
+let lastTranscriptFingerprint = '';
 
 function normalizeWebAppUrl(url) {
   let value = String(url || DEFAULT_WEB_APP_URL).trim().replace(/\/$/, '');
@@ -180,6 +183,45 @@ function prependHoverFeedItem(hover) {
   }
 }
 
+function appendLiveTranscript({ kind, text, meta }) {
+  if (!liveTranscriptList) {
+    return;
+  }
+  const snippet = String(text || '').trim();
+  if (!snippet) {
+    return;
+  }
+
+  const fingerprint = `${kind}:${snippet.slice(0, 160)}`;
+  if (fingerprint === lastTranscriptFingerprint) {
+    return;
+  }
+  lastTranscriptFingerprint = fingerprint;
+
+  const item = document.createElement('li');
+  item.className = 'hover-feed-item transcript-item';
+
+  const time = document.createElement('time');
+  time.dateTime = new Date().toISOString();
+  time.textContent = formatFeedTime(Date.now());
+
+  const kindEl = document.createElement('span');
+  kindEl.className = 'transcript-kind';
+  kindEl.textContent = kind === 'page' ? 'Page snapshot' : kind === 'capture' ? 'Hover capture' : 'Hover';
+
+  const copy = document.createElement('p');
+  const prefix = meta ? `${meta} — ` : '';
+  const body = `${prefix}${snippet}`;
+  copy.textContent = body.length > 420 ? `${body.slice(0, 417)}…` : body;
+
+  item.append(time, kindEl, copy);
+  liveTranscriptList.append(item);
+  while (liveTranscriptList.children.length > MAX_TRANSCRIPT_ITEMS) {
+    liveTranscriptList.firstElementChild?.remove();
+  }
+  item.scrollIntoView({ block: 'end' });
+}
+
 function setActiveMode(mode) {
   activeMode = mode;
 
@@ -226,9 +268,18 @@ async function loadStoredContext() {
   const stored = await chrome.storage.session.get(['lastLiveContext', 'lastHoverContext']);
   if (stored.lastLiveContext) {
     lastContext = stored.lastLiveContext;
+    const pageText = String(stored.lastLiveContext.pageText || '').trim();
+    if (pageText) {
+      appendLiveTranscript({
+        kind: 'page',
+        text: pageText,
+        meta: stored.lastLiveContext.title || stored.lastLiveContext.url || '',
+      });
+    }
   }
   if (stored.lastHoverContext && hoverFeedList && !hoverFeedList.children.length) {
     prependHoverFeedItem({ localText: stored.lastHoverContext });
+    appendLiveTranscript({ kind: 'hover', text: stored.lastHoverContext });
     setTrackingState('locked');
   }
 }
@@ -247,11 +298,24 @@ function handleHoverFanout(message) {
   setTrackingState(message.hover?.localText ? 'locked' : 'active');
   scheduleTrackingIdle();
   prependHoverFeedItem({ localText: snippet });
+  appendLiveTranscript({ kind: 'hover', text: snippet });
   postHoverToFrame(message);
 
   if (activeMode === 'ask' && message.hover?.localText) {
     setStatus(`Hover: ${message.hover.localText.slice(0, 80)}`);
   }
+}
+
+function handleHoverCaptured(message) {
+  const snippet = message.hover?.localText || message.activeHoverContext || '';
+  if (!snippet) {
+    return;
+  }
+  prependHoverFeedItem({ localText: snippet });
+  appendLiveTranscript({ kind: 'capture', text: snippet });
+  setTrackingState('locked');
+  setActiveMode('transcript');
+  setStatus('Hover captured — Live Transcript');
 }
 
 appFrame.addEventListener('load', () => {
@@ -320,6 +384,11 @@ captureBtn.addEventListener('click', () => {
     }
     lastContext = response.context;
     postContextToFrame(response.context);
+    appendLiveTranscript({
+      kind: 'page',
+      text: response.context?.pageText || '',
+      meta: response.context?.title || response.context?.url || '',
+    });
     setStatus('Captured — ask in the panel below');
   });
 });
@@ -356,10 +425,19 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === 'APROKO_CONTEXT_UPDATED' && message.context) {
     lastContext = message.context;
     postContextToFrame(message.context);
+    appendLiveTranscript({
+      kind: 'page',
+      text: message.context?.pageText || '',
+      meta: message.context?.title || message.context?.url || '',
+    });
     setStatus('Captured — ask in the panel below');
   }
   if (message?.type === 'APROKO_EXTENSION_AUTH_UPDATED') {
     void pushExtensionAuth();
+  }
+  if (message?.type === 'APROKO_HOVER_CAPTURED') {
+    handleHoverCaptured(message);
+    return;
   }
   if (message?.type === 'APROKO_HOVER_FANOUT' || message?.type === 'APROKO_HOVER_UPDATED') {
     handleHoverFanout(message);

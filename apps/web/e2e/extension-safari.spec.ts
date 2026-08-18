@@ -25,6 +25,7 @@ test.describe('Safari extension shell', () => {
     await expect(page.getByText(/Safari v/i)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Live context' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Capture tab' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Live Transcript' })).toBeVisible();
     await expect(page.locator('details')).toContainText(/full browser tab/i);
 
     const captureButton = page.getByRole('button', { name: 'Capture tab' });
