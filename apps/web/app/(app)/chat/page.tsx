@@ -17,6 +17,7 @@ import { AppPageShell } from '@/components/app/app-page-shell';
 import { ChatSessionSidebar } from '@/components/app/chat-session-sidebar';
 import { ChatMessageThread } from '@/components/app/chat-message-thread';
 import { ChatPromptInput } from '@/components/app/chat-prompt-input';
+import { DASHBOARD_CHAT_DRAFT_KEY } from '@/components/dashboard/dashboard-workspace-panels';
 import { AuraBackground } from '@/components/AuraBackground';
 import { Button } from '@/components/ui/button';
 import {
@@ -800,7 +801,15 @@ export default function ChatPage() {
 
     const params =
       typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const wantsNewChat = params?.get('new') === '1';
+    const dashboardDraft =
+      typeof window !== 'undefined'
+        ? window.sessionStorage.getItem(DASHBOARD_CHAT_DRAFT_KEY)?.trim() || null
+        : null;
+    if (dashboardDraft && typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(DASHBOARD_CHAT_DRAFT_KEY);
+      setInput(dashboardDraft);
+    }
+    const wantsNewChat = params?.get('new') === '1' || Boolean(dashboardDraft);
     const searchSessionId = params?.get('session') ?? null;
     const storedSessionId =
       typeof window !== 'undefined'
@@ -832,7 +841,7 @@ export default function ChatPage() {
       resolvedSourceName = null;
     }
 
-    if (resolvedSourceId) {
+    if (resolvedSourceId && !dashboardDraft) {
       setFocusSourceId(resolvedSourceId);
       setFocusSourceName(resolvedSourceName);
       if (typeof window !== 'undefined') {

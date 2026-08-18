@@ -13,6 +13,9 @@ import {
   appSurface,
 } from '@/components/app/app-surface';
 import { EmptyState } from '@/components/app/empty-state';
+import { FlashcardDeck } from '@/components/study/flashcard';
+import { PresentationBuilder } from '@/components/study/presentation-builder';
+import { QuizSimulator } from '@/components/study/quiz-simulator';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -169,6 +172,7 @@ export default function StudyPage() {
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [isDeletingDeck, setIsDeletingDeck] = useState(false);
   const [quizAnswerDrafts, setQuizAnswerDrafts] = useState<Record<string, number>>({});
+  const [activeOutlineId, setActiveOutlineId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [lastFailedGenerate, setLastFailedGenerate] = useState<StudyGenerateAction | null>(null);
@@ -233,6 +237,14 @@ export default function StudyPage() {
   const hasSlideOutlines = useMemo(
     () => summaries.some((summary) => isSlideOutlineTitle(summary.title)),
     [summaries],
+  );
+  const slideOutlines = useMemo(
+    () => summaries.filter((summary) => isSlideOutlineTitle(summary.title)),
+    [summaries],
+  );
+  const activeOutline = useMemo(
+    () => slideOutlines.find((summary) => summary.id === activeOutlineId) ?? slideOutlines[0] ?? null,
+    [activeOutlineId, slideOutlines],
   );
 
   const selectedTranscript = useMemo(
@@ -758,14 +770,7 @@ export default function StudyPage() {
     }
   }
 
-  function setQuizAnswer(questionId: string, selectedOptionIndex: number) {
-    setQuizAnswerDrafts((current) => ({
-      ...current,
-      [questionId]: selectedOptionIndex,
-    }));
-  }
-
-  async function submitQuizAttempt() {
+  async function submitQuizAttempt(answersOverride?: Record<string, number>) {
     if (!activeQuiz) {
       setError('Select a quiz before submitting.');
       return;
@@ -777,10 +782,11 @@ export default function StudyPage() {
 
     const answers = quizQuestions.map((question) => ({
       questionId: question.id,
-      selectedOptionIndex: quizAnswerDrafts[question.id] ?? -1,
+      selectedOptionIndex:
+        answersOverride?.[question.id] ?? quizAnswerDrafts[question.id] ?? -1,
     }));
 
-    if (answers.some((answer) => answer.selectedOptionIndex < 0)) {
+    if (!answersOverride && answers.some((answer) => answer.selectedOptionIndex < 0)) {
       setError('Answer all questions before submitting.');
       return;
     }
@@ -1326,26 +1332,13 @@ export default function StudyPage() {
                         No flashcards in this deck yet.
                       </p>
                     ) : (
-                      <div className="space-y-2">
-                        {cards.map((card) => (
-                          <article
-                            className={cn(
-                              appSurface.inset,
-                              'px-3 py-2.5 transition-colors hover:border-zinc-200 hover:bg-white/90 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/70',
-                            )}
-                            key={card.id}
-                          >
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                              Q
-                            </p>
-                            <p className="text-sm text-zinc-900 dark:text-zinc-100">{card.question}</p>
-                            <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                              A
-                            </p>
-                            <p className="text-sm text-zinc-700 dark:text-zinc-300">{card.answer}</p>
-                          </article>
-                        ))}
-                      </div>
+                      <FlashcardDeck
+                        cards={cards.map((card) => ({
+                          id: card.id,
+                          question: card.question,
+                          answer: card.answer,
+                        }))}
+                      />
                     )}
                   </div>
                 ) : null}
@@ -1430,15 +1423,6 @@ export default function StudyPage() {
                       >
                         {studyGenerateButtonLabel('quiz', isGeneratingQuiz, quizQuestions.length > 0)}
                       </Button>
-                      <Button
-                        className="w-full rounded-xl sm:w-auto"
-                        disabled={isSubmittingQuiz || quizQuestions.length === 0}
-                        onClick={() => void submitQuizAttempt()}
-                        type="button"
-                        variant="outline"
-                      >
-                        {isSubmittingQuiz ? 'Submitting...' : 'Submit Attempt'}
-                      </Button>
                     </div>
                     {isGeneratingQuiz ? (
                       <p className="text-xs text-zinc-500 dark:text-zinc-400" role="status">
@@ -1446,57 +1430,13 @@ export default function StudyPage() {
                       </p>
                     ) : null}
 
-                    {quizQuestions.length === 0 ? (
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">No quiz questions yet.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {quizQuestions.map((question, index) => (
-                          <article
-                            className={cn(
-                              appSurface.inset,
-                              'px-3 py-2.5 transition-colors hover:border-zinc-200 hover:bg-white/90 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/70',
-                            )}
-                            key={question.id}
-                          >
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                              {index + 1}. {question.prompt}
-                            </p>
-                            <div className="mt-2 space-y-1">
-                              {question.options.map((option, optionIndex) => (
-                                <label
-                                  className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                  key={`${question.id}-${optionIndex}`}
-                                >
-                                  <input
-                                    aria-label={`Select answer ${option}`}
-                                    checked={quizAnswerDrafts[question.id] === optionIndex}
-                                    name={`quiz-${question.id}`}
-                                    onChange={() => setQuizAnswer(question.id, optionIndex)}
-                                    type="radio"
-                                    value={optionIndex}
-                                  />
-                                  <span>{option}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    )}
-
-                    {quizAttempts.length > 0 ? (
-                      <div className={cn(appSurface.inset, 'space-y-1 p-3')}>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                          Recent attempts
-                        </p>
-                        {quizAttempts.slice(0, 3).map((attempt) => (
-                          <p className="text-sm text-zinc-700 dark:text-zinc-300" key={attempt.id}>
-                            {attempt.score}/{attempt.totalQuestions} -{' '}
-                            {new Date(attempt.createdAt).toLocaleString()}
-                          </p>
-                        ))}
-                      </div>
-                    ) : null}
+                    <QuizSimulator
+                      attempts={quizAttempts}
+                      isSubmitting={isSubmittingQuiz}
+                      onSubmit={(answers) => submitQuizAttempt(answers)}
+                      questions={quizQuestions}
+                      title={activeQuiz.title}
+                    />
                   </div>
                 ) : null}
               </AppPanelBody>
@@ -1537,6 +1477,45 @@ export default function StudyPage() {
                       generationSourceDescription,
                     )}
                   </p>
+                ) : null}
+
+                {hasSlideOutlines ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      Presentation builder
+                    </p>
+                    {slideOutlines.length > 1 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {slideOutlines.map((outline) => (
+                          <button
+                            className={cn(
+                              'rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                              outline.id === activeOutline?.id
+                                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                                : 'border border-black/[0.08] text-zinc-600 hover:bg-zinc-100 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5',
+                            )}
+                            key={outline.id}
+                            onClick={() => setActiveOutlineId(outline.id)}
+                            type="button"
+                          >
+                            {outline.title}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <PresentationBuilder
+                      outline={
+                        activeOutline
+                          ? {
+                              id: activeOutline.id,
+                              title: activeOutline.title,
+                              content: activeOutline.content,
+                              createdAt: activeOutline.createdAt,
+                            }
+                          : null
+                      }
+                    />
+                  </div>
                 ) : null}
 
                 <Input

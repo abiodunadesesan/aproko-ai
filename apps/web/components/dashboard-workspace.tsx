@@ -1,19 +1,21 @@
 'use client';
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowUpRight,
   Layers,
   MessageSquare,
   Presentation,
   ScrollText,
   Sparkles,
 } from 'lucide-react';
-import { AppPanel, AppPanelBody, AppPanelHeader } from '@/components/app/app-surface';
-import { Button } from '@/components/ui/button';
+import {
+  DashboardChatPanel,
+  DashboardFlashcardsPanel,
+  DashboardPresentationsPanel,
+  DashboardQuizzesPanel,
+} from '@/components/dashboard/dashboard-workspace-panels';
 import { cn } from '@/lib/utils';
 
 export type DashboardWorkspaceTab =
@@ -42,117 +44,30 @@ const tabMotion = {
   transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
 };
 
-type WorkspaceHubPanelProps = {
-  title: string;
-  description: string;
-  href: string;
-  cta: string;
-  highlights: string[];
-};
-
-function WorkspaceHubPanel({ title, description, href, cta, highlights }: WorkspaceHubPanelProps) {
-  return (
-    <AppPanel>
-      <AppPanelHeader description={description} title={title} />
-      <AppPanelBody className="space-y-4 pt-0 sm:pt-0">
-        <ul className="space-y-2">
-          {highlights.map((item) => (
-            <li
-              className="rounded-xl border border-black/[0.06] bg-black/[0.02] px-3.5 py-2.5 text-sm text-zinc-600 dark:border-white/[0.07] dark:bg-white/[0.03] dark:text-zinc-300"
-              key={item}
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
-        <Button asChild className="rounded-full">
-          <Link href={href}>
-            {cta}
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </AppPanelBody>
-    </AppPanel>
-  );
-}
-
 type DashboardWorkspaceProps = {
   overview: ReactNode;
-  chatSessionCount: number;
-  studyItemCount: number;
 };
 
-function hubPanelsForTab(
-  tab: DashboardWorkspaceTab,
-  chatSessionCount: number,
-  studyItemCount: number,
-): WorkspaceHubPanelProps | null {
+function renderWorkspaceTab(tab: DashboardWorkspaceTab) {
   switch (tab) {
     case 'chat':
-      return {
-        title: 'Grounded chat',
-        description: 'Ask questions with citations from your library, memory, and transcripts.',
-        href: '/chat',
-        cta: 'Open chat workspace',
-        highlights: [
-          chatSessionCount > 0
-            ? `${chatSessionCount} active session${chatSessionCount === 1 ? '' : 's'} in this workspace`
-            : 'Start your first grounded conversation',
-          'Voice input and multi-model switching',
-          'Retrieval-backed answers with source citations',
-        ],
-      };
+      return <DashboardChatPanel />;
     case 'flashcards':
-      return {
-        title: 'Flashcard decks',
-        description: 'Generate spaced-repetition decks from notes and transcript sources.',
-        href: '/study',
-        cta: 'Open study workspace',
-        highlights: [
-          studyItemCount > 0
-            ? `${studyItemCount} study output${studyItemCount === 1 ? '' : 's'} already in workspace`
-            : 'Generate your first deck from a note or transcript',
-          'LLM-backed question and answer pairs',
-          'Flip cards inline during review sessions',
-        ],
-      };
+      return <DashboardFlashcardsPanel />;
     case 'quizzes':
-      return {
-        title: 'Quiz simulator',
-        description: 'Practice with auto-generated quizzes from your uploaded knowledge.',
-        href: '/study',
-        cta: 'Build a quiz',
-        highlights: [
-          'Multiple-choice quizzes from notes or transcripts',
-          'Track attempts and review missed concepts',
-          'Pair with flashcards for active recall',
-        ],
-      };
+      return <DashboardQuizzesPanel />;
     case 'presentations':
-      return {
-        title: 'Presentation outlines',
-        description: 'Turn study material into slide-ready outlines for lectures and demos.',
-        href: '/study',
-        cta: 'Generate slide outline',
-        highlights: [
-          'Structured slide titles and bullet points',
-          'Export-friendly outline format',
-          'Built from the same sources as flashcards and quizzes',
-        ],
-      };
+      return <DashboardPresentationsPanel />;
     default:
       return null;
   }
 }
 
-export function DashboardWorkspace({
-  overview,
-  chatSessionCount,
-  studyItemCount,
-}: DashboardWorkspaceProps) {
+export function DashboardWorkspace({ overview }: DashboardWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<DashboardWorkspaceTab>('overview');
   const reduceMotion = useReducedMotion();
-  const hub = hubPanelsForTab(activeTab, chatSessionCount, studyItemCount);
+
+  const tabContent = activeTab === 'overview' ? overview : renderWorkspaceTab(activeTab);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -186,7 +101,7 @@ export function DashboardWorkspace({
       </div>
 
       {reduceMotion ? (
-        <div>{activeTab === 'overview' ? overview : hub ? <WorkspaceHubPanel {...hub} /> : null}</div>
+        <div>{tabContent}</div>
       ) : (
         <AnimatePresence mode="wait">
           <motion.div
@@ -196,7 +111,7 @@ export function DashboardWorkspace({
             key={activeTab}
             transition={tabMotion.transition}
           >
-            {activeTab === 'overview' ? overview : hub ? <WorkspaceHubPanel {...hub} /> : null}
+            {tabContent}
           </motion.div>
         </AnimatePresence>
       )}

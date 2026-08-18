@@ -270,8 +270,6 @@ export function DashboardHome({
       </AppReveal>
 
       <DashboardWorkspace
-        chatSessionCount={stats.chatSessionCount}
-        studyItemCount={stats.studyItemCount}
         overview={
           <>
             <AppStagger className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
