@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { AppReveal, AppStagger, AppStaggerItem } from '@/components/app/app-motion';
+import { DashboardWorkspace } from '@/components/dashboard-workspace';
 import {
   AppPageFrame,
   AppPanel,
@@ -268,148 +269,156 @@ export function DashboardHome({
         </header>
       </AppReveal>
 
-      <AppStagger className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
-          return (
-            <AppStaggerItem key={metric.label}>
-              <Link
-                className={cn(
-                  'group relative block overflow-hidden rounded-2xl border border-black/[0.06] bg-white/75 p-4 shadow-premium backdrop-blur-xl transition-[transform,box-shadow,border-color] duration-200',
-                  'hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30',
-                  'dark:border-white/[0.07] dark:bg-white/[0.035] dark:shadow-premium-dark dark:hover:border-amber-400/30',
-                  'sm:p-5',
-                )}
-                href={metric.href}
-              >
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -right-6 -top-8 h-20 w-20 rounded-full bg-amber-400/0 blur-2xl transition-colors duration-300 group-hover:bg-amber-400/20"
-                />
-                <div className="relative flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
-                    {metric.label}
-                  </p>
-                  <span className="rounded-xl bg-zinc-900/5 p-2 text-zinc-700 transition-colors group-hover:bg-amber-500/15 group-hover:text-amber-800 dark:bg-white/5 dark:text-zinc-300 dark:group-hover:bg-amber-400/15 dark:group-hover:text-amber-200">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                </div>
-                <p className="relative mt-3 text-3xl font-semibold tracking-[-0.04em] text-zinc-900 dark:text-zinc-50 sm:text-4xl">
-                  {metric.value}
-                </p>
-                <p className="relative mt-2 line-clamp-2 text-xs leading-snug text-zinc-500 dark:text-zinc-400">
-                  {metric.helper}
-                </p>
-              </Link>
-            </AppStaggerItem>
-          );
-        })}
-      </AppStagger>
-
-      <AppReveal delay={0.06}>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(16rem,0.9fr)] lg:gap-6">
-          <AppPanel>
-            <AppPanelHeader
-              action={
-                stats.recentActivity.length > 0 ? (
-                  <Button
-                    asChild
-                    className="hidden shrink-0 rounded-full sm:inline-flex"
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Link href="/library">
-                      View library
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                ) : null
-              }
-              description="Latest updates across your workspace."
-              title="Recent activity"
-            />
-            <AppPanelBody className="pt-0 sm:pt-0">
-              {stats.recentActivity.length === 0 ? (
-                <ActivityEmptyState />
-              ) : (
-                <>
-                  <ActivityMobileList items={stats.recentActivity} />
-                  <ActivityDesktopTable items={stats.recentActivity} />
-                </>
-              )}
-            </AppPanelBody>
-          </AppPanel>
-
-          <div className="flex flex-col gap-4">
-            <AppPanel>
-              <AppPanelHeader
-                description="Shortcuts to the tools you use most."
-                title="Jump back in"
-              />
-              <AppPanelBody className="grid grid-cols-2 gap-2.5 pt-0 sm:gap-3 sm:pt-0">
-                {shortcuts.map((item) => {
-                  const Icon = item.icon;
-                  return (
+      <DashboardWorkspace
+        chatSessionCount={stats.chatSessionCount}
+        studyItemCount={stats.studyItemCount}
+        overview={
+          <>
+            <AppStagger className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+              {metrics.map((metric) => {
+                const Icon = metric.icon;
+                return (
+                  <AppStaggerItem key={metric.label}>
                     <Link
                       className={cn(
-                        'flex min-h-[5rem] flex-col rounded-xl border border-black/[0.05] bg-black/[0.02] p-3.5 transition-[background-color,border-color,transform] duration-200',
-                        'hover:-translate-y-0.5 hover:border-amber-500/25 hover:bg-white',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/25',
-                        'dark:border-white/[0.06] dark:bg-white/[0.02] dark:hover:border-amber-400/25 dark:hover:bg-white/[0.05]',
+                        'group relative block overflow-hidden rounded-2xl border border-black/[0.06] bg-white/75 p-4 shadow-premium backdrop-blur-xl transition-[transform,box-shadow,border-color] duration-200',
+                        'hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30',
+                        'dark:border-white/[0.07] dark:bg-white/[0.035] dark:shadow-premium-dark dark:hover:border-amber-400/30',
+                        'sm:p-5',
                       )}
-                      href={item.href}
-                      key={item.href}
+                      href={metric.href}
                     >
-                      <Icon className="h-4 w-4 text-amber-700/80 dark:text-amber-300/90" />
-                      <span className="mt-2.5 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                        {item.label}
-                      </span>
-                      <span className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
-                        {item.description}
-                      </span>
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute -right-6 -top-8 h-20 w-20 rounded-full bg-amber-400/0 blur-2xl transition-colors duration-300 group-hover:bg-amber-400/20"
+                      />
+                      <div className="relative flex items-start justify-between gap-2">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+                          {metric.label}
+                        </p>
+                        <span className="rounded-xl bg-zinc-900/5 p-2 text-zinc-700 transition-colors group-hover:bg-amber-500/15 group-hover:text-amber-800 dark:bg-white/5 dark:text-zinc-300 dark:group-hover:bg-amber-400/15 dark:group-hover:text-amber-200">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                      </div>
+                      <p className="relative mt-3 text-3xl font-semibold tracking-[-0.04em] text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+                        {metric.value}
+                      </p>
+                      <p className="relative mt-2 line-clamp-2 text-xs leading-snug text-zinc-500 dark:text-zinc-400">
+                        {metric.helper}
+                      </p>
                     </Link>
-                  );
-                })}
-              </AppPanelBody>
-            </AppPanel>
+                  </AppStaggerItem>
+                );
+              })}
+            </AppStagger>
 
-            <AppPanel>
-              <AppPanelHeader
-                description="Account sync and connection status."
-                title="Workspace health"
-              />
-              <AppPanelBody className="space-y-3 pt-0 sm:pt-0">
-                <div
-                  className={cn(
-                    appSurface.inset,
-                    'flex items-center justify-between gap-3 px-3.5 py-3',
-                  )}
-                >
-                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Profile sync</span>
-                  <Badge variant={profileSynced ? 'default' : 'secondary'}>
-                    {profileSynced ? 'Synced' : 'Pending'}
-                  </Badge>
+            <AppReveal delay={0.06}>
+              <div className="mt-6 grid gap-4 sm:mt-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(16rem,0.9fr)] lg:gap-6">
+                <AppPanel>
+                  <AppPanelHeader
+                    action={
+                      stats.recentActivity.length > 0 ? (
+                        <Button
+                          asChild
+                          className="hidden shrink-0 rounded-full sm:inline-flex"
+                          size="sm"
+                          variant="ghost"
+                        >
+                          <Link href="/library">
+                            View library
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      ) : null
+                    }
+                    description="Latest updates across your workspace."
+                    title="Recent activity"
+                  />
+                  <AppPanelBody className="pt-0 sm:pt-0">
+                    {stats.recentActivity.length === 0 ? (
+                      <ActivityEmptyState />
+                    ) : (
+                      <>
+                        <ActivityMobileList items={stats.recentActivity} />
+                        <ActivityDesktopTable items={stats.recentActivity} />
+                      </>
+                    )}
+                  </AppPanelBody>
+                </AppPanel>
+
+                <div className="flex flex-col gap-4">
+                  <AppPanel>
+                    <AppPanelHeader
+                      description="Shortcuts to the tools you use most."
+                      title="Jump back in"
+                    />
+                    <AppPanelBody className="grid grid-cols-2 gap-2.5 pt-0 sm:gap-3 sm:pt-0">
+                      {shortcuts.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            className={cn(
+                              'flex min-h-[5rem] flex-col rounded-xl border border-black/[0.05] bg-black/[0.02] p-3.5 transition-[background-color,border-color,transform] duration-200',
+                              'hover:-translate-y-0.5 hover:border-amber-500/25 hover:bg-white',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/25',
+                              'dark:border-white/[0.06] dark:bg-white/[0.02] dark:hover:border-amber-400/25 dark:hover:bg-white/[0.05]',
+                            )}
+                            href={item.href}
+                            key={item.href}
+                          >
+                            <Icon className="h-4 w-4 text-amber-700/80 dark:text-amber-300/90" />
+                            <span className="mt-2.5 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                              {item.label}
+                            </span>
+                            <span className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+                              {item.description}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </AppPanelBody>
+                  </AppPanel>
+
+                  <AppPanel>
+                    <AppPanelHeader
+                      description="Account sync and connection status."
+                      title="Workspace health"
+                    />
+                    <AppPanelBody className="space-y-3 pt-0 sm:pt-0">
+                      <div
+                        className={cn(
+                          appSurface.inset,
+                          'flex items-center justify-between gap-3 px-3.5 py-3',
+                        )}
+                      >
+                        <span className="text-sm text-zinc-700 dark:text-zinc-300">Profile sync</span>
+                        <Badge variant={profileSynced ? 'default' : 'secondary'}>
+                          {profileSynced ? 'Synced' : 'Pending'}
+                        </Badge>
+                      </div>
+                      <div
+                        className={cn(
+                          appSurface.inset,
+                          'flex items-center justify-between gap-3 px-3.5 py-3',
+                        )}
+                      >
+                        <span className="text-sm text-zinc-700 dark:text-zinc-300">Signed-in user</span>
+                        <Badge className="max-w-[9rem] truncate font-mono text-[10px]" variant="outline">
+                          {userId ?? 'unknown'}
+                        </Badge>
+                      </div>
+                      <Button asChild className="mt-1 w-full rounded-full" size="sm" variant="outline">
+                        <Link href="/settings">Open settings</Link>
+                      </Button>
+                    </AppPanelBody>
+                  </AppPanel>
                 </div>
-                <div
-                  className={cn(
-                    appSurface.inset,
-                    'flex items-center justify-between gap-3 px-3.5 py-3',
-                  )}
-                >
-                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Signed-in user</span>
-                  <Badge className="max-w-[9rem] truncate font-mono text-[10px]" variant="outline">
-                    {userId ?? 'unknown'}
-                  </Badge>
-                </div>
-                <Button asChild className="mt-1 w-full rounded-full" size="sm" variant="outline">
-                  <Link href="/settings">Open settings</Link>
-                </Button>
-              </AppPanelBody>
-            </AppPanel>
-          </div>
-        </div>
-      </AppReveal>
+              </div>
+            </AppReveal>
+          </>
+        }
+      />
     </AppPageFrame>
   );
 }

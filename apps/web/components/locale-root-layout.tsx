@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { ClerkProviderShell } from '@/components/auth/clerk-provider-shell';
 import { PostHogProvider } from '@/components/observability/posthog-provider';
 import { ObservabilityProvider } from '@/components/observability-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { isClerkEnabled } from '@/lib/auth/post-auth-redirect';
 import { aprokoSans } from '@/lib/fonts';
@@ -17,16 +18,6 @@ type LocaleRootLayoutProps = {
 };
 
 function LocaleRootLayoutFallback({ children }: LocaleRootLayoutProps) {
-  const body = (
-    <PostHogProvider>
-      {isClerkEnabled() ? (
-        <ClerkProviderShell locale="en">{children}</ClerkProviderShell>
-      ) : (
-        children
-      )}
-    </PostHogProvider>
-  );
-
   return (
     <html className={aprokoSans.variable} lang="en" suppressHydrationWarning>
       <head>
@@ -36,7 +27,17 @@ function LocaleRootLayoutFallback({ children }: LocaleRootLayoutProps) {
           }}
         />
       </head>
-      <body className="font-sans antialiased">{body}</body>
+      <body className="font-sans antialiased">
+        <ThemeProvider>
+          <PostHogProvider>
+            {isClerkEnabled() ? (
+              <ClerkProviderShell locale="en">{children}</ClerkProviderShell>
+            ) : (
+              children
+            )}
+          </PostHogProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
@@ -69,13 +70,15 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
         />
       </head>
       <body className="font-sans antialiased">
-        <PostHogProvider>
-          {isClerkEnabled() ? (
-            <ClerkProviderShell locale={locale}>{appContent}</ClerkProviderShell>
-          ) : (
-            appContent
-          )}
-        </PostHogProvider>
+        <ThemeProvider>
+          <PostHogProvider>
+            {isClerkEnabled() ? (
+              <ClerkProviderShell locale={locale}>{appContent}</ClerkProviderShell>
+            ) : (
+              appContent
+            )}
+          </PostHogProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

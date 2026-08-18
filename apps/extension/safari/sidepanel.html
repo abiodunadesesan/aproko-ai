@@ -17,22 +17,64 @@
       </div>
     </header>
 
-    <p id="status" class="status muted"></p>
+    <div class="mode-pills" role="tablist" aria-label="Panel mode">
+      <button class="mode-pill is-active" data-mode="ask" type="button" role="tab" aria-selected="true">
+        Ask AI
+      </button>
+      <button class="mode-pill" data-mode="transcript" type="button" role="tab" aria-selected="false">
+        Live Transcript
+      </button>
+      <button class="mode-pill" data-mode="cursor" type="button" role="tab" aria-selected="false">
+        Cursor Focus
+      </button>
+    </div>
 
-    <iframe
-      id="app-frame"
-      title="Aproko live context"
-      class="app-frame"
-      allow="clipboard-write"
-    ></iframe>
+    <div class="tracking-capsule" id="tracking-indicator" data-state="idle">
+      <span class="tracking-dot" aria-hidden="true"></span>
+      <span class="tracking-label">Tracking cursor</span>
+    </div>
+
+    <section class="mode-panel is-active" data-mode-panel="ask">
+      <p id="status" class="status muted"></p>
+      <iframe
+        id="app-frame"
+        title="Aproko live context"
+        class="app-frame"
+        allow="clipboard-write"
+      ></iframe>
+    </section>
+
+    <section class="mode-panel" data-mode-panel="transcript" hidden>
+      <div class="glass-card transcript-card">
+        <p class="card-title">Live transcript</p>
+        <p class="card-copy muted">
+          Capture a tab or open <a id="transcripts-link" href="#" target="_blank" rel="noreferrer">Transcripts</a>
+          in the web app to review speech-to-text output and generate study material.
+        </p>
+        <button id="open-transcripts-btn" class="secondary-btn" type="button">Open transcripts</button>
+      </div>
+    </section>
+
+    <section class="mode-panel" data-mode-panel="cursor" hidden>
+      <div class="glass-card hover-feed-card">
+        <div class="hover-feed-header">
+          <p class="card-title">Hover feed</p>
+          <p class="card-copy muted">Live snippets from the element under your pointer.</p>
+        </div>
+        <ul id="hover-feed-list" class="hover-feed-list" aria-live="polite"></ul>
+        <p id="hover-feed-empty" class="hover-feed-empty muted">
+          Move your cursor over readable text on the page. Hover focus must be enabled in Settings.
+        </p>
+      </div>
+    </section>
 
     <details class="card settings">
       <summary>Settings</summary>
       <label for="web-app-url">Web app URL</label>
       <input id="web-app-url" type="url" placeholder="https://aprokoai.vercel.app" />
-      <div style="display:flex; align-items:center; gap:10px; margin: 8px 0;">
+      <div class="settings-row">
         <input id="hover-enabled" type="checkbox" />
-        <label for="hover-enabled" style="margin:0; text-transform:none; letter-spacing:normal; color:inherit;">
+        <label for="hover-enabled" class="checkbox-label">
           Enable cursor hover focus
         </label>
       </div>

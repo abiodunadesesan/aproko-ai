@@ -1,59 +1,38 @@
 'use client';
 
+import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
-import { getPreferredTheme, THEME_STORAGE_KEY, type AppTheme } from '@/lib/theme';
-
-function applyTheme(theme: AppTheme) {
-  const root = document.documentElement;
-  if (theme === 'dark') {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
-  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-}
+import { AnimatedThemeIcon } from '@/components/animated-theme-icon';
+import { Button } from '@/components/ui/button';
+import { broadcastThemeToExtension } from '@/lib/theme';
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<AppTheme>('light');
-  const [ready, setReady] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const next = getPreferredTheme();
-    setTheme(next);
-    applyTheme(next);
-    setReady(true);
+    setMounted(true);
   }, []);
 
-  function toggleTheme() {
-    const next: AppTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    applyTheme(next);
+  const theme = resolvedTheme === 'dark' ? 'dark' : 'light';
 
-    // Cross-app theme sync to the extension (when running inside the extension-enabled web context).
-    try {
-      const maybeChrome = (globalThis as unknown as {
-        chrome?: { runtime?: { sendMessage?: unknown } };
-      }).chrome;
-      const sendMessage = maybeChrome?.runtime?.sendMessage;
-      if (typeof sendMessage === 'function') {
-        Promise.resolve(
-          sendMessage({ type: 'SET_THEME', theme: next }),
-        ).catch(() => {});
-      }
-    } catch {
-      // Ignore in non-extension contexts.
-    }
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    broadcastThemeToExtension(next);
   }
 
   return (
-    <button
-      aria-label="Toggle theme"
-      className="rounded-md border px-3 py-2 text-sm"
-      disabled={!ready}
+    <Button
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="h-9 w-9 rounded-full"
+      disabled={!mounted}
       onClick={toggleTheme}
+      size="icon"
       type="button"
+      variant="outline"
     >
-      {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-    </button>
+      <AnimatedThemeIcon className="h-4 w-4" theme={theme} />
+    </Button>
   );
 }

@@ -27,6 +27,20 @@ export function isDarkThemeActive(): boolean {
   return document.documentElement.classList.contains('dark');
 }
 
+export function broadcastThemeToExtension(theme: AppTheme) {
+  try {
+    const maybeChrome = (globalThis as unknown as {
+      chrome?: { runtime?: { sendMessage?: unknown } };
+    }).chrome;
+    const sendMessage = maybeChrome?.runtime?.sendMessage;
+    if (typeof sendMessage === 'function') {
+      Promise.resolve(sendMessage({ type: 'SET_THEME', theme })).catch(() => {});
+    }
+  } catch {
+    // Ignore in non-extension contexts.
+  }
+}
+
 export function useDocumentTheme(): AppTheme {
   const [theme, setTheme] = useState<AppTheme>('light');
 
