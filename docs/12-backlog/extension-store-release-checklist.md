@@ -14,12 +14,14 @@ Prepare the Aproko “Live Context” browser extension for store submission wit
    - `apps/web/app/(marketing)/privacy/page.tsx` uses `apps/web/lib/legal-content.ts`
    - Confirm the “Browser extension (Live Context)” section is present and accurate
 2. Add extension-specific FAQs / reviewer notes
-   - Describe what is captured (cursor-focused snippet + optional full-page text)
-   - Explain when capture happens (Capture tab / Alt-click solve)
+   - Describe what is captured (cursor-focused snippet + optional full-page text + Chrome opt-in tab audio)
+   - Explain when capture happens (Capture tab / Cmd+Shift+Y / Cmd+Shift+H / Alt-click solve / Record tab audio click)
    - Explain how hover focus can be controlled (extension setting)
    - Explain redaction/formatting limits before sending to backend
+   - Explain connect handoff token (not Clerk cookies in the iframe)
 3. Confirm retention statement
    - MVP does not persist page text as long-lived workspace sources unless user explicitly saves content in the web app
+   - User-started tab-audio clips become transcripts the user can delete
 
 ## Permissions Justification
 1. Manifest review for store questionnaire
@@ -27,9 +29,12 @@ Prepare the Aproko “Live Context” browser extension for store submission wit
    - `tabs`: needed to determine active tab context for capture
    - `content_scripts` matches: injected on http/https pages to enable hover focus and solve
    - `host_permissions`: verify the rationale in a reviewer-friendly document
+   - `tabCapture` / `offscreen`: Chrome Record tab audio only (user click start/stop; not always-on)
+   - `storage`: settings plus short-lived connect handoff token
 2. Ensure the reviewer-facing story matches actual behavior
    - Full-page scraping is performed on user actions (Capture tab / Alt-click solve)
    - Hover focus can be disabled by user setting
+   - Tab audio never runs until the user clicks Record
 
 ## Listing Assets & Copy
 1. Create store screenshots
@@ -57,10 +62,19 @@ Prepare the Aproko “Live Context” browser extension for store submission wit
 3. Provide Apple privacy disclosure if required by the wrapper app configuration
 
 ## Release gating before stores go live
-1. Manual smoke test on production host
+1. Manual smoke test on production host — `docs/12-backlog/extension-production-smoke.md`
 2. Confirm:
-   - Capture works
+   - Connect handoff then Ask works
+   - Capture works (Y) and hover pin (H)
    - Alt/Option-click solve works
    - Hover focus respects the “Enable cursor hover focus” setting
-3. Confirm CORS + iframe embedding work for the store-installed origin
+   - Chrome Record tab audio is opt-in; Safari has no tabCapture
+3. Confirm CORS preflight (`OPTIONS`) for `/api/chat` and `/api/v1/extension/*` returns 204 from extension origins
+4. Do **not** submit to CWS until screenshots + $5 developer account are ready (owner action)
+
+## Product lock (will not ship)
+- Desktop overlay / other-app capture
+- Invisible OS meeting audio
+- Native iOS/Android
+- Always-on tab recording
 

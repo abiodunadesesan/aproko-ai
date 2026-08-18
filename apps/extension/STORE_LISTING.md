@@ -4,55 +4,82 @@ Use this as the starting point for:
 - Chrome Web Store listing
 - Safari Web Extension listing (metadata copy)
 
+Version: **0.3.5**
+
 ## Package
 - Chrome: `apps/extension/extension`
 - Safari: `apps/extension/safari`
 
 ## Privacy policy URL
-- `https://aprokoai.vercel.app/privacy` (or your final production URL)
+- `https://aprokoai.vercel.app/privacy`
 
 ## Permissions to describe (high level)
-- Access your data on any website (http/https pages)
-- Capture and send readable page text to improve learning support
+- Access your data on websites you visit (http/https pages) so you can capture the page you are reading
+- Optional Chrome tab audio, only after you click **Record tab audio**
 
 ## Chrome Web Store listing
 
 ### Name
 **Aproko Live Context**
 
-### Short description (max ~200 chars)
-Ask Aproko about the page you’re reading. Cursor focus + “Capture tab” and Alt/Option-click solve for quick learning help.
+### Short description (≤132 characters)
+Ask Aproko about the page you’re reading. Capture tab, cursor focus, and optional quiz solve — never silent recording.
 
 ### Full description
-Aproko Live Context helps you learn faster while you browse.
+Aproko Live Context is a companion for signed-in Aproko AI users. It helps you learn from the webpage you already have open.
 
 What you can do:
-- **Cursor focus**: see the key text you’re pointing at while you read.
-- **Capture tab**: send readable page context to Aproko to get a grounded explanation or answer.
-- **Alt/Option-click solve**: click a quiz question (Alt/Option-click) to let Aproko select the best option or fill a short answer.
+- **Capture tab** (toolbar or Cmd/Ctrl+Shift+Y): send readable page text to Aproko and ask a grounded question.
+- **Cursor focus**: see the text under your pointer. Pin it with Cmd/Ctrl+Shift+H.
+- **Live Transcript**: a short timeline of page captures and hover snippets in the side panel.
+- **Alt/Option-click solve**: on a quiz question, ask Aproko to pick an option or fill a short answer.
+- **Record tab audio (Chrome only)**: click to start, click to stop. Audio is transcribed into your Aproko Transcripts. The extension does not record in the background.
+
+What this extension does **not** do:
+- It does not capture your whole desktop or other apps.
+- It does not tap Zoom/Meet/Teams system audio.
+- It does not run as a phone app.
+- It does not record tabs until you press a button.
 
 Privacy:
-- The extension captures text from the currently viewed page to generate learning help.
-- Sensitive lines are redacted before sending to our services.
-- You can disable cursor hover focus in extension settings.
+- Captured text is sent to your Aproko workspace API to generate a learning answer.
+- Password- and payment-like lines are redacted; payloads are size-limited.
+- Cursor hover can be turned off in Settings.
+- Sign in on a normal Aproko tab first. The panel uses a short-lived connect token because Google sign-in cannot run inside the extension iframe.
 
 How to use:
-1. Load the extension.
-2. Sign in to Aproko in the same browser profile.
-3. Open any quiz/article page.
-4. Press **Capture tab**, or Alt/Option-click a question.
+1. Install the extension.
+2. Sign in at https://aprokoai.vercel.app in a normal Chrome tab.
+3. Open the side panel → Open connect checklist → refresh once → return to the panel.
+4. Open any https article or quiz → Capture tab → ask.
 
-## Support / contact
-- Support email: `support@aproko.ai` (TODO: replace with real contact)
+Support: use the contact details on https://aprokoai.vercel.app/privacy
 
 ## Screenshots (suggested set)
-1. Extension side panel showing “Cursor focus” and “Page snapshot”
-2. A quiz page with the Alt/Option-click solve tip
-3. Extension settings showing “Enable cursor hover focus”
-4. Example of the highlight + answer application on a multiple-choice question
+1. Side panel: Ask AI + Cursor focus + Page snapshot
+2. Live Transcript feed after hovering a page
+3. Settings: Web app URL + Enable cursor hover focus
+4. Alt/Option-click solve on a multiple-choice question
+5. (Chrome) Record tab audio control — start/stop, not always-on
 
 ## Reviewer notes (attach in submission)
-- We only perform full-page scraping on explicit actions (“Capture tab” or Alt/Option-click solve).
-- Cursor hover focus can be disabled by the user.
-- Redaction and truncation are applied before sending page text to the backend.
 
+```
+Single purpose: help signed-in Aproko users ask questions about the webpage they are viewing.
+
+Not in this product:
+- Desktop overlay / other-app screen capture
+- Invisible OS meeting audio
+- Native iOS/Android apps
+- Always-on tabCapture
+
+Test steps:
+1. Set Web app URL to https://aprokoai.vercel.app
+2. Sign in on a normal tab via Open connect checklist
+3. Open an https article → Capture tab → ask a question
+4. Optional: disable cursor hover in Settings
+5. Chrome only: Record tab audio requires an explicit click to start and to stop
+
+Privacy policy: https://aprokoai.vercel.app/privacy (Browser extension section)
+Permissions: see extension-store-permissions-justification.md in the Aproko repo
+```

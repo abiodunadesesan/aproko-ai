@@ -14,9 +14,9 @@ export type LegalPageContent = {
 
 export const privacyContent: LegalPageContent = {
   title: 'Privacy Policy',
-  lastUpdated: 'March 1, 2026',
+  lastUpdated: 'August 18, 2026',
   intro:
-    'This Privacy Policy explains how Aproko AI ("Aproko", "we", "us") collects, uses, stores, and protects information when you use our web application and related services.',
+    'This Privacy Policy explains how Aproko AI ("Aproko", "we", "us") collects, uses, stores, and protects information when you use our web application, browser extension, and related services.',
   sections: [
     {
       id: 'information-we-collect',
@@ -56,12 +56,14 @@ export const privacyContent: LegalPageContent = {
         'Aproko’s browser extension can capture limited text from the webpage you are currently viewing and use that text to help answer questions. The extension is intended for learning and productivity support.',
       ],
       bullets: [
-        'Information we capture: (1) cursor-focused text (local snippet around what your mouse is pointing at), and (2) readable page text when you press “Capture tab” or Alt/Option-click to solve a question.',
+        'Information we capture: (1) cursor-focused text around what your mouse is pointing at (while hover focus is enabled, or when you press Cmd/Ctrl+Shift+H), (2) readable page text when you press “Capture tab” or Alt/Option-click to solve a question, and (3) on Chrome only, tab audio if you click “Record tab audio” and then click stop.',
         'How we reduce sensitive data exposure: before sending page text to our services, we format it for readability and redact password- and payment-card-like lines; we also apply size limits.',
-        'How we use it: the captured text is used to generate a grounded answer in your active workspace. We do not claim knowledge of page content that is not present in the captured text.',
-        'User controls: cursor hover focus can be disabled in the extension settings. Even with hover disabled, “Capture tab” and Alt/Option-click to solve still work.',
+        'How we use it: the captured text (or a user-started tab-audio transcript) is used to generate a grounded answer or a transcript in your active workspace. We do not claim knowledge of page content that is not present in the captured text.',
+        'User controls: cursor hover focus can be disabled in the extension settings. Even with hover disabled, “Capture tab” and Alt/Option-click to solve still work. Tab audio never runs until you click Record, and it stops when you click Stop.',
+        'Sign-in: Google and other Clerk sign-in flows run in a normal browser tab. The extension panel then stores a short-lived connect token so Ask can run without embedding the sign-in page in the iframe.',
         'Data destination: the extension sends the captured payload to Aproko’s authenticated web API; our backend processes the request and may forward relevant context to our configured AI provider to generate the response.',
-        'Storage: for the extension MVP, captured context is used for the generation request and is not persisted as a long-lived “source” object in your workspace (unless you explicitly save content in the web app).',
+        'Storage: captured page context is used for the generation request and is not persisted as a long-lived “source” object unless you explicitly save content in the web app. User-started recordings are saved as transcripts you can delete from Transcripts.',
+        'Out of scope: we do not capture your desktop or other applications, we do not tap operating-system meeting audio, we do not provide a native mobile app, and we do not record tabs in the background.',
       ],
     },
     {

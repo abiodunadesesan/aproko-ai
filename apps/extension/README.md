@@ -32,11 +32,14 @@ Then follow `apps/extension/safari/README.md` (Xcode converter + Safari Extensio
 
 ## How auth works
 
-The panel **embeds** `/extension/live?embed=1` from your web app. Clerk session
-cookies work inside that iframe. Direct `fetch` from the extension origin cannot see
-those cookies — that is why Ask previously said “Not signed in.”
+Clerk cookies **do not** reach the extension iframe (`chrome-extension://` /
+`safari-web-extension://`). Sign in on a **normal Aproko tab**, then use
+**Open connect checklist**. That page mints a short-lived handoff token. The extension
+stores it and Ask sends `Authorization: Bearer ext.<token>` to
+`/api/v1/extension/live-context/chat` (or the `/api/chat` alias).
 
-Sign in to Aproko in a normal tab first, then open the panel.
+If Ask says Unauthorized, reconnect from a full tab — do not try Google sign-in inside
+the panel.
 
 ## Cursor tracking + click-to-solve (v0.3+)
 
@@ -47,7 +50,7 @@ Sign in to Aproko in a normal tab first, then open the panel.
   `POST /api/v1/workspaces/{id}/live-context/solve`, then:
   - MCQ → highlights / selects the best option
   - Short answer → fills the nearest text field when possible
-- Stay signed in to Aproko in the same browser profile so background `fetch` has cookies.
+- Stay signed in and complete connect handoff so background `fetch` has a bearer token.
 
 ## API
 

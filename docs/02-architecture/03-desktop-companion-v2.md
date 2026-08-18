@@ -44,11 +44,15 @@ flowchart LR
   Web[Web app] --> WS
 ```
 
-## Non-goals (still forbidden)
+## Non-goals (still forbidden — do not implement)
 
 - Marketing detector-evasion “humanizer” tooling
-- Shipping native mobile apps in the same epic without a separate PRD
+- Shipping native iOS/Android apps without a separate PO-approved PRD
 - Silent capture without user consent / OS permission prompts
+- Always-on tab recording, invisible meeting tap, or desktop overlay in the **browser extension**
+- Treating this stub as an approved build epic (no production companion binary)
+
+Sprint 29 Chrome **Record tab audio** is the only tab-audio path: user click to start and stop, in-browser only. It does not replace this desktop epic.
 
 ## Open decisions (`TODO`)
 

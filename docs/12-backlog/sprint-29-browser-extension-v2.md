@@ -12,11 +12,15 @@ Ship a Chrome MV3 extension + web API path so users can ask Aproko about the
 **active browser tab** (text + metadata) via shortcut / side panel, without
 leaving the browsing flow.
 
-## Out of scope (still V2 desktop)
+## Out of scope (will not build in this sprint — lock)
 
-- OS screen overlay over arbitrary desktop windows
-- Invisible meeting audio capture
-- Native mobile apps
+These remain **forbidden** until a separate, PO-approved epic exists. Do not implement them as “extension polish.”
+
+- OS screen overlay over arbitrary desktop windows (`03-desktop-companion-v2.md` is design-only)
+- Invisible / always-on meeting audio (Zoom/Meet/Teams OS tap)
+- Native iOS or Android apps
+- Always-on `tabCapture` or background tab recording (Chrome **Record tab audio** is click-to-start / click-to-stop only)
+- Duplicate web app (`/web-app`) or second cookie/auth stack
 
 ## Product specification
 
@@ -68,15 +72,15 @@ SSE events: `start` | `delta` | `done` | `error` (see `docs/04-api/README.md`).
 - [x] Authenticated streaming reply uses page context in the system prompt
 - [x] CORS helpers allow `chrome-extension://` preflight
 - [x] Usage counted via `consumeAiQueryQuota`
-- [ ] Store / production privacy review before public listing
-- [ ] Manual smoke on staging host with production cookies
+- [x] Store listing copy + permissions justification + privacy policy section (docs ready; CWS submit is owner-only)
+- [ ] Manual smoke on production host (`docs/12-backlog/extension-production-smoke.md`) — signed-in Capture/Ask in the owner’s browsers
 
 ## Definition of Done (MVP)
 
 - Architecture + API docs updated
 - Unit tests for sanitize + live-context route
 - Extension README with load-unpacked steps
-- Privacy review for store release (remaining)
+- Privacy review for store release (policy + listing copy updated 2026-08-18; CWS submit remaining)
 
 ## Test plan
 
@@ -88,7 +92,7 @@ SSE events: `start` | `delta` | `done` | `error` (see `docs/04-api/README.md`).
 
 ## Dependencies
 
-- Existing chat streaming + Clerk session cookies
+- Existing chat streaming + Clerk cookies on full tabs + extension handoff bearer (`Authorization: Bearer ext.<token>`)
 - AI provider keys on web server
 - Host permissions for target web origin
 
@@ -98,4 +102,4 @@ SSE events: `start` | `delta` | `done` | `error` (see `docs/04-api/README.md`).
 2. ~~Live-context chat route + system prompt~~
 3. ~~Side panel → API with cookie auth~~
 4. ~~Web UI: connect + live dashboard~~
-5. Packaging / store listing (next)
+5. Packaging / store listing copy (ZIP via `pnpm --filter @aproko/extension pack:chrome`; CWS submit is owner-only)

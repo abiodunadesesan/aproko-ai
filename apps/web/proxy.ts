@@ -57,6 +57,10 @@ export default clerkMiddleware(
     // APIs must return JSON 401 — HTML sign-in redirects break fetch/SSE clients
     // (extension iframe showed an empty assistant with no error).
     if (isProtectedApi(req)) {
+      // CORS preflight has no cookies or bearer token; let route OPTIONS handlers answer.
+      if (req.method === 'OPTIONS') {
+        return;
+      }
       const { userId } = await auth();
       if (!userId) {
         const authHeader = req.headers.get('Authorization')?.trim();

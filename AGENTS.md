@@ -8,7 +8,8 @@ This file is the persistent operating manual for all coding agents working in th
 
 - Build **Aproko AI** as a web-first AI Knowledge Operating System.
 - Version 1 / V1.1 delivery surface is **web only** (`apps/web`).
-- Do **not** implement desktop apps, mobile apps, browser automation, invisible system meeting capture, voice assistant product, or AI phone calls without an approved V2 epic.
+- Do **not** implement desktop apps, native mobile apps, browser automation, invisible system meeting capture, voice assistant product, or AI phone calls without an approved V2 epic.
+- Do **not** implement always-on tab recording, silent `tabCapture`, OS screen overlay, or native iOS/Android clients. Chrome **Record tab audio** is user-click start/stop only. Desktop overlay remains a design stub (`docs/02-architecture/03-desktop-companion-v2.md`) until a separate PO-approved epic.
 - **Web-safe study copilot expansion (Sprint 19, shipped):**
   - User-initiated browser mic/upload → transcript (Whisper when `OPENAI_API_KEY` is set)
   - LLM study pipeline (summaries, flashcards, quizzes, slide outlines) from notes/transcripts

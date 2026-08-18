@@ -22,8 +22,10 @@ the desktop companion epic (`03-desktop-companion-v2.md`).
    - Background service worker + `Ctrl/Cmd+Shift+Y` (full-page capture) and `Ctrl/Cmd+Shift+H` (hover-context capture); panel opens via toolbar icon
    - Content script: throttled cursor hover (`elementFromPoint`, ~175ms) + on-demand full-page scrape for “Capture tab” and Alt/Option-click solve
    - Shadow DOM capture chip + live hover preview
-   - Side panel embeds `/extension/live?embed=1` (Clerk cookies)
+   - Side panel embeds `/extension/live?embed=1`
+   - Auth: Clerk cookies on full Aproko tabs; short-lived handoff bearer (`Authorization: Bearer ext.<token>`) in the panel iframe
    - Live UI: structured **Cursor focus** card + **Page snapshot** topic summary
+   - Chrome only: opt-in **Record tab audio** (`tabCapture` + offscreen). Not always-on. Safari must not request these permissions.
 2. **Safari Web Extension** — `apps/extension/safari` (synced from Chrome via `pnpm --filter @aproko/extension sync:safari`)
    - Same capture / hover / solve behavior
    - Toolbar **popup** instead of Chrome side panel (Safari has no `sidePanel` API)
@@ -40,7 +42,7 @@ flowchart LR
   Ext --> CS[Content script: page text + metadata]
   Ext --> SP[Side Panel UI]
   Ext --> API["POST .../live-context/chat"]
-  API --> Auth[Clerk session cookies]
+  API --> Auth["Clerk cookies or Bearer ext. handoff"]
   API --> Chat[Streaming live-context prompt]
   API --> Quota[AI query quota]
   Web["/extension/live"] --> API
@@ -48,9 +50,12 @@ flowchart LR
 
 ## Auth model (MVP)
 
-Extension side panel resolves workspace via `GET /api/v1/workspaces/current` and posts
-live-context chat with `credentials: 'include'`. User must be signed into Aproko in the
-same Chrome profile. Host permissions cover localhost + production Vercel host.
+Clerk cookies never reach `chrome-extension://` or `safari-web-extension://` iframes.
+The user signs in on a **normal Aproko tab**. `/extension/connect` mints a short-lived
+handoff token (`POST /api/v1/extension/handoff`). The content script stores it; background
+Ask uses `Authorization: Bearer ext.<token>` against `/api/v1/extension/live-context/chat`
+(and the FasterFlow-shaped `POST /api/chat` alias). Full-tab dashboard routes still use
+Clerk cookies. Host permissions cover localhost + production Vercel host.
 
 ## Security & privacy baseline
 
@@ -60,21 +65,23 @@ same Chrome profile. Host permissions cover localhost + production Vercel host.
 - Clerk-authenticated API + workspace membership + usage metering
 - Analytics event: `live_context_chat_requested`
 
-## Non-goals (still deferred)
+## Non-goals (locked — do not build)
 
-- OS-level meeting audio / desktop window capture (desktop companion)
+- OS-level meeting audio / desktop window overlay (`03-desktop-companion-v2.md` is design-only)
+- Native iOS or Android apps
+- Always-on `tabCapture` or silent tab recording
 - Detector-evasion writing tools
-- Persist captures as workspace `sources` (ephemeral chat context only for MVP)
-- Edge Chromium packaging polish beyond Chrome load-unpacked
+- Persist captures as workspace `sources` (ephemeral chat context only for MVP; user-started tab-audio clips become transcripts)
+- Second web app tree or second auth cookie jar
 
 ## Open decisions (`TODO`)
 
 - [x] Product owner approval of Sprint 29
-- [ ] Chrome + Edge + Safari store listing / packaging
+- [ ] Chrome + Edge + Safari store listing / packaging (copy + ZIP ready; CWS submit is owner-only)
 - [x] Safari Web Extension package (`apps/extension/safari`) + converter docs
 - [x] Side panel MVP (overlay chip included as secondary affordance)
 - [ ] Persist captured sessions as workspace sources
-- [ ] Optional longer-lived extension token handoff (if cookies prove brittle)
+- [x] Extension token handoff (`Bearer ext.` — cookies cannot reach the iframe)
 - [ ] Plan entitlement (Pro-only companion vs free trial)
 
 ## Entry criteria before coding

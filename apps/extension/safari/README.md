@@ -28,10 +28,11 @@ Then open the generated Xcode project, run the macOS app target, and enable the 
 
 ## Use
 
-1. Sign in to Aproko at `http://localhost:3000` in Safari.
+1. Sign in to Aproko in a **normal Safari tab**, then open **Open connect checklist** (handoff token). Clerk cookies do not reach the popup iframe.
 2. Open the extension popup → Settings → Web app URL = your origin.
-3. On a normal webpage, press **Cmd+Shift+Y** to capture (or Capture in the popup).
+3. On a normal webpage, press **Cmd+Shift+Y** to capture (or Capture in the popup). **Cmd+Shift+H** pins hover text.
 4. Ask in the embedded live panel.
+5. Safari does **not** record tab audio (no `tabCapture`). Use the web app recorder on `/transcripts` or `/dashboard` instead.
 
 ## Sync after Chrome changes
 
