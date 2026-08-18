@@ -18,6 +18,23 @@ test('sanitizeLiveBrowserContext requires query, url, and page text', () => {
   }
 });
 
+test('sanitizeLiveBrowserContext accepts FasterFlow message and hoverContext aliases', () => {
+  const result = sanitizeLiveBrowserContext({
+    url: 'https://example.com/doc',
+    title: 'Doc',
+    fullPageContext: 'Membranes control what enters the cell.',
+    hoverContext: 'osmosis',
+    message: 'Explain this sentence',
+  });
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.match(result.context.pageText, /Membranes/);
+    assert.equal(result.context.activeHoverContext, 'osmosis');
+    assert.equal(result.context.userQuery, 'Explain this sentence');
+  }
+});
+
 test('sanitizeLiveBrowserContext truncates oversized page text', () => {
   const result = sanitizeLiveBrowserContext(
     {

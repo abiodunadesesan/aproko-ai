@@ -95,6 +95,13 @@ body.shell {
   gap: 8px;
 }
 
+.secondary-header-btn {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
 .eyebrow {
   margin: 0;
   font-size: 11px;

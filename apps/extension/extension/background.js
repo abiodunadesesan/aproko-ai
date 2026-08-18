@@ -244,6 +244,102 @@ async function captureHoverAndNotify() {
   };
 }
 
+async function ensureOffscreenDocument() {
+  if (!chrome.offscreen?.createDocument) {
+    throw new Error('Tab audio capture requires Chrome with offscreen documents.');
+  }
+
+  const contexts = chrome.runtime.getContexts
+    ? await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] })
+    : [];
+  if (contexts.length > 0) {
+    return;
+  }
+
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['USER_MEDIA'],
+    justification: 'Record tab audio only after the user clicks Record tab audio.',
+  });
+}
+
+async function startTabAudioCapture() {
+  if (!chrome.tabCapture?.getMediaStreamId) {
+    throw new Error('Tab audio capture is only available in Chrome.');
+  }
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    throw new Error('No active tab');
+  }
+  if (isRestrictedTabUrl(tab.url)) {
+    throw new Error('Cannot record this tab. Switch to a normal webpage, then try again.');
+  }
+
+  const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id });
+  await ensureOffscreenDocument();
+
+  const started = await chrome.runtime.sendMessage({
+    type: 'APROKO_OFFSCREEN_START_TAB_AUDIO',
+    streamId,
+  });
+  if (!started?.ok) {
+    throw new Error(started?.error || 'Could not start tab audio capture.');
+  }
+
+  await chrome.storage.session.set({ tabAudioRecording: true, tabAudioStartedAt: Date.now() });
+  await setCaptureBadge('REC');
+  return { ok: true };
+}
+
+async function stopTabAudioCapture() {
+  const stopped = await chrome.runtime.sendMessage({ type: 'APROKO_OFFSCREEN_STOP_TAB_AUDIO' });
+  await chrome.storage.session.set({ tabAudioRecording: false });
+  await setCaptureBadge('');
+
+  if (!stopped?.ok) {
+    throw new Error(stopped?.error || 'Tab audio is not recording.');
+  }
+
+  const bytes = new Uint8Array(stopped.bytes || []);
+  if (!bytes.length) {
+    throw new Error('No tab audio was captured. Try again and speak or play audio in the tab.');
+  }
+
+  const blob = new Blob([bytes], { type: stopped.mimeType || 'audio/webm' });
+  const auth = await getExtensionAuth();
+  let workspaceId = auth?.workspaceId || null;
+  if (!workspaceId) {
+    const { json } = await fetchWebAppJson('/api/v1/workspaces/current');
+    workspaceId = json?.data?.workspaceId || null;
+  }
+  if (!workspaceId) {
+    throw new Error(
+      'Not signed in. Open the connect checklist in a browser tab, then reload the panel.',
+    );
+  }
+
+  const form = new FormData();
+  form.append(
+    'file',
+    new File([blob], `tab-audio-${Date.now()}.webm`, { type: blob.type || 'audio/webm' }),
+  );
+
+  const { response, json } = await fetchWebAppJson(`/api/v1/workspaces/${workspaceId}/transcripts`, {
+    method: 'POST',
+    body: form,
+  });
+
+  if (!response.ok) {
+    throw new Error(json?.error || `Tab audio upload failed (${response.status})`);
+  }
+
+  return {
+    ok: true,
+    name: json?.data?.transcript?.name || 'tab-audio transcript',
+  };
+}
+
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'capture-hover-context') {
     void captureHoverAndNotify().catch(async (error) => {
@@ -401,6 +497,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           ok: false,
           error: error instanceof Error ? error.message : 'Hover capture failed',
+        }),
+      );
+    return true;
+  }
+
+  if (message?.type === 'APROKO_START_TAB_AUDIO') {
+    startTabAudioCapture()
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) =>
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Tab audio failed',
+        }),
+      );
+    return true;
+  }
+
+  if (message?.type === 'APROKO_STOP_TAB_AUDIO') {
+    stopTabAudioCapture()
+      .then((payload) => sendResponse({ ok: true, ...payload }))
+      .catch((error) =>
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Tab audio stop failed',
         }),
       );
     return true;

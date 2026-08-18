@@ -6,10 +6,14 @@ export type LiveBrowserContextInput = {
   pageText?: unknown;
   /** Cursor-focused text (local node + parent wrapper). */
   activeHoverContext?: unknown;
+  /** FasterFlow-style alias for activeHoverContext. */
+  hoverContext?: unknown;
   /** Alias used by context-stream clients. */
   fullPageContext?: unknown;
   capturedAt?: unknown;
   userQuery?: unknown;
+  /** FasterFlow-style alias for userQuery. */
+  message?: unknown;
 };
 
 export type SanitizedLiveBrowserContext = {
@@ -272,7 +276,7 @@ export function sanitizeLiveBrowserContext(
   input: LiveBrowserContextInput,
   options?: { maxPageText?: number },
 ): { ok: true; context: SanitizedLiveBrowserContext } | { ok: false; error: string } {
-  const userQuery = asTrimmedString(input.userQuery);
+  const userQuery = asTrimmedString(input.userQuery) || asTrimmedString(input.message);
   if (!userQuery) {
     return { ok: false, error: 'userQuery is required' };
   }
@@ -299,7 +303,7 @@ export function sanitizeLiveBrowserContext(
   const truncated = redacted.length > maxPageText;
   const pageText = truncated ? `${redacted.slice(0, maxPageText)}\n\n[…truncated]` : redacted;
   const activeHoverContext = formatCapturedPageText(
-    asTrimmedString(input.activeHoverContext),
+    asTrimmedString(input.activeHoverContext) || asTrimmedString(input.hoverContext),
   ).slice(0, 4_000);
 
   const capturedAtRaw = asTrimmedString(input.capturedAt);

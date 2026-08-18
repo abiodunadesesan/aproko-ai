@@ -25,6 +25,7 @@ const isProtectedApi = createRouteMatcher([
   '/api/v1/workspaces(.*)',
   '/api/v1/live-context(.*)',
   '/api/v1/extension(.*)',
+  '/api/chat',
   '/api/v1/me(.*)',
 ]);
 

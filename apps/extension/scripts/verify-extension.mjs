@@ -66,11 +66,11 @@ function assertExcludes(haystack, needle, message) {
   }
 }
 
-await assertReadable('Chrome', chromeDir, required);
+await assertReadable('Chrome', chromeDir, [...required, 'offscreen.html', 'offscreen.js']);
 await assertReadable('Safari', safariDir, [...required, 'README.md']);
 
 const jsFiles = ['background.js', 'content.js', 'sidepanel.js'];
-await assertJsSyntax('Chrome', chromeDir, jsFiles);
+await assertJsSyntax('Chrome', chromeDir, [...jsFiles, 'offscreen.js']);
 await assertJsSyntax('Safari', safariDir, jsFiles);
 
 const chromeManifest = await readJson(chromeDir, 'manifest.json');
@@ -104,7 +104,10 @@ assertIncludes(safariBackground, 'safari-web-extension', 'Safari restricted URL 
 assertIncludes(JSON.stringify(chromeManifest.commands), 'capture-hover-context', 'Hover capture command');
 assertIncludes(JSON.stringify(chromeManifest.commands), 'Ctrl+Shift+H', 'Hover capture shortcut');
 assertIncludes(JSON.stringify(safariManifest.commands), 'capture-hover-context', 'Safari hover capture command');
-assertIncludes(chromeBackground, 'capture-hover-context', 'Background handles hover capture command');
+assertIncludes(JSON.stringify(chromeManifest.permissions), 'tabCapture', 'Chrome opt-in tab audio');
+assertIncludes(JSON.stringify(chromeManifest.permissions), 'offscreen', 'Chrome offscreen tab audio recorder');
+assertExcludes(JSON.stringify(safariManifest.permissions || []), 'tabCapture', 'Safari must not request tabCapture');
+assertExcludes(JSON.stringify(safariManifest.permissions || []), 'offscreen', 'Safari must not request offscreen');
 assertIncludes(chromeBackground, '/api/v1/live-context/solve', 'Solve flat API path');
 assertExcludes(chromeBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
 assertExcludes(safariBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');

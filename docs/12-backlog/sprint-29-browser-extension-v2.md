@@ -32,6 +32,8 @@ leaving the browsing flow.
 | BE-8 | Safari Web Extension package (popup UI) | Done |
 | BE-9 | `Ctrl/Cmd+Shift+H` captures text under the cursor | Done |
 | BE-10 | Side panel Live Transcript streams page + hover text | Done |
+| BE-11 | `POST /api/chat` alias onto live-context chat | Done |
+| BE-12 | Chrome opt-in tab audio (`tabCapture`, user click only) | Done |
 
 ## UX specification
 

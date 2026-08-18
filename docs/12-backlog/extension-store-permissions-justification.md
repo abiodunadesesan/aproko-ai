@@ -19,9 +19,13 @@ This document is intended for store reviewers (Chrome Web Store / Safari) to und
 4. `storage`
    - Used to persist extension settings (e.g., web app URL and whether cursor hover focus is enabled).
 5. `commands`
-   - Used to register the keyboard shortcut (**Ctrl/Cmd+Shift+Y**) to trigger capture.
+   - Used to register keyboard shortcuts (**Ctrl/Cmd+Shift+Y** capture, **Ctrl/Cmd+Shift+H** hover capture).
 6. `sidePanel`
    - Only used in Chrome as the embedded UI surface.
+7. `tabCapture` (Chrome only)
+   - Used only when the user clicks **Record tab audio**. The extension does not record in the background.
+8. `offscreen` (Chrome only)
+   - Used to run MediaRecorder for that user-started tab-audio clip, then the clip is uploaded to Aproko Transcripts.
 
 ### `host_permissions`
 1. `<all_urls>`

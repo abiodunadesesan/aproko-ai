@@ -3,6 +3,7 @@ const MAX_HOVER_FEED_ITEMS = 12;
 const MAX_TRANSCRIPT_ITEMS = 40;
 
 const captureBtn = document.getElementById('capture-btn');
+const tabAudioBtn = document.getElementById('tab-audio-btn');
 const statusEl = document.getElementById('status');
 const webAppUrlEl = document.getElementById('web-app-url');
 const hoverEnabledEl = document.getElementById('hover-enabled');
@@ -392,6 +393,56 @@ captureBtn.addEventListener('click', () => {
     setStatus('Captured — ask in the panel below');
   });
 });
+
+if (tabAudioBtn) {
+  const canTabAudio = Boolean(chrome.tabCapture?.getMediaStreamId);
+  tabAudioBtn.hidden = !canTabAudio;
+  let recording = false;
+
+  tabAudioBtn.addEventListener('click', () => {
+    if (!canTabAudio) {
+      return;
+    }
+    if (recording) {
+      setStatus('Stopping tab audio…');
+      chrome.runtime.sendMessage({ type: 'APROKO_STOP_TAB_AUDIO' }, (response) => {
+        recording = false;
+        tabAudioBtn.textContent = 'Record tab audio';
+        if (chrome.runtime.lastError) {
+          setStatus(chrome.runtime.lastError.message);
+          return;
+        }
+        if (!response?.ok) {
+          setStatus(response?.error || 'Tab audio failed');
+          return;
+        }
+        appendLiveTranscript({
+          kind: 'page',
+          text: `Saved tab audio transcript: ${response.name}`,
+          meta: 'Tab audio',
+        });
+        setActiveMode('transcript');
+        setStatus(`Saved “${response.name}”. Open Transcripts to review.`);
+      });
+      return;
+    }
+
+    setStatus('Recording tab audio…');
+    chrome.runtime.sendMessage({ type: 'APROKO_START_TAB_AUDIO' }, (response) => {
+      if (chrome.runtime.lastError) {
+        setStatus(chrome.runtime.lastError.message);
+        return;
+      }
+      if (!response?.ok) {
+        setStatus(response?.error || 'Tab audio failed');
+        return;
+      }
+      recording = true;
+      tabAudioBtn.textContent = 'Stop tab audio';
+      setStatus('Recording this tab. Click Stop tab audio when finished.');
+    });
+  });
+}
 
 saveSettingsBtn.addEventListener('click', async () => {
   webAppUrl = normalizeWebAppUrl(webAppUrlEl.value.trim() || DEFAULT_WEB_APP_URL);

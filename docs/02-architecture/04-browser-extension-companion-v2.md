@@ -29,6 +29,7 @@ the desktop companion epic (`03-desktop-companion-v2.md`).
    - Toolbar **popup** instead of Chrome side panel (Safari has no `sidePanel` API)
 3. **Aproko web (`apps/web`)**
    - `POST /api/v1/workspaces/{workspaceId}/live-context/chat` (SSE)
+   - Alias: `POST /api/chat` (FasterFlow-shaped body → same live-context handler)
    - Alias: `.../live-context/context-stream`
    - Prompt prioritizes `activeHoverContext`, uses full page as background
    - `/extension/live` dashboard + `/extension/connect` checklist
