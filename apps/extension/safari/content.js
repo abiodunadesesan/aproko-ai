@@ -80,9 +80,7 @@ function scrapeFullPageContext() {
         document.title ||
         document.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
         'Untitled page',
-      pageText: truncated
-        ? `${pageTextRaw.slice(0, PAGE_TEXT_MAX)}\n\n[…truncated]`
-        : pageTextRaw,
+      pageText: truncated ? `${pageTextRaw.slice(0, PAGE_TEXT_MAX)}\n\n[…truncated]` : pageTextRaw,
       capturedAt: new Date().toISOString(),
       truncated,
     };
@@ -107,8 +105,8 @@ function textOf(el, max) {
 function isOurUi(el) {
   return Boolean(
     el?.id === 'aproko-live-overlay-host' ||
-      el?.id === 'aproko-cursor-tip-host' ||
-      el?.closest?.('#aproko-live-overlay-host, #aproko-cursor-tip-host'),
+    el?.id === 'aproko-cursor-tip-host' ||
+    el?.closest?.('#aproko-live-overlay-host, #aproko-cursor-tip-host'),
   );
 }
 
@@ -281,7 +279,7 @@ function highlightEl(el) {
   el.setAttribute('data-aproko-highlight', '1');
   el.style.outline = '2px solid #18181b';
   el.style.outlineOffset = '2px';
-  el.style.backgroundColor = 'rgba(217,119,6,0.12)';
+  el.style.backgroundColor = 'rgba(24, 24, 27, 0.06)';
 }
 
 function findNearbyInput(fromEl) {
@@ -306,7 +304,8 @@ function fillInput(el, value) {
     el.dispatchEvent(new InputEvent('input', { bubbles: true }));
     return true;
   }
-  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const proto =
+    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
   const descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
   descriptor?.set?.call(el, value);
   el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -322,7 +321,9 @@ function findAndSelectOption(fromEl, optionKey, optionText) {
 
   const key = (optionKey || '').toString().trim().toUpperCase();
   const needle = (optionText || '').toString().trim().toLowerCase();
-  const nodes = [...root.querySelectorAll('label, li, button, [role="radio"], [role="option"], span, div, p')];
+  const nodes = [
+    ...root.querySelectorAll('label, li, button, [role="radio"], [role="option"], span, div, p'),
+  ];
 
   let best = null;
   for (const node of nodes) {
@@ -351,12 +352,11 @@ function findAndSelectOption(fromEl, optionKey, optionText) {
   }
 
   highlightEl(best);
-  const input =
-    best.matches?.('input')
-      ? best
-      : best.querySelector?.('input[type="radio"], input[type="checkbox"]') ||
-        best.closest?.('label')?.control ||
-        null;
+  const input = best.matches?.('input')
+    ? best
+    : best.querySelector?.('input[type="radio"], input[type="checkbox"]') ||
+      best.closest?.('label')?.control ||
+      null;
   if (input && 'click' in input) {
     input.click();
   } else {
@@ -387,8 +387,7 @@ function applySolveResult(result, clickedEl) {
 function getScreenContextPayload() {
   const full = scrapeFullPageContext() || state.fullPageContext;
   const hover =
-    state.activeHoverContext ||
-    resolveHoverContext(state.lastPointer.x, state.lastPointer.y);
+    state.activeHoverContext || resolveHoverContext(state.lastPointer.x, state.lastPointer.y);
 
   return {
     ...(full || {
@@ -418,9 +417,8 @@ async function solveAtClick(event) {
   const question =
     payload.activeHoverContext ||
     textOf(
-      target?.closest?.(
-        'p, li, label, h1, h2, h3, h4, div, section, article, fieldset, legend',
-      ) || target,
+      target?.closest?.('p, li, label, h1, h2, h3, h4, div, section, article, fieldset, legend') ||
+        target,
       2_000,
     );
 
@@ -537,8 +535,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === 'APROKO_GET_HOVER_CONTEXT' || message?.type === 'APROKO_CAPTURE_HOVER') {
     const hover =
-      state.activeHoverContext ||
-      resolveHoverContext(state.lastPointer.x, state.lastPointer.y);
+      state.activeHoverContext || resolveHoverContext(state.lastPointer.x, state.lastPointer.y);
     if (!hover?.localText) {
       sendResponse({
         ok: false,
@@ -646,10 +643,7 @@ function bridgeExtensionHandoffFromConnectPage() {
   });
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: [
-      'data-aproko-extension-handoff',
-      'data-aproko-extension-workspace-id',
-    ],
+    attributeFilter: ['data-aproko-extension-handoff', 'data-aproko-extension-workspace-id'],
   });
 
   let attempts = 0;

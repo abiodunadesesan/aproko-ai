@@ -50,7 +50,9 @@ async function readText(dir, relative) {
 
 function assertEqual(actual, expected, message) {
   if (actual !== expected) {
-    throw new Error(`${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    throw new Error(
+      `${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
+    );
   }
 }
 
@@ -83,13 +85,17 @@ assertEqual(
   safariManifest.version,
   'Chrome and Safari versions must match',
 );
-assertIncludes(JSON.stringify(chromeManifest), 'side_panel', 'Chrome manifest must include side_panel');
-assertExcludes(JSON.stringify(safariManifest), 'side_panel', 'Safari manifest must not include side_panel');
-assertEqual(
-  safariManifest.action?.default_popup,
-  'sidepanel.html',
-  'Safari popup path',
+assertIncludes(
+  JSON.stringify(chromeManifest),
+  'side_panel',
+  'Chrome manifest must include side_panel',
 );
+assertExcludes(
+  JSON.stringify(safariManifest),
+  'side_panel',
+  'Safari manifest must not include side_panel',
+);
+assertEqual(safariManifest.action?.default_popup, 'sidepanel.html', 'Safari popup path');
 
 const chromeBackground = await readText(chromeDir, 'background.js');
 const safariBackground = await readText(safariDir, 'background.js');
@@ -99,24 +105,63 @@ const chromeSidepanelCss = await readText(chromeDir, 'sidepanel.css');
 const safariSidepanelCss = await readText(safariDir, 'sidepanel.css');
 
 assertIncludes(chromeBackground, 'chrome.sidePanel', 'Chrome background uses sidePanel API');
-assertExcludes(safariBackground, 'chrome.sidePanel.setPanelBehavior', 'Safari background must not call sidePanel');
+assertExcludes(
+  safariBackground,
+  'chrome.sidePanel.setPanelBehavior',
+  'Safari background must not call sidePanel',
+);
 assertIncludes(safariBackground, 'safari-web-extension', 'Safari restricted URL patterns');
-assertIncludes(JSON.stringify(chromeManifest.commands), 'capture-hover-context', 'Hover capture command');
+assertIncludes(
+  JSON.stringify(chromeManifest.commands),
+  'capture-hover-context',
+  'Hover capture command',
+);
 assertIncludes(JSON.stringify(chromeManifest.commands), 'Ctrl+Shift+H', 'Hover capture shortcut');
-assertIncludes(JSON.stringify(safariManifest.commands), 'capture-hover-context', 'Safari hover capture command');
+assertIncludes(
+  JSON.stringify(safariManifest.commands),
+  'capture-hover-context',
+  'Safari hover capture command',
+);
 assertIncludes(JSON.stringify(chromeManifest.permissions), 'tabCapture', 'Chrome opt-in tab audio');
-assertIncludes(JSON.stringify(chromeManifest.permissions), 'offscreen', 'Chrome offscreen tab audio recorder');
-assertExcludes(JSON.stringify(safariManifest.permissions || []), 'tabCapture', 'Safari must not request tabCapture');
-assertExcludes(JSON.stringify(safariManifest.permissions || []), 'offscreen', 'Safari must not request offscreen');
+assertIncludes(
+  JSON.stringify(chromeManifest.permissions),
+  'offscreen',
+  'Chrome offscreen tab audio recorder',
+);
+assertExcludes(
+  JSON.stringify(safariManifest.permissions || []),
+  'tabCapture',
+  'Safari must not request tabCapture',
+);
+assertExcludes(
+  JSON.stringify(safariManifest.permissions || []),
+  'offscreen',
+  'Safari must not request offscreen',
+);
 assertIncludes(chromeBackground, '/api/v1/live-context/solve', 'Solve flat API path');
-assertExcludes(chromeBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
-assertExcludes(safariBackground, 'llama-3.1-8b-instant', 'Deprecated Groq model must not be hardcoded');
+assertExcludes(
+  chromeBackground,
+  'llama-3.1-8b-instant',
+  'Deprecated Groq model must not be hardcoded',
+);
+assertExcludes(
+  safariBackground,
+  'llama-3.1-8b-instant',
+  'Deprecated Groq model must not be hardcoded',
+);
 assertExcludes(chromeSidepanelCss, '#d97706', 'Extension UI must not use orange accent');
+assertExcludes(chromeSidepanelCss, '#f59e0b', 'Extension UI must not use yellow tracking accent');
+assertExcludes(chromeSidepanelCss, '#4ade80', 'Extension UI must not use green tracking accent');
 assertExcludes(chromeContent, '#d97706', 'Content script must not use orange accent');
+assertExcludes(chromeContent, '217,119,6', 'Content script must not use amber highlight fill');
 assertIncludes(chromeSidepanelCss, '--accent: #18181b', 'Extension uses zinc primary accent');
 
 assertEqual(chromeContent, safariContent, 'content.js must match between Chrome and Safari');
-assertEqual(chromeSidepanelCss, safariSidepanelCss, 'sidepanel.css must match between Chrome and Safari');
+assertEqual(
+  chromeSidepanelCss,
+  safariSidepanelCss,
+  'sidepanel.css must match between Chrome and Safari',
+);
 assertIncludes(chromeSidepanelCss, 'min-width: 400px', 'Popup min-width for Safari toolbar popup');
 
 const safariSidepanelHtml = await readText(safariDir, 'sidepanel.html');
