@@ -555,9 +555,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'APROKO_PROXY_LIVE_CONTEXT_CHAT') {
     void (async () => {
       try {
-        const workspaceId = message.workspaceId;
+        let workspaceId = message.workspaceId;
         if (!workspaceId) {
-          throw new Error('Missing workspace');
+          const { json: wPayload, auth } = await fetchWebAppJson('/api/v1/workspaces/current');
+          workspaceId = auth?.workspaceId || wPayload?.data?.workspaceId;
+        }
+        if (!workspaceId) {
+          throw new Error('Not signed in. Open Aproko in this browser, then try again.');
         }
 
         const authOverride = message.token
@@ -605,6 +609,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           ok: false,
           error: error instanceof Error ? error.message : 'Ask failed',
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'APROKO_TRANSCRIBE_AUDIO') {
+    void (async () => {
+      try {
+        // message.audioDataUrl: base64 data URL (e.g. "data:audio/webm;base64,...")
+        const dataUrl = message.audioDataUrl;
+        if (!dataUrl || !dataUrl.startsWith('data:')) {
+          throw new Error('Invalid audio data');
+        }
+
+        const [meta, base64] = dataUrl.split(',');
+        const mimeMatch = meta.match(/data:([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'audio/webm';
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: mimeType });
+
+        const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const file = new File([blob], `voice.${ext}`, { type: mimeType });
+        const formData = new FormData();
+        formData.append('audio', file);
+
+        const { response } = await fetchWebApp(
+          '/api/v1/extension/transcribe',
+          { method: 'POST', body: formData },
+        );
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(payload?.error || `Transcription failed (${response.status})`);
+        }
+
+        const result = await response.json();
+        sendResponse({ ok: true, text: result?.data?.text ?? '' });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Transcription failed',
         });
       }
     })();

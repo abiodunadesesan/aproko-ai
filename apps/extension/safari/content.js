@@ -16,6 +16,9 @@ const state = {
   solving: false,
   /** Store-friendly default: allow users to opt out of hover tracking. */
   hoverEnabled: true,
+  /** Inline ask mode — cursor tip becomes an input + answer card. */
+  askMode: false,
+  askStreaming: false,
 };
 
 function normalizeReadableText(text) {
@@ -230,8 +233,50 @@ function ensureCursorTip() {
       }
       .tip strong { color: #fafafa; font-weight: 600; }
       .tip .meta { color: #a1a1aa; font-size: 10px; margin-top: 4px; opacity: 0.9; }
+
+      /* Inline ask mode */
+      .ask-container { display: none; }
+      .ask-container.is-active { display: flex; flex-direction: column; gap: 6px; }
+      .ask-row {
+        display: flex; gap: 4px; align-items: center;
+      }
+      .ask-input {
+        flex: 1; border: 1px solid rgba(228, 228, 231, 0.3); border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08); color: #fafafa;
+        font: 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+        padding: 6px 8px; outline: none; min-width: 0;
+      }
+      .ask-input::placeholder { color: #71717a; }
+      .ask-input:focus { border-color: rgba(228, 228, 231, 0.55); }
+      .ask-mic {
+        width: 28px; height: 28px; border: 0; border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1); color: #fafafa;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        font-size: 14px; flex-shrink: 0; transition: background 0.15s;
+      }
+      .ask-mic:hover { background: rgba(255, 255, 255, 0.18); }
+      .ask-mic.recording { background: rgba(239, 68, 68, 0.5); animation: mic-pulse 1.2s ease infinite; }
+      @keyframes mic-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+      }
+      .ask-answer {
+        font: 12px/1.5 ui-sans-serif, system-ui, sans-serif;
+        color: #e4e4e7; white-space: pre-wrap; word-break: break-word;
+        max-height: 260px; overflow-y: auto;
+      }
+      .ask-answer:empty { display: none; }
+      .ask-hint { color: #71717a; font-size: 10px; }
     </style>
     <div class="tip" id="tip"></div>
+    <div class="ask-container" id="ask-container">
+      <div class="ask-row">
+        <input class="ask-input" id="ask-input" placeholder="Ask about this…" autocomplete="off" />
+        <button class="ask-mic" id="ask-mic" title="Voice input" aria-label="Voice input">🎤</button>
+      </div>
+      <div class="ask-answer" id="ask-answer"></div>
+      <div class="ask-hint" id="ask-hint">Enter to send · Esc to close</div>
+    </div>
   `;
   return host;
 }
@@ -251,6 +296,9 @@ function showCursorTip(html, x, y) {
   if (!tip) {
     return;
   }
+  if (state.askMode) {
+    return;
+  }
   tip.innerHTML = html;
   host.style.display = 'block';
   positionCursorTip(x, y);
@@ -260,6 +308,238 @@ function hideCursorTip() {
   const host = document.getElementById('aproko-cursor-tip-host');
   if (host) {
     host.style.display = 'none';
+  }
+  exitAskMode();
+}
+
+/* ─── Inline Ask Mode ─── */
+
+function enterAskMode() {
+  if (state.askMode) {
+    return;
+  }
+  state.askMode = true;
+  const host = ensureCursorTip();
+  host.style.pointerEvents = 'auto';
+  host.style.display = 'block';
+  host.style.maxWidth = '340px';
+  positionCursorTip(state.lastPointer.x, state.lastPointer.y);
+
+  const shadow = host.shadowRoot;
+  const tip = shadow?.getElementById('tip');
+  const askContainer = shadow?.getElementById('ask-container');
+  const askInput = shadow?.getElementById('ask-input');
+  const askAnswer = shadow?.getElementById('ask-answer');
+  if (tip) tip.style.display = 'none';
+  if (askContainer) askContainer.classList.add('is-active');
+  if (askAnswer) askAnswer.textContent = '';
+  if (askInput) {
+    askInput.value = '';
+    setTimeout(() => askInput.focus(), 30);
+  }
+}
+
+function exitAskMode() {
+  if (!state.askMode) {
+    return;
+  }
+  state.askMode = false;
+  state.askStreaming = false;
+  const host = document.getElementById('aproko-cursor-tip-host');
+  if (!host) return;
+  host.style.pointerEvents = 'none';
+  host.style.maxWidth = '280px';
+  const shadow = host.shadowRoot;
+  const tip = shadow?.getElementById('tip');
+  const askContainer = shadow?.getElementById('ask-container');
+  if (tip) tip.style.display = '';
+  if (askContainer) askContainer.classList.remove('is-active');
+  stopMicRecording();
+}
+
+function handleAskSubmit(query) {
+  if (!query.trim() || state.askStreaming) {
+    return;
+  }
+  state.askStreaming = true;
+  const host = ensureCursorTip();
+  const shadow = host.shadowRoot;
+  const askAnswer = shadow?.getElementById('ask-answer');
+  const askHint = shadow?.getElementById('ask-hint');
+  if (askAnswer) askAnswer.textContent = 'Thinking…';
+  if (askHint) askHint.textContent = 'Streaming answer…';
+
+  const payload = getScreenContextPayload();
+  chrome.runtime.sendMessage(
+    {
+      type: 'APROKO_PROXY_LIVE_CONTEXT_CHAT',
+      body: {
+        url: payload.url,
+        title: payload.title,
+        pageText: payload.pageText,
+        fullPageContext: payload.pageText,
+        activeHoverContext: payload.activeHoverContext || '',
+        capturedAt: payload.capturedAt || new Date().toISOString(),
+        userQuery: query.trim(),
+        persistCapture: true,
+      },
+    },
+    (response) => {
+      state.askStreaming = false;
+      if (chrome.runtime.lastError || !response?.ok) {
+        const msg = response?.error || chrome.runtime.lastError?.message || 'Ask failed';
+        if (askAnswer) askAnswer.textContent = msg;
+        if (askHint) askHint.textContent = 'Enter to retry · Esc to close';
+        return;
+      }
+      const sse = response.sse || '';
+      const text = parseSseDeltas(sse);
+      if (askAnswer) askAnswer.textContent = text || 'No answer returned.';
+      if (askHint) askHint.textContent = 'Enter to ask again · Esc to close';
+    },
+  );
+}
+
+function parseSseDeltas(raw) {
+  let result = '';
+  const frames = String(raw).split('\n\n');
+  for (const frame of frames) {
+    const eventLine = frame.split('\n').find((l) => l.startsWith('event:'));
+    const dataLine = frame.split('\n').find((l) => l.startsWith('data:'));
+    if (!eventLine || !dataLine) continue;
+    const event = eventLine.replace('event:', '').trim();
+    if (event !== 'delta') continue;
+    try {
+      const payload = JSON.parse(dataLine.replace('data:', '').trim());
+      if (payload.content) result += payload.content;
+    } catch { /* ignore */ }
+  }
+  return result.trim();
+}
+
+/* ─── Mic (getUserMedia → Whisper via background) ─── */
+
+let micMediaStream = null;
+let micRecorder = null;
+let micChunks = [];
+
+function toggleMicRecording() {
+  if (micRecorder && micRecorder.state === 'recording') {
+    micRecorder.stop();
+    return;
+  }
+  startMicRecording();
+}
+
+async function startMicRecording() {
+  const host = ensureCursorTip();
+  const micBtn = host.shadowRoot?.getElementById('ask-mic');
+  const askInput = host.shadowRoot?.getElementById('ask-input');
+  const askHint = host.shadowRoot?.getElementById('ask-hint');
+
+  try {
+    micMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    if (askInput) askInput.placeholder = 'Mic access denied — type your question';
+    return;
+  }
+
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus'
+    : MediaRecorder.isTypeSupported('audio/webm')
+      ? 'audio/webm'
+      : '';
+
+  micChunks = [];
+  micRecorder = new MediaRecorder(micMediaStream, mimeType ? { mimeType } : {});
+  if (micBtn) micBtn.classList.add('recording');
+  if (askHint) askHint.textContent = 'Recording… tap 🎤 to stop';
+
+  micRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) micChunks.push(e.data);
+  };
+
+  micRecorder.onstop = async () => {
+    if (micBtn) micBtn.classList.remove('recording');
+    if (micMediaStream) {
+      micMediaStream.getTracks().forEach((t) => t.stop());
+      micMediaStream = null;
+    }
+    micRecorder = null;
+
+    if (!micChunks.length) return;
+    const blob = new Blob(micChunks, { type: mimeType || 'audio/webm' });
+    micChunks = [];
+
+    if (askHint) askHint.textContent = 'Transcribing…';
+    if (askInput) askInput.placeholder = 'Transcribing…';
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      chrome.runtime.sendMessage(
+        { type: 'APROKO_TRANSCRIBE_AUDIO', audioDataUrl: dataUrl },
+        (response) => {
+          if (chrome.runtime.lastError || !response?.ok) {
+            if (askInput) {
+              askInput.placeholder = response?.error || 'Transcription failed — type instead';
+            }
+            if (askHint) askHint.textContent = 'Enter to send · Esc to close';
+            return;
+          }
+          const text = (response.text || '').trim();
+          if (askInput) {
+            askInput.value = text;
+            askInput.placeholder = 'Ask about this…';
+          }
+          if (askHint) askHint.textContent = 'Enter to send · Esc to close';
+          if (text) handleAskSubmit(text);
+        },
+      );
+    };
+    reader.readAsDataURL(blob);
+  };
+
+  micRecorder.start();
+}
+
+function stopMicRecording() {
+  if (micRecorder && micRecorder.state === 'recording') {
+    try { micRecorder.stop(); } catch { /* already stopped */ }
+  }
+  if (micMediaStream) {
+    micMediaStream.getTracks().forEach((t) => t.stop());
+    micMediaStream = null;
+  }
+  const host = document.getElementById('aproko-cursor-tip-host');
+  const micBtn = host?.shadowRoot?.getElementById('ask-mic');
+  if (micBtn) micBtn.classList.remove('recording');
+}
+
+function setupAskModeListeners() {
+  const host = ensureCursorTip();
+  const shadow = host.shadowRoot;
+  const askInput = shadow?.getElementById('ask-input');
+  const askMic = shadow?.getElementById('ask-mic');
+
+  if (askInput) {
+    askInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleAskSubmit(askInput.value);
+      }
+      if (e.key === 'Escape') {
+        exitAskMode();
+        hideCursorTip();
+      }
+    });
+  }
+  if (askMic) {
+    askMic.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMicRecording();
+    });
   }
 }
 
@@ -484,7 +764,7 @@ const onMouseMove = throttle((event) => {
     publishHover(hover);
     if (!state.solving) {
       showCursorTip(
-        `${hover.localText.slice(0, 180)}<div class="meta">Alt/Option-click to solve</div>`,
+        `${hover.localText.slice(0, 180)}<div class="meta">Alt/Option-click to solve · Ctrl+/ to ask</div>`,
         event.clientX,
         event.clientY,
       );
@@ -574,13 +854,23 @@ document.addEventListener(
 );
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
+    if (state.askMode) {
+      exitAskMode();
+      return;
+    }
     hideCursorTip();
     clearHighlights();
+  }
+  if (event.ctrlKey && event.key === '/' && !event.shiftKey && !event.altKey && !event.metaKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    enterAskMode();
   }
 });
 
 ensureCaptureChip();
 ensureCursorTip();
+setupAskModeListeners();
 
 // User control for hover tracking (store/privacy review friendly).
 (async () => {

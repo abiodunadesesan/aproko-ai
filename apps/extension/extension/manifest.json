@@ -42,7 +42,8 @@
     "storage",
     "tabs",
     "tabCapture",
-    "offscreen"
+    "offscreen",
+    "microphone"
   ],
   "host_permissions": [
     "<all_urls>",
