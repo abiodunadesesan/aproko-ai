@@ -242,11 +242,66 @@ function setActiveMode(mode) {
   }
 }
 
-async function pushExtensionAuth() {
-  const response = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
-  if (response?.ok && response.auth?.token) {
-    postAuthToFrame(response.auth);
+let _authPollTimer = null;
+
+async function bootstrapSafariAuth() {
+  // Read storage.local directly — reliable in Safari even when service worker sleeps.
+  let auth = null;
+  try {
+    const local = await chrome.storage.local.get(['extensionHandoff']);
+    if (local.extensionHandoff?.token) {
+      auth = local.extensionHandoff;
+    }
+  } catch {
+    // fall through to background fallback
   }
+
+  // Fallback: ask background (may fail if service worker sleeping).
+  if (!auth?.token) {
+    try {
+      const res = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
+      if (res?.ok && res.auth?.token) {
+        auth = res.auth;
+      }
+    } catch {
+      // service worker not responding
+    }
+  }
+
+  if (auth?.token) {
+    // Stop polling — we have a token.
+    if (_authPollTimer) {
+      clearInterval(_authPollTimer);
+      _authPollTimer = null;
+    }
+    setStatus('');
+    // Send multiple times to beat iframe load-timing races.
+    postAuthToFrame(auth);
+    setTimeout(() => postAuthToFrame(auth), 600);
+    setTimeout(() => postAuthToFrame(auth), 1800);
+    return;
+  }
+
+  // No token yet — show hint and poll storage.local every 1.5s.
+  setStatus('Not signed in — open the connect checklist link below in a browser tab.');
+  if (_authPollTimer) {
+    return;
+  }
+  _authPollTimer = setInterval(async () => {
+    try {
+      const local = await chrome.storage.local.get(['extensionHandoff']);
+      const stored = local.extensionHandoff;
+      if (stored?.token && stored?.workspaceId) {
+        clearInterval(_authPollTimer);
+        _authPollTimer = null;
+        setStatus('');
+        postAuthToFrame(stored);
+        setTimeout(() => postAuthToFrame(stored), 600);
+      }
+    } catch {
+      // keep polling
+    }
+  }, 1500);
 }
 
 async function loadSettings() {
@@ -330,11 +385,11 @@ function handleHoverCaptured(message) {
 appFrame.addEventListener('load', () => {
   chrome.runtime.sendMessage({ type: 'APROKO_CLEAR_BADGE' });
   setTimeout(() => {
-    void pushExtensionAuth();
+    void bootstrapSafariAuth();
     if (lastContext) {
       postContextToFrame(lastContext);
     }
-  }, 250);
+  }, 500);
 });
 
 window.addEventListener('message', (event) => {
@@ -343,7 +398,7 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
-    void pushExtensionAuth();
+    void bootstrapSafariAuth();
     return;
   }
 
@@ -492,7 +547,7 @@ chrome.runtime.onMessage.addListener((message) => {
     setStatus('Captured — ask in the panel below');
   }
   if (message?.type === 'APROKO_EXTENSION_AUTH_UPDATED') {
-    void pushExtensionAuth();
+    void bootstrapSafariAuth();
   }
   if (message?.type === 'APROKO_HOVER_CAPTURED') {
     handleHoverCaptured(message);
