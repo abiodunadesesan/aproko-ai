@@ -1,7 +1,9 @@
 const DEFAULT_WEB_APP_URL = 'https://aprokoai.vercel.app';
 
 function normalizeWebAppUrl(url) {
-  let value = String(url || DEFAULT_WEB_APP_URL).trim().replace(/\/$/, '');
+  let value = String(url || DEFAULT_WEB_APP_URL)
+    .trim()
+    .replace(/\/$/, '');
   if (!value) {
     value = DEFAULT_WEB_APP_URL;
   }
@@ -163,7 +165,10 @@ async function captureActiveTabContext() {
     return { tabId: tab.id, context: result };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (/Cannot access a chrome:\/\//i.test(message) || /Cannot access contents of/i.test(message)) {
+    if (
+      /Cannot access a chrome:\/\//i.test(message) ||
+      /Cannot access contents of/i.test(message)
+    ) {
       throw new Error(
         'Cannot capture this tab. Switch to a normal webpage (http/https), then try again.',
       );
@@ -325,10 +330,13 @@ async function stopTabAudioCapture() {
     new File([blob], `tab-audio-${Date.now()}.webm`, { type: blob.type || 'audio/webm' }),
   );
 
-  const { response, json } = await fetchWebAppJson(`/api/v1/workspaces/${workspaceId}/transcripts`, {
-    method: 'POST',
-    body: form,
-  });
+  const { response, json } = await fetchWebAppJson(
+    `/api/v1/workspaces/${workspaceId}/transcripts`,
+    {
+      method: 'POST',
+      body: form,
+    },
+  );
 
   if (!response.ok) {
     throw new Error(json?.error || `Tab audio upload failed (${response.status})`);
@@ -405,18 +413,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const settings = await getSettings();
         const webAppUrl = settings.webAppUrl;
-        const solveUrls = [
-          `${webAppUrl}/api/v1/live-context/solve`,
-          null,
-        ];
+        const solveUrls = [`${webAppUrl}/api/v1/live-context/solve`, null];
 
-        const { response: workspaceRes, json: workspacePayload, auth } = await fetchWebAppJson(
-          '/api/v1/workspaces/current',
-        );
+        const {
+          response: workspaceRes,
+          json: workspacePayload,
+          auth,
+        } = await fetchWebAppJson('/api/v1/workspaces/current');
         if (!workspaceRes.ok || !workspacePayload?.data?.workspaceId) {
+          const hasToken = !!auth?.token;
           throw new Error(
             workspacePayload?.error ||
-              'Not signed in. Open Aproko at the web app URL in this browser profile, then try again.',
+              `Not signed in (status ${workspaceRes.status}, token=${hasToken}). Open Aproko at the web app URL in this browser profile, then try again.`,
           );
         }
 
@@ -432,8 +440,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           activeHoverContext: context.activeHoverContext || '',
           capturedAt: context.capturedAt || new Date().toISOString(),
           userQuery:
-            context.userQuery ||
-            'Solve the clicked question using the full page and cursor focus.',
+            context.userQuery || 'Solve the clicked question using the full page and cursor focus.',
           persistCapture: true,
         });
 
@@ -639,10 +646,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const formData = new FormData();
         formData.append('audio', file);
 
-        const { response } = await fetchWebApp(
-          '/api/v1/extension/transcribe',
-          { method: 'POST', body: formData },
-        );
+        const { response } = await fetchWebApp('/api/v1/extension/transcribe', {
+          method: 'POST',
+          body: formData,
+        });
 
         if (!response.ok) {
           const payload = await response.json().catch(() => null);

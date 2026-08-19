@@ -4,12 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import {
-  AppPageFrame,
-  AppPanel,
-  AppPanelBody,
-  AppPanelHeader,
-} from '@/components/app/app-surface';
+import { AppPageFrame, AppPanel, AppPanelBody, AppPanelHeader } from '@/components/app/app-surface';
 import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { isExtensionEmbedFrame, openInExtensionBrowserTab } from '@/lib/extension/embed-frame';
@@ -51,8 +46,8 @@ function ExtensionConnectPanels({
               Open this page in a full browser tab
             </p>
             <p>
-              Sign-in and Google OAuth do not work inside the extension panel. Use a normal Safari or
-              Chrome tab, then return to the extension and click <strong>Reload panel</strong>.
+              Sign-in and Google OAuth do not work inside the extension panel. Use a normal Safari
+              or Chrome tab, then return to the extension and click <strong>Reload panel</strong>.
             </p>
             {signedIn ? (
               <p>
@@ -84,8 +79,8 @@ function ExtensionConnectPanels({
                   You&apos;re signed in — the extension can use this session.
                 </p>
                 <p>
-                  Return to the extension panel (Chrome side panel or Safari toolbar popup). It should
-                  connect automatically within a few seconds. If not, click{' '}
+                  Return to the extension panel (Chrome side panel or Safari toolbar popup). It
+                  should connect automatically within a few seconds. If not, click{' '}
                   <strong className="text-zinc-800 dark:text-zinc-200">Reload panel</strong>.
                 </p>
                 <p>
@@ -187,7 +182,7 @@ function ExtensionConnectContent() {
   const signedIn = Boolean(workspaceId) && !isLoading;
 
   useEffect(() => {
-    if (!fromExtension || !signedIn) {
+    if (!signedIn) {
       return;
     }
 
@@ -219,7 +214,7 @@ function ExtensionConnectContent() {
     return () => {
       cancelled = true;
     };
-  }, [fromExtension, signedIn]);
+  }, [signedIn]);
 
   const panels = (
     <ExtensionConnectPanels
@@ -235,9 +230,7 @@ function ExtensionConnectContent() {
   );
 
   if (inExtensionFrame) {
-    return (
-      <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">{panels}</div>
-    );
+    return <div className="min-h-screen bg-zinc-50 p-4 dark:bg-zinc-950">{panels}</div>;
   }
 
   return (
@@ -249,7 +242,9 @@ function ExtensionConnectContent() {
 
 export default function ExtensionConnectPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-zinc-500">Loading extension connect…</div>}>
+    <Suspense
+      fallback={<div className="p-6 text-sm text-zinc-500">Loading extension connect…</div>}
+    >
       <ExtensionConnectContent />
     </Suspense>
   );
