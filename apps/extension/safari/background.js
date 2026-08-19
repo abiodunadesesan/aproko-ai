@@ -52,15 +52,23 @@ async function storeHandoff(auth) {
     },
   };
 
-  await chrome.storage.session.set(payload);
+  try {
+    await chrome.storage.session.set(payload);
+  } catch {
+    // Safari may not support storage.session
+  }
   await chrome.storage.local.set(payload);
   chrome.runtime.sendMessage({ type: 'APROKO_EXTENSION_AUTH_UPDATED' }).catch(() => {});
 }
 
 async function getExtensionAuth() {
-  const sessionStored = await chrome.storage.session.get(['extensionHandoff']);
-  if (sessionStored.extensionHandoff?.token) {
-    return sessionStored.extensionHandoff;
+  try {
+    const sessionStored = await chrome.storage.session.get(['extensionHandoff']);
+    if (sessionStored.extensionHandoff?.token) {
+      return sessionStored.extensionHandoff;
+    }
+  } catch {
+    // Safari may not support storage.session
   }
   const localStored = await chrome.storage.local.get(['extensionHandoff']);
   return localStored.extensionHandoff || null;

@@ -266,7 +266,12 @@ async function loadSettings() {
 }
 
 async function loadStoredContext() {
-  const stored = await chrome.storage.session.get(['lastLiveContext', 'lastHoverContext']);
+  let stored = {};
+  try {
+    stored = await chrome.storage.session.get(['lastLiveContext', 'lastHoverContext']);
+  } catch {
+    // Safari may not support storage.session — fall through with empty
+  }
   if (stored.lastLiveContext) {
     lastContext = stored.lastLiveContext;
     const pageText = String(stored.lastLiveContext.pageText || '').trim();

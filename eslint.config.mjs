@@ -58,6 +58,7 @@ export default tseslint.config(
         setInterval: 'readonly',
         clearInterval: 'readonly',
         MutationObserver: 'readonly',
+        URL: 'readonly',
         URLSearchParams: 'readonly',
         Event: 'readonly',
         InputEvent: 'readonly',
