@@ -20,6 +20,12 @@ import {
   type LiveBrowserContextInput,
   type SanitizedLiveBrowserContext,
 } from '@/lib/live-context/sanitize';
+import {
+  assertLiveContextCompanionAccess,
+  liveContextProRequiredResponse,
+  type LiveContextPlanAccess,
+} from '@/lib/live-context/plan-access';
+import { persistLiveCaptureAsSource } from '@/lib/live-context/persist-capture-source';
 import { trackServerEvent } from '@/lib/observability/server';
 import type { ChatGenerationStream } from '@/lib/ai/chat-generation';
 import { resolveExtensionRequestAuth } from '@/lib/extension/request-auth';
@@ -33,6 +39,10 @@ type LiveContextChatDependencies = {
     context: SanitizedLiveBrowserContext;
   }) => ChatGenerationStream;
   consumeAiQueryQuota?: typeof consumeAiQueryQuota;
+  assertLiveContextCompanionAccess?: (
+    workspaceId: string,
+  ) => Promise<LiveContextPlanAccess>;
+  persistLiveCaptureAsSource?: typeof persistLiveCaptureAsSource;
 };
 
 type RouteContext = { params: Promise<{ workspaceId: string }> };
@@ -45,7 +55,12 @@ function toSseBlock(eventId: number, event: SseEventName, payload: object): stri
 function streamLiveContextResponse(
   generation: ChatGenerationStream,
   model: ChatModel,
-  meta: { url: string; title: string; truncated: boolean },
+  meta: {
+    url: string;
+    title: string;
+    truncated: boolean;
+    savedSource?: { sourceId: string; name: string } | null;
+  },
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const chunkSize = 24;
@@ -64,6 +79,7 @@ function streamLiveContextResponse(
           version: 1,
           model,
           liveContext: meta,
+          savedSource: meta.savedSource ?? null,
         });
 
         let buffered = '';
@@ -141,8 +157,15 @@ export function createLiveContextChatRouteHandlers(deps: LiveContextChatDependen
       }
 
       const rawBody = (await request.json().catch(() => null)) as
-        | (LiveBrowserContextInput & { model?: string })
+        | (LiveBrowserContextInput & { model?: string; persistCapture?: boolean })
         | null;
+
+      const planAccess = await (deps.assertLiveContextCompanionAccess ?? assertLiveContextCompanionAccess)(
+        workspaceId,
+      );
+      if (!planAccess.allowed) {
+        return respond(liveContextProRequiredResponse(planAccess.message, planAccess.planCode));
+      }
 
       const sanitized = sanitizeLiveBrowserContext(rawBody ?? {});
       if (!sanitized.ok) {
@@ -174,6 +197,7 @@ export function createLiveContextChatRouteHandlers(deps: LiveContextChatDependen
           workspace_id: workspaceId,
           model: modelRaw,
           page_text_truncated: sanitized.context.truncated,
+          persist_capture: rawBody?.persistCapture === true,
           page_host: (() => {
             try {
               return new URL(sanitized.context.url).host;
@@ -183,6 +207,14 @@ export function createLiveContextChatRouteHandlers(deps: LiveContextChatDependen
           })(),
         },
       });
+
+      let savedSource: { sourceId: string; name: string } | null = null;
+      if (rawBody?.persistCapture === true) {
+        savedSource = await (deps.persistLiveCaptureAsSource ?? persistLiveCaptureAsSource)(
+          workspaceId,
+          sanitized.context,
+        );
+      }
 
       const generation = deps.streamLiveContextGeneration({
         model: modelRaw,
@@ -195,6 +227,7 @@ export function createLiveContextChatRouteHandlers(deps: LiveContextChatDependen
             url: sanitized.context.url,
             title: sanitized.context.title,
             truncated: sanitized.context.truncated,
+            savedSource,
           }),
           {
             headers: {

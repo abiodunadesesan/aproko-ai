@@ -4,13 +4,15 @@ export type PlanEntitlements = {
   planCode: PlanCode;
   /** null = unlimited */
   monthlyAiQueries: number | null;
+  /** Browser extension live tab / DOM capture (Sprint 29). */
+  liveContextCompanion: boolean;
 };
 
 const ENTITLEMENTS: Record<PlanCode, PlanEntitlements> = {
-  free: { planCode: 'free', monthlyAiQueries: 100 },
-  teams: { planCode: 'teams', monthlyAiQueries: 500 },
-  pro_monthly: { planCode: 'pro_monthly', monthlyAiQueries: null },
-  pro_yearly: { planCode: 'pro_yearly', monthlyAiQueries: null },
+  free: { planCode: 'free', monthlyAiQueries: 100, liveContextCompanion: false },
+  teams: { planCode: 'teams', monthlyAiQueries: 500, liveContextCompanion: false },
+  pro_monthly: { planCode: 'pro_monthly', monthlyAiQueries: null, liveContextCompanion: true },
+  pro_yearly: { planCode: 'pro_yearly', monthlyAiQueries: null, liveContextCompanion: true },
 };
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
@@ -29,6 +31,10 @@ export function resolveEffectivePlanCode(input: {
 
 export function getPlanEntitlements(planCode: PlanCode): PlanEntitlements {
   return ENTITLEMENTS[planCode];
+}
+
+export function isProPlan(planCode: PlanCode): boolean {
+  return planCode === 'pro_monthly' || planCode === 'pro_yearly';
 }
 
 export function getCurrentUsagePeriodKey(date = new Date()): string {

@@ -17,6 +17,8 @@ export async function fetchExtensionSession(token: string): Promise<{
   workspaceId: string;
   name: string | null;
   role: string | null;
+  planCode?: string;
+  liveContextCompanion?: boolean;
 } | null> {
   const response = await fetch('/api/v1/extension/session', {
     headers: {
@@ -28,7 +30,13 @@ export async function fetchExtensionSession(token: string): Promise<{
   });
 
   const payload = (await response.json().catch(() => null)) as {
-    data?: { workspaceId?: string; name?: string; role?: string };
+    data?: {
+      workspaceId?: string;
+      name?: string;
+      role?: string;
+      planCode?: string;
+      liveContextCompanion?: boolean;
+    };
     error?: string;
   };
 
@@ -40,5 +48,7 @@ export async function fetchExtensionSession(token: string): Promise<{
     workspaceId: payload.data.workspaceId,
     name: payload.data.name ?? null,
     role: payload.data.role ?? null,
+    planCode: payload.data.planCode,
+    liveContextCompanion: payload.data.liveContextCompanion,
   };
 }

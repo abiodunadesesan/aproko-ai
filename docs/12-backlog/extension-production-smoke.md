@@ -61,3 +61,5 @@ If Ask is Unauthorized after connect: confirm production includes `/api/v1/exten
 | `verify-extension.mjs`                               | Chrome + Safari parity OK                                    |
 
 Signed-in Capture → Ask, hover/H shortcuts, and Record tab audio still require manual pass in the owner browser profile.
+
+**Pro gate:** Live Context chat/solve returns **402** `pro_required` on Free/Teams plans. Use a Pro workspace for full smoke, or expect the upgrade banner in the panel.

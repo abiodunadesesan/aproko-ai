@@ -136,14 +136,15 @@ Upload (`POST`) persists the file to Supabase Storage, writes `sources` metadata
   - Body: `{ url, title, pageText | fullPageContext, activeHoverContext | hoverContext?, capturedAt?, userQuery | message, model | activeModel? }`
   - `activeHoverContext` is cursor-focus text (highest priority in the system prompt)
   - Auth: Clerk session (cookies or Bearer) + workspace membership
+  - **Pro required:** Free/Teams plans receive `402` `{ code: "pro_required" }`. Pro monthly/yearly only.
   - Consumes AI query quota; CORS allowlist includes `chrome-extension://*` and `APROKO_EXTENSION_ORIGIN_ALLOWLIST`
-  - Does **not** persist captures as library sources in MVP
+  - Optional body flag: `persistCapture: true` saves sanitized page text as a `.txt` library source under project `general`, folder `live-context` (first Ask after a capture; SSE `start` event includes `savedSource`)
 - `POST /api/chat` — FasterFlow-compatible **alias** of `POST /v1/extension/live-context/chat`
   - Same auth, quota, models, and SSE. Not a second chat router.
   - Also accepts `{ fullPageContext, hoverContext, message, activeModel }`
 - `POST /v1/workspaces/{workspace_id}/live-context/solve` — JSON solve helper for Alt/Option-click on a question
-  - Body same as chat (`pageText`/`fullPageContext`, `activeHoverContext`, `userQuery?`)
-  - Response: `{ data: { kind, optionKey, optionText, fillText, explanation, model } }`
+  - Body same as chat (`pageText`/`fullPageContext`, `activeHoverContext`, `userQuery?`, `persistCapture?`)
+  - Response: `{ data: { kind, optionKey, optionText, fillText, explanation, model, savedSource? } }`
   - Used by the extension to highlight MCQ options or fill nearby text fields
 
 ### Search

@@ -7,6 +7,7 @@ export type LiveContextSseEvent = {
     message?: string;
     error?: string;
     model?: string;
+    savedSource?: { sourceId?: string; name?: string } | null;
   };
 };
 
@@ -49,4 +50,14 @@ export function readLiveContextSseDelta(payload: LiveContextSseEvent['payload'])
 
 export function readLiveContextSseError(payload: LiveContextSseEvent['payload']): string {
   return payload.message?.trim() || payload.error?.trim() || 'Stream error';
+}
+
+export function readLiveContextSavedSource(
+  payload: LiveContextSseEvent['payload'],
+): { sourceId: string; name: string } | null {
+  const saved = payload.savedSource;
+  if (!saved?.sourceId) {
+    return null;
+  }
+  return { sourceId: saved.sourceId, name: saved.name || 'Live capture' };
 }

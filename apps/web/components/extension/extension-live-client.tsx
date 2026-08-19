@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { AppPageShell } from '@/components/app/app-page-shell';
 import {
   AppPageFrame,
@@ -14,6 +15,7 @@ import { useWorkspace } from '@/components/workspace/workspace-provider';
 import { parseHoverFocus, summarizePageSnapshot } from '@/lib/live-context/sanitize';
 import {
   parseLiveContextSseEventsFromBuffer,
+  readLiveContextSavedSource,
   readLiveContextSseDelta,
   readLiveContextSseError,
 } from '@/lib/live-context/sse-client';
@@ -223,6 +225,9 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authValidated, setAuthValidated] = useState(false);
+  const [requiresPro, setRequiresPro] = useState(false);
+  const [savedSourceLabel, setSavedSourceLabel] = useState<string | null>(null);
+  const lastPersistedCaptureKey = useRef<string | null>(null);
 
   const visibleWorkspaceError =
     workspaceError && !extensionAuth?.workspaceId && !authValidated ? workspaceError : null;
@@ -253,6 +258,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       }
 
       setAuthValidated(true);
+      setRequiresPro(session.liveContextCompanion === false);
       setExtensionAuth((current) =>
         current
           ? {
@@ -367,8 +373,15 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     const userQuery = query.trim();
     setQuery('');
     setError(null);
+    setSavedSourceLabel(null);
     setStreaming(true);
     setLines((prev) => [...prev, { role: 'user', content: userQuery }, { role: 'assistant', content: '' }]);
+
+    const captureKey = `${synced.url}|${synced.capturedAt}`;
+    const shouldPersistCapture = lastPersistedCaptureKey.current !== captureKey;
+    if (shouldPersistCapture) {
+      lastPersistedCaptureKey.current = captureKey;
+    }
 
     const requestBody = {
       url: synced.url,
@@ -378,6 +391,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       activeHoverContext: synced.activeHoverContext || hoverText || '',
       capturedAt: synced.capturedAt,
       userQuery,
+      persistCapture: shouldPersistCapture,
     };
 
     try {
@@ -410,7 +424,13 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       }
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+          code?: string;
+        } | null;
+        if (response.status === 402 && payload?.code === 'pro_required') {
+          setRequiresPro(true);
+        }
         throw new Error(payload?.error || `Request failed (${response.status})`);
       }
 
@@ -433,6 +453,12 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
         buffer = parsed.rest;
 
         for (const event of parsed.events) {
+          if (event.event === 'start') {
+            const saved = readLiveContextSavedSource(event.payload);
+            if (saved) {
+              setSavedSourceLabel(saved.name);
+            }
+          }
           if (event.event === 'delta') {
             const delta = readLiveContextSseDelta(event.payload);
             if (delta) {
@@ -526,6 +552,24 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       <AppPanel>
         <AppPanelHeader title="Ask about this page" />
         <AppPanelBody className="space-y-4">
+          {requiresPro ? (
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-950 dark:text-amber-100">
+              Live Context is included on{' '}
+              <strong className="font-semibold">Aproko Pro</strong>.{' '}
+              <Link href="/billing" className="font-medium underline underline-offset-2">
+                Upgrade your workspace
+              </Link>{' '}
+              to capture pages and ask from the extension.
+            </div>
+          ) : null}
+          {savedSourceLabel ? (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Saved capture to library:{' '}
+              <Link href="/library" className="font-medium text-zinc-700 underline dark:text-zinc-200">
+                {savedSourceLabel}
+              </Link>
+            </p>
+          ) : null}
           {(visibleWorkspaceError || error) && (
             <p className="text-sm text-red-600">{visibleWorkspaceError ?? error}</p>
           )}
@@ -550,7 +594,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={isLoading ? 'Loading workspace…' : 'Ask about the synced page'}
-              disabled={!synced || !activeWorkspaceId || streaming}
+              disabled={!synced || !activeWorkspaceId || streaming || requiresPro}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
@@ -560,7 +604,7 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
             />
             <Button
               onClick={() => void ask()}
-              disabled={!synced || !activeWorkspaceId || streaming || !query.trim()}
+              disabled={!synced || !activeWorkspaceId || streaming || !query.trim() || requiresPro}
             >
               Ask
             </Button>

@@ -17,6 +17,7 @@ export type LiveContextChatRequestBody = {
   activeHoverContext: string;
   capturedAt: string;
   userQuery: string;
+  persistCapture?: boolean;
 };
 
 export type ExtensionEmbedAuth = {

@@ -5,6 +5,11 @@ import {
   consumeAiQueryQuota,
   planQuotaExceededResponse,
 } from '@/lib/billing/plan-usage';
+import {
+  assertLiveContextCompanionAccess,
+  liveContextProRequiredResponse,
+} from '@/lib/live-context/plan-access';
+import { persistLiveCaptureAsSource } from '@/lib/live-context/persist-capture-source';
 import { withLiveContextCors } from '@/lib/live-context/cors';
 import { canGenerateLiveContext, resolveLiveContextModel } from '@/lib/live-context/generation';
 import {
@@ -36,8 +41,13 @@ export async function handleLiveContextSolveRequest(input: {
   }
 
   const rawBody = (await input.request.json().catch(() => null)) as
-    | (LiveBrowserContextInput & { model?: string })
+    | (LiveBrowserContextInput & { model?: string; persistCapture?: boolean })
     | null;
+
+  const planAccess = await assertLiveContextCompanionAccess(input.workspaceId);
+  if (!planAccess.allowed) {
+    return respond(liveContextProRequiredResponse(planAccess.message, planAccess.planCode));
+  }
 
   const withDefaultQuery: LiveBrowserContextInput = {
     ...(rawBody ?? {}),
@@ -70,6 +80,11 @@ export async function handleLiveContextSolveRequest(input: {
   }
 
   try {
+    let savedSource: { sourceId: string; name: string } | null = null;
+    if (rawBody?.persistCapture === true) {
+      savedSource = await persistLiveCaptureAsSource(input.workspaceId, sanitized.context);
+    }
+
     const solve = await generateLiveSolve({
       model,
       context: sanitized.context,
@@ -91,6 +106,7 @@ export async function handleLiveContextSolveRequest(input: {
         data: {
           ...solve,
           model,
+          savedSource,
         },
       }),
     );

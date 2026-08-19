@@ -434,6 +434,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           userQuery:
             context.userQuery ||
             'Solve the clicked question using the full page and cursor focus.',
+          persistCapture: true,
         });
 
         let lastError = 'Solve failed';
@@ -461,7 +462,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             solvePayload?.error ||
             (solveRes.status === 401
               ? 'Not signed in. Open Aproko at the web app URL in this browser profile.'
-              : `Solve failed (${solveRes.status})`);
+              : solveRes.status === 402 && solvePayload?.code === 'pro_required'
+                ? solvePayload.error
+                : `Solve failed (${solveRes.status})`);
           // Retry fallback on missing route only.
           if (solveRes.status !== 404) {
             break;
@@ -584,11 +587,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const payload = await response.json().catch(() => null);
           sendResponse({
             ok: false,
+            code: payload?.code ?? null,
             error:
               payload?.error ||
               (response.status === 401
                 ? 'Session expired. Open the connect checklist in a browser tab, then reload the panel.'
-                : `Ask failed (${response.status})`),
+                : response.status === 402 && payload?.code === 'pro_required'
+                  ? payload.error
+                  : `Ask failed (${response.status})`),
           });
           return;
         }

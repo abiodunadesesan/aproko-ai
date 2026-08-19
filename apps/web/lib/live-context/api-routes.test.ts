@@ -47,6 +47,10 @@ test('live-context chat OPTIONS returns CORS for safari-web-extension origin', a
 test('live-context chat POST returns 401 when unauthenticated', async () => {
   const handlers = createLiveContextChatRouteHandlers({
     auth: async () => ({ userId: null }),
+    assertLiveContextCompanionAccess: async () => ({
+      allowed: true as const,
+      planCode: 'pro_monthly' as const,
+    }),
     streamLiveContextGeneration: () => {
       throw new Error('unused');
     },
@@ -81,6 +85,10 @@ test('live-context chat POST streams SSE for valid payload', async () => {
   try {
     const handlers = createLiveContextChatRouteHandlers({
       auth: async () => ({ userId: 'user-1' }),
+      assertLiveContextCompanionAccess: async () => ({
+        allowed: true as const,
+        planCode: 'pro_monthly' as const,
+      }),
       consumeAiQueryQuota: async () => ({
         allowed: true as const,
         usage: {
@@ -144,6 +152,10 @@ test('live-context chat POST returns 400 for missing page text', async () => {
 
   const handlers = createLiveContextChatRouteHandlers({
     auth: async () => ({ userId: 'user-1' }),
+    assertLiveContextCompanionAccess: async () => ({
+      allowed: true as const,
+      planCode: 'pro_monthly' as const,
+    }),
     streamLiveContextGeneration: () => {
       throw new Error('unused');
     },
@@ -166,4 +178,38 @@ test('live-context chat POST returns 400 for missing page text', async () => {
   assert.equal(response.status, 400);
   const payload = (await response.json()) as { error: string };
   assert.match(payload.error, /pageText/i);
+});
+
+test('live-context chat POST returns 402 when workspace is not on Pro', async () => {
+  process.env.APROKO_TEST_BYPASS_WORKSPACE_ACCESS = '1';
+
+  const handlers = createLiveContextChatRouteHandlers({
+    auth: async () => ({ userId: 'user-1' }),
+    assertLiveContextCompanionAccess: async () => ({
+      allowed: false as const,
+      planCode: 'free' as const,
+      message: 'Live Context requires an Aproko Pro plan.',
+    }),
+    streamLiveContextGeneration: () => {
+      throw new Error('unused');
+    },
+  });
+
+  const response = await handlers.POST(
+    new Request('http://localhost', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        url: 'https://example.com',
+        title: 'Example',
+        pageText: 'Body',
+        userQuery: 'Hi',
+      }),
+    }),
+    { params: Promise.resolve({ workspaceId: 'ws-1' }) },
+  );
+
+  assert.equal(response.status, 402);
+  const payload = (await response.json()) as { code: string };
+  assert.equal(payload.code, 'pro_required');
 });

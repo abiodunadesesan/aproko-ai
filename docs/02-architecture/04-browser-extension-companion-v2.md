@@ -80,9 +80,9 @@ Clerk cookies. Host permissions cover localhost + production Vercel host.
 - [ ] Chrome + Edge + Safari store listing / packaging (copy + ZIP ready; CWS submit is owner-only)
 - [x] Safari Web Extension package (`apps/extension/safari`) + converter docs
 - [x] Side panel MVP (overlay chip included as secondary affordance)
-- [ ] Persist captured sessions as workspace sources
+- [x] Persist captured sessions as workspace sources (first Ask after capture → `live-context` folder)
 - [x] Extension token handoff (`Bearer ext.` — cookies cannot reach the iframe)
-- [ ] Plan entitlement (Pro-only companion vs free trial)
+- [x] Plan entitlement: Live Context requires Pro (`pro_monthly` / `pro_yearly`)
 
 ## Entry criteria before coding
 
