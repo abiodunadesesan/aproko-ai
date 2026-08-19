@@ -916,13 +916,25 @@ function bridgeExtensionHandoffFromConnectPage() {
       return false;
     }
 
-    chrome.runtime.sendMessage({
+    const msg = {
       type: 'APROKO_STORE_HANDOFF',
       token,
       workspaceId: document.documentElement.dataset.aprokoExtensionWorkspaceId || '',
       name: document.documentElement.dataset.aprokoExtensionWorkspaceName || null,
       role: document.documentElement.dataset.aprokoExtensionRole || null,
-    });
+    };
+
+    // Send with callback — retries if the service worker was sleeping.
+    function trySend(attemptsLeft) {
+      chrome.runtime.sendMessage(msg, (response) => {
+        if (chrome.runtime.lastError || !response?.ok) {
+          if (attemptsLeft > 0) {
+            setTimeout(() => trySend(attemptsLeft - 1), 800);
+          }
+        }
+      });
+    }
+    trySend(4);
     return true;
   }
 
@@ -962,13 +974,22 @@ window.addEventListener('message', (event) => {
     return;
   }
 
-  chrome.runtime.sendMessage({
+  // Fire-and-forget with retry in case service worker was sleeping.
+  const msg = {
     type: 'APROKO_STORE_HANDOFF',
     token,
     workspaceId: document.documentElement.dataset.aprokoExtensionWorkspaceId || '',
     name: document.documentElement.dataset.aprokoExtensionWorkspaceName || null,
     role: document.documentElement.dataset.aprokoExtensionRole || null,
-  });
+  };
+  function trySendMsg(n) {
+    chrome.runtime.sendMessage(msg, (r) => {
+      if ((chrome.runtime.lastError || !r?.ok) && n > 0) {
+        setTimeout(() => trySendMsg(n - 1), 800);
+      }
+    });
+  }
+  trySendMsg(4);
 });
 
 bridgeExtensionHandoffFromConnectPage();

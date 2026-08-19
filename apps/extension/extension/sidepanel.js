@@ -27,7 +27,9 @@ let trackingResetTimer = null;
 let lastTranscriptFingerprint = '';
 
 function normalizeWebAppUrl(url) {
-  let value = String(url || DEFAULT_WEB_APP_URL).trim().replace(/\/$/, '');
+  let value = String(url || DEFAULT_WEB_APP_URL)
+    .trim()
+    .replace(/\/$/, '');
   if (!value) {
     value = DEFAULT_WEB_APP_URL;
   }
@@ -208,7 +210,8 @@ function appendLiveTranscript({ kind, text, meta }) {
 
   const kindEl = document.createElement('span');
   kindEl.className = 'transcript-kind';
-  kindEl.textContent = kind === 'page' ? 'Page snapshot' : kind === 'capture' ? 'Hover capture' : 'Hover';
+  kindEl.textContent =
+    kind === 'page' ? 'Page snapshot' : kind === 'capture' ? 'Hover capture' : 'Hover';
 
   const copy = document.createElement('p');
   const prefix = meta ? `${meta} — ` : '';
