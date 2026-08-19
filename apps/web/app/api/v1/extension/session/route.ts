@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { liveContextPreflightResponse, withLiveContextCors } from '@/lib/live-context/cors';
-import { planIncludesLiveContext, resolveEffectivePlanCode } from '@/lib/billing/plan-entitlements';
+import { resolveEffectivePlanCode } from '@/lib/billing/plan-entitlements';
+import { planIncludesLiveContext } from '@/lib/live-context/plan-access';
 import { getBillingSubscription } from '@/lib/storage/billing';
 import { resolveExtensionRequestAuth } from '@/lib/extension/request-auth';
 import { resolveWorkspaceForUser } from '@/lib/storage/workspaces';
