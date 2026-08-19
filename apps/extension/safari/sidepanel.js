@@ -27,7 +27,9 @@ let trackingResetTimer = null;
 let lastTranscriptFingerprint = '';
 
 function normalizeWebAppUrl(url) {
-  let value = String(url || DEFAULT_WEB_APP_URL).trim().replace(/\/$/, '');
+  let value = String(url || DEFAULT_WEB_APP_URL)
+    .trim()
+    .replace(/\/$/, '');
   if (!value) {
     value = DEFAULT_WEB_APP_URL;
   }
@@ -208,7 +210,8 @@ function appendLiveTranscript({ kind, text, meta }) {
 
   const kindEl = document.createElement('span');
   kindEl.className = 'transcript-kind';
-  kindEl.textContent = kind === 'page' ? 'Page snapshot' : kind === 'capture' ? 'Hover capture' : 'Hover';
+  kindEl.textContent =
+    kind === 'page' ? 'Page snapshot' : kind === 'capture' ? 'Hover capture' : 'Hover';
 
   const copy = document.createElement('p');
   const prefix = meta ? `${meta} — ` : '';
@@ -239,10 +242,68 @@ function setActiveMode(mode) {
   }
 }
 
-async function pushExtensionAuth() {
-  const response = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
-  if (response?.ok && response.auth?.token) {
-    postAuthToFrame(response.auth);
+/**
+ * Safari-specific: the content-script → background → storage chain can fail
+ * because the service worker sleeps and `window.postMessage` doesn't cross
+ * the content-script isolation boundary reliably.
+ * Instead, fetch the session directly from the popup (which has cookie access)
+ * and store it so subsequent calls work.
+ */
+async function bootstrapSafariAuth() {
+  // Already have a token stored — just push it to the frame.
+  const stored = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
+  if (stored?.ok && stored.auth?.token) {
+    postAuthToFrame(stored.auth);
+    return;
+  }
+
+  // No stored token — try fetching the session directly using cookies.
+  try {
+    const settings = await chrome.storage.sync.get({ webAppUrl: DEFAULT_WEB_APP_URL });
+    const base = normalizeWebAppUrl(settings.webAppUrl || DEFAULT_WEB_APP_URL);
+    const res = await fetch(`${base}/api/v1/extension/session`, {
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      return;
+    }
+    const payload = await res.json().catch(() => null);
+    const data = payload?.data;
+    if (!data?.workspaceId || !data?.token) {
+      // Session endpoint doesn't return a raw token — need handoff route.
+      // Fall back to minting via the handoff endpoint.
+      const handoffRes = await fetch(`${base}/api/v1/extension/handoff`, {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      });
+      if (!handoffRes.ok) {
+        return;
+      }
+      const handoffPayload = await handoffRes.json().catch(() => null);
+      const handoff = handoffPayload?.data;
+      if (!handoff?.token || !handoff?.workspaceId) {
+        return;
+      }
+      await chrome.runtime.sendMessage({
+        type: 'APROKO_STORE_HANDOFF',
+        token: handoff.token,
+        workspaceId: handoff.workspaceId,
+        name: handoff.name ?? null,
+        role: handoff.role ?? null,
+      });
+      postAuthToFrame({
+        token: handoff.token,
+        workspaceId: handoff.workspaceId,
+        name: handoff.name ?? null,
+        role: handoff.role ?? null,
+      });
+    }
+  } catch {
+    // Network error or extension context invalid — ignore.
   }
 }
 
@@ -327,7 +388,7 @@ function handleHoverCaptured(message) {
 appFrame.addEventListener('load', () => {
   chrome.runtime.sendMessage({ type: 'APROKO_CLEAR_BADGE' });
   setTimeout(() => {
-    void pushExtensionAuth();
+    void bootstrapSafariAuth();
     if (lastContext) {
       postContextToFrame(lastContext);
     }
@@ -340,7 +401,7 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
-    void pushExtensionAuth();
+    void bootstrapSafariAuth();
     return;
   }
 
@@ -489,7 +550,7 @@ chrome.runtime.onMessage.addListener((message) => {
     setStatus('Captured — ask in the panel below');
   }
   if (message?.type === 'APROKO_EXTENSION_AUTH_UPDATED') {
-    void pushExtensionAuth();
+    void bootstrapSafariAuth();
   }
   if (message?.type === 'APROKO_HOVER_CAPTURED') {
     handleHoverCaptured(message);
