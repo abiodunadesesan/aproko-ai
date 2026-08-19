@@ -910,11 +910,6 @@ function bridgeExtensionHandoffFromConnectPage() {
     return;
   }
 
-  const params = new URLSearchParams(location.search);
-  if (params.get('from') !== 'extension') {
-    return;
-  }
-
   function publishHandoff() {
     const token = document.documentElement.dataset.aprokoExtensionHandoff;
     if (!token) {
