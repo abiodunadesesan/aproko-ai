@@ -13,8 +13,7 @@
     }
   },
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "commands": {
     "toggle-aproko-live-context": {
@@ -32,13 +31,7 @@
       "description": "Capture the text under the cursor for Aproko hover context"
     }
   },
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "commands",
-    "storage",
-    "tabs"
-  ],
+  "permissions": ["activeTab", "scripting", "commands", "storage", "tabs"],
   "host_permissions": [
     "<all_urls>",
     "http://localhost:3000/*",
@@ -47,13 +40,8 @@
   ],
   "content_scripts": [
     {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
