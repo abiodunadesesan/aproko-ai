@@ -63,9 +63,7 @@ export default function BillingPage() {
     }
     return Math.min(
       100,
-      Math.round(
-        (subscription.usage.used / Math.max(subscription.usage.limit ?? 1, 1)) * 100,
-      ),
+      Math.round((subscription.usage.used / Math.max(subscription.usage.limit ?? 1, 1)) * 100),
     );
   }, [subscription?.usage]);
 
@@ -207,7 +205,9 @@ export default function BillingPage() {
                       </dd>
                     </div>
                     <div className={cn(appSurface.inset, 'p-3')}>
-                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">Cancel at period end</dt>
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Cancel at period end
+                      </dt>
                       <dd className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
                         {subscription?.cancelAtPeriodEnd ? 'Yes' : 'No'}
                       </dd>
@@ -275,7 +275,7 @@ export default function BillingPage() {
                       <div
                         className={`h-full rounded-full transition-[width] duration-500 ${
                           subscription.usage.nearingLimit
-                            ? 'bg-amber-500 dark:bg-amber-400'
+                            ? 'bg-zinc-500 dark:bg-zinc-400'
                             : 'bg-zinc-900 dark:bg-zinc-100'
                         }`}
                         style={{ width: `${usagePercent}%` }}
@@ -285,8 +285,8 @@ export default function BillingPage() {
 
                   {subscription.usage.nearingLimit ? (
                     <div className={appSurface.notice} role="status">
-                      You&apos;ve used 80%+ of this month&apos;s AI queries. Upgrade anytime to avoid
-                      interruptions.
+                      You&apos;ve used 80%+ of this month&apos;s AI queries. Upgrade anytime to
+                      avoid interruptions.
                     </div>
                   ) : null}
 

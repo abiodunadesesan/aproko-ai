@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -913,7 +906,7 @@ export default function ChatPage() {
     <AppPageShell immersive pageId="chat">
       {quotaNotice ? (
         <div
-          className="shrink-0 border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-950/40 dark:text-amber-100"
+          className="shrink-0 border-b border-zinc-300/40 bg-zinc-50 px-4 py-2 text-sm text-zinc-800 dark:border-zinc-500/20 dark:bg-zinc-900/40 dark:text-zinc-200"
           role="status"
         >
           {quotaNotice}{' '}
@@ -1173,4 +1166,3 @@ function QuickPrompt({
     </Link>
   );
 }
-

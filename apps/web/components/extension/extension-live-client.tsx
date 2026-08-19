@@ -3,12 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AppPageShell } from '@/components/app/app-page-shell';
-import {
-  AppPageFrame,
-  AppPanel,
-  AppPanelBody,
-  AppPanelHeader,
-} from '@/components/app/app-surface';
+import { AppPageFrame, AppPanel, AppPanelBody, AppPanelHeader } from '@/components/app/app-surface';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWorkspace } from '@/components/workspace/workspace-provider';
@@ -74,7 +69,9 @@ function CursorFocusCard({ raw }: { raw: string }) {
           <span
             className={cn(
               'inline-flex h-2 w-2 rounded-full',
-              hasPrimary ? 'animate-pulse bg-zinc-700 dark:bg-zinc-200' : 'bg-zinc-300 dark:bg-zinc-600',
+              hasPrimary
+                ? 'animate-pulse bg-zinc-700 dark:bg-zinc-200'
+                : 'bg-zinc-300 dark:bg-zinc-600',
             )}
             aria-hidden
           />
@@ -135,17 +132,13 @@ function ExtensionEmbedSignIn({
           Open Aproko in a full browser tab
         </h2>
         <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-          Google sign-in cannot run inside the extension panel. We&apos;ll open Aproko in a new tab —
-          if you&apos;re already signed in you&apos;ll see your workspace; otherwise you&apos;ll be
-          asked to sign in, then return here.
+          Google sign-in cannot run inside the extension panel. We&apos;ll open Aproko in a new tab
+          — if you&apos;re already signed in you&apos;ll see your workspace; otherwise you&apos;ll
+          be asked to sign in, then return here.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => openInExtensionBrowserTab(connectUrl)}
-        >
+        <Button type="button" size="sm" onClick={() => openInExtensionBrowserTab(connectUrl)}>
           Open Aproko tab
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={onReload}>
@@ -154,21 +147,16 @@ function ExtensionEmbedSignIn({
       </div>
       <p className="text-xs leading-5 text-zinc-500">
         After the tab shows you&apos;re connected, return here — the panel checks every few seconds,
-        or click <strong className="font-medium text-zinc-700 dark:text-zinc-200">Reload panel</strong>.
-        Then use <strong className="font-medium text-zinc-700 dark:text-zinc-200">Capture tab</strong>{' '}
-        or <kbd className={mono}>Cmd+Shift+Y</kbd>.
+        or click{' '}
+        <strong className="font-medium text-zinc-700 dark:text-zinc-200">Reload panel</strong>. Then
+        use <strong className="font-medium text-zinc-700 dark:text-zinc-200">Capture tab</strong> or{' '}
+        <kbd className={mono}>Cmd+Shift+Y</kbd>.
       </p>
     </div>
   );
 }
 
-function PageSnapshotCard({
-  title,
-  pageText,
-}: {
-  title: string;
-  pageText: string;
-}) {
+function PageSnapshotCard({ title, pageText }: { title: string; pageText: string }) {
   const snapshot = useMemo(() => summarizePageSnapshot(pageText, title), [pageText, title]);
 
   return (
@@ -253,7 +241,9 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       }
       if (!session) {
         setAuthValidated(false);
-        setError('Session expired. Open the connect checklist in a browser tab, then reload the panel.');
+        setError(
+          'Session expired. Open the connect checklist in a browser tab, then reload the panel.',
+        );
         return;
       }
 
@@ -375,7 +365,11 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
     setError(null);
     setSavedSourceLabel(null);
     setStreaming(true);
-    setLines((prev) => [...prev, { role: 'user', content: userQuery }, { role: 'assistant', content: '' }]);
+    setLines((prev) => [
+      ...prev,
+      { role: 'user', content: userQuery },
+      { role: 'assistant', content: '' },
+    ]);
 
     const captureKey = `${synced.url}|${synced.capturedAt}`;
     const shouldPersistCapture = lastPersistedCaptureKey.current !== captureKey;
@@ -519,7 +513,8 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
               </li>
             </ol>
             <p>
-              Web app URL for the extension settings: <code className={mono}>{webAppUrl || '…'}</code>
+              Web app URL for the extension settings:{' '}
+              <code className={mono}>{webAppUrl || '…'}</code>
             </p>
             <Button asChild variant="outline" size="sm">
               <a href="/extension/connect">Open connect checklist</a>
@@ -534,9 +529,13 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
           {synced ? (
             <>
               <div>
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">{synced.title}</p>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                  {synced.title}
+                </p>
                 <p className="truncate text-xs text-zinc-500">{synced.url}</p>
-                <p className="text-xs text-zinc-400">{new Date(synced.capturedAt).toLocaleString()}</p>
+                <p className="text-xs text-zinc-400">
+                  {new Date(synced.capturedAt).toLocaleString()}
+                </p>
               </div>
               <CursorFocusCard raw={hoverText || synced.activeHoverContext || ''} />
               <PageSnapshotCard title={synced.title} pageText={synced.pageText} />
@@ -553,9 +552,8 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
         <AppPanelHeader title="Ask about this page" />
         <AppPanelBody className="space-y-4">
           {requiresPro ? (
-            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-950 dark:text-amber-100">
-              Live Context is included on{' '}
-              <strong className="font-semibold">Aproko Pro</strong>.{' '}
+            <div className="rounded-xl border border-zinc-400/25 bg-zinc-400/10 p-3 text-sm text-zinc-800 dark:text-zinc-200">
+              Live Context is included on <strong className="font-semibold">Aproko Pro</strong>.{' '}
               <Link href="/billing" className="font-medium underline underline-offset-2">
                 Upgrade your workspace
               </Link>{' '}
@@ -565,7 +563,10 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
           {savedSourceLabel ? (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Saved capture to library:{' '}
-              <Link href="/library" className="font-medium text-zinc-700 underline dark:text-zinc-200">
+              <Link
+                href="/library"
+                className="font-medium text-zinc-700 underline dark:text-zinc-200"
+              >
                 {savedSourceLabel}
               </Link>
             </p>
@@ -584,7 +585,9 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
                     : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100',
                 )}
               >
-                <p className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">{line.role}</p>
+                <p className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">
+                  {line.role}
+                </p>
                 <p className="whitespace-pre-wrap">{line.content || (streaming ? '…' : '')}</p>
               </div>
             ))}

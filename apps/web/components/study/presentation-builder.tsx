@@ -30,8 +30,15 @@ export function PresentationBuilder({ outline, className, onOpenStudy }: Present
 
   if (!outline) {
     return (
-      <div className={cn('rounded-2xl border border-dashed border-black/[0.08] px-4 py-10 text-center dark:border-white/10', className)}>
-        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">No presentation outline yet</p>
+      <div
+        className={cn(
+          'rounded-2xl border border-dashed border-black/[0.08] px-4 py-10 text-center dark:border-white/10',
+          className,
+        )}
+      >
+        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          No presentation outline yet
+        </p>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Generate a slide outline from a note or transcript in Study.
         </p>
@@ -64,7 +71,11 @@ export function PresentationBuilder({ outline, className, onOpenStudy }: Present
                 type="button"
               >
                 <span className="text-[10px] uppercase tracking-wide opacity-70">
-                  {slide.kind === 'title' ? 'Title' : slide.kind === 'closing' ? 'Closing' : `Slide ${index + 1}`}
+                  {slide.kind === 'title'
+                    ? 'Title'
+                    : slide.kind === 'closing'
+                      ? 'Closing'
+                      : `Slide ${index + 1}`}
                 </span>
                 <span className="mt-0.5 block truncate font-medium">{slide.title}</span>
               </button>
@@ -76,7 +87,12 @@ export function PresentationBuilder({ outline, className, onOpenStudy }: Present
       <div className="min-h-[18rem]">
         {activeSlide ? (
           reduceMotion ? (
-            <SlidePreview index={activeIndex} outlineTitle={outline.title} slide={activeSlide} total={slides.length} />
+            <SlidePreview
+              index={activeIndex}
+              outlineTitle={outline.title}
+              slide={activeSlide}
+              total={slides.length}
+            />
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
@@ -111,7 +127,7 @@ type SlidePreviewProps = {
 function SlidePreview({ slide, index, total, outlineTitle }: SlidePreviewProps) {
   return (
     <article className="flex h-full min-h-[18rem] flex-col rounded-2xl border border-black/[0.06] bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 p-6 text-white shadow-premium dark:border-white/10 dark:from-zinc-100 dark:via-white dark:to-zinc-200 dark:text-zinc-950 dark:shadow-premium-dark sm:p-8">
-      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-300/90 dark:text-amber-700">
+      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400/90 dark:text-zinc-500">
         {outlineTitle} · {index + 1}/{total}
       </p>
       <h3 className="mt-4 text-balance text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
@@ -120,13 +136,21 @@ function SlidePreview({ slide, index, total, outlineTitle }: SlidePreviewProps) 
       <ul className="mt-6 space-y-2.5">
         {slide.bullets.length ? (
           slide.bullets.map((bullet) => (
-            <li className="flex gap-2 text-sm leading-relaxed text-zinc-200 dark:text-zinc-700" key={bullet}>
-              <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 dark:bg-amber-600" />
+            <li
+              className="flex gap-2 text-sm leading-relaxed text-zinc-200 dark:text-zinc-700"
+              key={bullet}
+            >
+              <span
+                aria-hidden
+                className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400 dark:bg-zinc-500"
+              />
               <span>{bullet}</span>
             </li>
           ))
         ) : (
-          <li className="text-sm text-zinc-400 dark:text-zinc-600">Add bullet points in Study to enrich this slide.</li>
+          <li className="text-sm text-zinc-400 dark:text-zinc-600">
+            Add bullet points in Study to enrich this slide.
+          </li>
         )}
       </ul>
     </article>

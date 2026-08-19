@@ -8,23 +8,23 @@ import { useLandingLocale } from '@/components/landing/locale-provider';
 
 const momentStyles = [
   {
-    accent: 'from-amber-400/35 via-orange-500/20 to-zinc-900/70',
-    ring: 'ring-amber-400/30',
+    accent: 'from-zinc-400/25 via-zinc-500/15 to-zinc-900/70',
+    ring: 'ring-zinc-400/30',
   },
   {
     accent: 'from-zinc-400/25 via-zinc-600/20 to-zinc-900/70',
     ring: 'ring-zinc-400/25',
   },
   {
-    accent: 'from-orange-400/30 via-amber-500/20 to-zinc-900/70',
-    ring: 'ring-orange-400/25',
+    accent: 'from-zinc-400/20 via-zinc-500/15 to-zinc-900/70',
+    ring: 'ring-zinc-400/25',
   },
   {
-    accent: 'from-amber-500/25 via-zinc-500/15 to-zinc-900/70',
-    ring: 'ring-amber-500/20',
+    accent: 'from-zinc-500/20 via-zinc-500/15 to-zinc-900/70',
+    ring: 'ring-zinc-500/20',
   },
   {
-    accent: 'from-zinc-500/20 via-amber-400/15 to-zinc-900/70',
+    accent: 'from-zinc-500/20 via-zinc-400/15 to-zinc-900/70',
     ring: 'ring-zinc-500/20',
   },
 ] as const;
@@ -65,7 +65,7 @@ function MomentCard({
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">@{handle}</p>
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-300">{label}</p>
+            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-400">{label}</p>
           </div>
           <Button
             aria-label={`View ${handle} profile`}
@@ -81,7 +81,7 @@ function MomentCard({
           &ldquo;{quote}&rdquo;
         </p>
         <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          <Play className="h-3 w-3 text-amber-700 dark:text-amber-300" aria-hidden="true" />
+          <Play className="h-3 w-3 text-zinc-600 dark:text-zinc-400" aria-hidden="true" />
           <span>{demoLabel}</span>
         </div>
       </CardContent>

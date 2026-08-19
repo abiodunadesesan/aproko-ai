@@ -205,12 +205,7 @@ function ActivityDesktopTable({ items }: { items: DashboardActivityItem[] }) {
   );
 }
 
-export function DashboardHome({
-  displayName,
-  profileSynced,
-  userId,
-  stats,
-}: DashboardHomeProps) {
+export function DashboardHome({ displayName, profileSynced, userId, stats }: DashboardHomeProps) {
   const metrics = buildMetrics(stats);
   const greeting = displayName ? `Welcome back, ${displayName}` : 'Welcome back';
   const { workspaceId } = useWorkspace();
@@ -221,14 +216,14 @@ export function DashboardHome({
         <header className="relative overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 p-6 text-white shadow-premium dark:border-white/10 dark:from-zinc-100 dark:via-white dark:to-zinc-200 dark:text-zinc-950 dark:shadow-premium-dark sm:p-8">
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-amber-400/25 blur-3xl dark:bg-amber-500/30"
+            className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-zinc-400/15 blur-3xl dark:bg-zinc-500/20"
           />
           <div
             aria-hidden
             className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl"
           />
           <div className="relative max-w-2xl">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-amber-300/90 dark:text-amber-700">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400/90 dark:text-zinc-500">
               Workspace overview
             </p>
             <h2 className="mt-3 text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
@@ -283,22 +278,22 @@ export function DashboardHome({
                     <Link
                       className={cn(
                         'group relative block overflow-hidden rounded-2xl border border-black/[0.06] bg-white/75 p-4 shadow-premium backdrop-blur-xl transition-[transform,box-shadow,border-color] duration-200',
-                        'hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30',
-                        'dark:border-white/[0.07] dark:bg-white/[0.035] dark:shadow-premium-dark dark:hover:border-amber-400/30',
+                        'hover:-translate-y-1 hover:border-zinc-400/30 hover:shadow-lg',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/30',
+                        'dark:border-white/[0.07] dark:bg-white/[0.035] dark:shadow-premium-dark dark:hover:border-zinc-500/30',
                         'sm:p-5',
                       )}
                       href={metric.href}
                     >
                       <div
                         aria-hidden
-                        className="pointer-events-none absolute -right-6 -top-8 h-20 w-20 rounded-full bg-amber-400/0 blur-2xl transition-colors duration-300 group-hover:bg-amber-400/20"
+                        className="pointer-events-none absolute -right-6 -top-8 h-20 w-20 rounded-full bg-zinc-400/0 blur-2xl transition-colors duration-300 group-hover:bg-zinc-400/15"
                       />
                       <div className="relative flex items-start justify-between gap-2">
                         <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
                           {metric.label}
                         </p>
-                        <span className="rounded-xl bg-zinc-900/5 p-2 text-zinc-700 transition-colors group-hover:bg-amber-500/15 group-hover:text-amber-800 dark:bg-white/5 dark:text-zinc-300 dark:group-hover:bg-amber-400/15 dark:group-hover:text-amber-200">
+                        <span className="rounded-xl bg-zinc-900/5 p-2 text-zinc-700 transition-colors group-hover:bg-zinc-500/10 group-hover:text-zinc-800 dark:bg-white/5 dark:text-zinc-300 dark:group-hover:bg-zinc-400/10 dark:group-hover:text-zinc-200">
                           <Icon className="h-4 w-4" />
                         </span>
                       </div>
@@ -361,14 +356,14 @@ export function DashboardHome({
                           <Link
                             className={cn(
                               'flex min-h-[5rem] flex-col rounded-xl border border-black/[0.05] bg-black/[0.02] p-3.5 transition-[background-color,border-color,transform] duration-200',
-                              'hover:-translate-y-0.5 hover:border-amber-500/25 hover:bg-white',
-                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/25',
-                              'dark:border-white/[0.06] dark:bg-white/[0.02] dark:hover:border-amber-400/25 dark:hover:bg-white/[0.05]',
+                              'hover:-translate-y-0.5 hover:border-zinc-400/25 hover:bg-white',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/25',
+                              'dark:border-white/[0.06] dark:bg-white/[0.02] dark:hover:border-zinc-500/25 dark:hover:bg-white/[0.05]',
                             )}
                             href={item.href}
                             key={item.href}
                           >
-                            <Icon className="h-4 w-4 text-amber-700/80 dark:text-amber-300/90" />
+                            <Icon className="h-4 w-4 text-zinc-600/80 dark:text-zinc-400/90" />
                             <span className="mt-2.5 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                               {item.label}
                             </span>
@@ -403,7 +398,9 @@ export function DashboardHome({
                           'flex items-center justify-between gap-3 px-3.5 py-3',
                         )}
                       >
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">Profile sync</span>
+                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                          Profile sync
+                        </span>
                         <Badge variant={profileSynced ? 'default' : 'secondary'}>
                           {profileSynced ? 'Synced' : 'Pending'}
                         </Badge>
@@ -414,12 +411,22 @@ export function DashboardHome({
                           'flex items-center justify-between gap-3 px-3.5 py-3',
                         )}
                       >
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">Signed-in user</span>
-                        <Badge className="max-w-[9rem] truncate font-mono text-[10px]" variant="outline">
+                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                          Signed-in user
+                        </span>
+                        <Badge
+                          className="max-w-[9rem] truncate font-mono text-[10px]"
+                          variant="outline"
+                        >
                           {userId ?? 'unknown'}
                         </Badge>
                       </div>
-                      <Button asChild className="mt-1 w-full rounded-full" size="sm" variant="outline">
+                      <Button
+                        asChild
+                        className="mt-1 w-full rounded-full"
+                        size="sm"
+                        variant="outline"
+                      >
                         <Link href="/settings">Open settings</Link>
                       </Button>
                     </AppPanelBody>

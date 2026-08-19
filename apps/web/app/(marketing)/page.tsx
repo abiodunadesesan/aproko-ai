@@ -34,7 +34,7 @@ function LandingPageContent() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.amber.400/10),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.zinc.400/8),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[radial-gradient(circle_at_bottom,theme(colors.orange.400/8),transparent_55%)] dark:bg-[radial-gradient(circle_at_bottom,theme(colors.zinc.800/20),transparent_55%)]" />
 
       <LandingNav />
@@ -189,7 +189,7 @@ function LandingPageContent() {
             <Card className="mt-6 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 sm:mt-8">
               <CardContent className="space-y-4 p-4 sm:p-6">
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 dark:bg-amber-400" />
+                  <span className="inline-flex h-2 w-2 rounded-full bg-zinc-500 dark:bg-zinc-400" />
                   <span className="text-zinc-700 dark:text-zinc-300">{t.ask.ready}</span>
                   <span className="text-zinc-500">{t.ask.via}</span>
                 </div>

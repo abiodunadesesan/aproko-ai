@@ -26,7 +26,7 @@ function AuthShellContent({ mode, children }: AuthShellProps) {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.amber.400/10),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.zinc.400/8),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/15),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-[radial-gradient(circle_at_bottom,theme(colors.orange.400/8),transparent_55%)] dark:bg-[radial-gradient(circle_at_bottom,theme(colors.zinc.800/20),transparent_55%)]" />
 
       <LandingNav />
@@ -39,7 +39,7 @@ function AuthShellContent({ mode, children }: AuthShellProps) {
               initial={{ opacity: 0, y: 14 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-amber-800 dark:text-amber-300">
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-400">
                 {t.auth.welcome}
               </p>
               <h1 className="mt-2 text-2xl font-semibold leading-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl lg:text-4xl">

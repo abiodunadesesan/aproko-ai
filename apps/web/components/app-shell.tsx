@@ -76,7 +76,7 @@ function NavLink({
         className={cn(
           'h-9 rounded-xl text-[13px] transition-all duration-200',
           isActive
-            ? 'bg-amber-500/12 font-medium text-amber-950 shadow-[inset_3px_0_0_0_theme(colors.amber.500)] dark:bg-amber-400/10 dark:text-amber-50 dark:shadow-[inset_3px_0_0_0_theme(colors.amber.400)]'
+            ? 'bg-zinc-500/12 font-medium text-zinc-950 shadow-[inset_3px_0_0_0_theme(colors.zinc.500)] dark:bg-zinc-400/10 dark:text-zinc-50 dark:shadow-[inset_3px_0_0_0_theme(colors.zinc.400)]'
             : 'text-zinc-500 hover:bg-black/[0.04] hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-zinc-100',
         )}
         isActive={isActive}
@@ -273,7 +273,9 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className={cn('aproko-mesh bg-background', immersive && 'min-h-svh !bg-background')}>
+      <SidebarInset
+        className={cn('aproko-mesh bg-background', immersive && 'min-h-svh !bg-background')}
+      >
         <header
           className={cn(
             'sticky top-0 z-10 flex h-14 items-center justify-between gap-3 px-3 md:px-5',

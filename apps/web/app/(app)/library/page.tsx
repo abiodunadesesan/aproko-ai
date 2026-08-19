@@ -1725,13 +1725,10 @@ export default function LibraryPage() {
             ) : null}
             {pendingSourceDeleteJob ? (
               <div
-                className={cn(
-                  appSurface.notice,
-                  'mb-3 flex items-center justify-between gap-3',
-                )}
+                className={cn(appSurface.notice, 'mb-3 flex items-center justify-between gap-3')}
                 role="status"
               >
-                <p className="text-sm text-amber-800 dark:text-amber-200">
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">
                   {pendingSourceDeleteJob.targets.length} source
                   {pendingSourceDeleteJob.targets.length === 1 ? '' : 's'} pending deletion.
                 </p>
@@ -1746,13 +1743,10 @@ export default function LibraryPage() {
             ) : null}
             {pendingTaxonomyDeleteJob ? (
               <div
-                className={cn(
-                  appSurface.notice,
-                  'mb-3 flex items-center justify-between gap-3',
-                )}
+                className={cn(appSurface.notice, 'mb-3 flex items-center justify-between gap-3')}
                 role="status"
               >
-                <p className="text-sm text-amber-800 dark:text-amber-200">
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">
                   {pendingTaxonomyDeleteJob.mode === 'project' ? 'Project' : 'Folder'} "
                   {pendingTaxonomyDeleteJob.targetName}" pending deletion.
                 </p>
@@ -1977,10 +1971,7 @@ export default function LibraryPage() {
                 </div>
                 <div className="space-y-3 md:hidden" data-testid="library-sources-mobile">
                   {paginatedSources.map((source) => (
-                    <div
-                      className={cn(appSurface.inset, 'p-4')}
-                      key={source.id}
-                    >
+                    <div className={cn(appSurface.inset, 'p-4')} key={source.id}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate font-medium text-zinc-900 dark:text-zinc-50">

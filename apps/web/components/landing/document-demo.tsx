@@ -171,7 +171,7 @@ export function DocumentDemo() {
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
                 <span className="truncate">{file}</span>
-                <span className="shrink-0 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                <span className="shrink-0 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
                   Indexed
                 </span>
               </motion.p>

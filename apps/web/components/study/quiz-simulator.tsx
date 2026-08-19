@@ -104,7 +104,7 @@ export function QuizSimulator({
 
       <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
         <div
-          className="h-full rounded-full bg-amber-500 transition-all duration-300 dark:bg-amber-400"
+          className="h-full rounded-full bg-zinc-500 transition-all duration-300 dark:bg-zinc-400"
           style={{ width: `${((activeIndex + 1) / questions.length) * 100}%` }}
         />
       </div>
@@ -159,7 +159,12 @@ export function QuizSimulator({
           Next
         </Button>
         {!revealed ? (
-          <Button disabled={isSubmitting} onClick={() => void handleSubmit()} size="sm" type="button">
+          <Button
+            disabled={isSubmitting}
+            onClick={() => void handleSubmit()}
+            size="sm"
+            type="button"
+          >
             {isSubmitting ? 'Submitting…' : 'Submit quiz'}
           </Button>
         ) : (
@@ -177,7 +182,8 @@ export function QuizSimulator({
           <ul className="mt-2 space-y-1">
             {attempts.slice(0, 3).map((attempt) => (
               <li className="text-sm text-zinc-700 dark:text-zinc-300" key={attempt.id}>
-                {attempt.score}/{attempt.totalQuestions} · {new Date(attempt.createdAt).toLocaleString()}
+                {attempt.score}/{attempt.totalQuestions} ·{' '}
+                {new Date(attempt.createdAt).toLocaleString()}
               </li>
             ))}
           </ul>
@@ -220,8 +226,10 @@ function QuizQuestionCard({
             <button
               className={cn(
                 'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition',
-                isSelected && !revealed && 'border-amber-500/40 bg-amber-500/10',
-                !isSelected && !revealed && 'border-black/[0.06] hover:bg-zinc-50 dark:border-white/[0.08] dark:hover:bg-white/[0.04]',
+                isSelected && !revealed && 'border-zinc-500/40 bg-zinc-500/10',
+                !isSelected &&
+                  !revealed &&
+                  'border-black/[0.06] hover:bg-zinc-50 dark:border-white/[0.08] dark:hover:bg-white/[0.04]',
                 showCorrect && 'border-emerald-500/40 bg-emerald-500/10',
                 showIncorrect && 'border-red-500/35 bg-red-500/10',
               )}
@@ -232,7 +240,9 @@ function QuizQuestionCard({
               <span
                 className={cn(
                   'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold',
-                  isSelected ? 'border-amber-600 text-amber-700 dark:border-amber-300 dark:text-amber-200' : 'border-zinc-300 text-zinc-500 dark:border-zinc-600 dark:text-zinc-400',
+                  isSelected
+                    ? 'border-zinc-500 text-zinc-600 dark:border-zinc-400 dark:text-zinc-300'
+                    : 'border-zinc-300 text-zinc-500 dark:border-zinc-600 dark:text-zinc-400',
                 )}
               >
                 {String.fromCharCode(65 + optionIndex)}

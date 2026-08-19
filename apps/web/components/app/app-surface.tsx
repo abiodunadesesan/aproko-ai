@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-/** Premium shared surfaces — glass panels, hairline borders, amber glow. */
+/** Premium shared surfaces — glass panels, hairline borders, zinc accent. */
 export const appSurface = {
   page: 'relative space-y-6 sm:space-y-7',
   atmosphere: 'pointer-events-none absolute inset-x-0 -top-10 h-72 aproko-mesh opacity-90',
@@ -11,19 +11,19 @@ export const appSurface = {
   inset:
     'rounded-xl border border-black/[0.04] bg-black/[0.025] dark:border-white/[0.06] dark:bg-white/[0.03]',
   field:
-    'h-11 w-full rounded-xl border border-black/[0.08] bg-white/90 px-3.5 text-sm text-zinc-900 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-100 dark:shadow-none dark:placeholder:text-zinc-500 dark:focus-visible:border-amber-400/40 dark:focus-visible:ring-amber-400/15',
+    'h-11 w-full rounded-xl border border-black/[0.08] bg-white/90 px-3.5 text-sm text-zinc-900 shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-zinc-400 focus-visible:border-zinc-400/50 focus-visible:ring-2 focus-visible:ring-zinc-400/20 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-100 dark:shadow-none dark:placeholder:text-zinc-500 dark:focus-visible:border-zinc-400/40 dark:focus-visible:ring-zinc-400/15',
   label: 'text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400',
-  chip: 'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-[background-color,border-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30',
+  chip: 'rounded-full border px-3.5 py-1.5 text-xs font-medium transition-[background-color,border-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/30',
   chipActive:
     'border-zinc-900 bg-zinc-900 text-white shadow-sm dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900',
   chipIdle:
     'border-black/[0.08] bg-white/70 text-zinc-600 hover:border-black/15 hover:bg-white dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-300 dark:hover:bg-white/[0.06]',
   linkRow:
-    'block rounded-xl border border-black/[0.06] bg-white/70 p-4 shadow-sm transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-amber-500/25 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/25 dark:border-white/[0.07] dark:bg-white/[0.03] dark:hover:border-amber-400/25 dark:hover:bg-white/[0.05]',
+    'block rounded-xl border border-black/[0.06] bg-white/70 p-4 shadow-sm transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-zinc-400/25 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/25 dark:border-white/[0.07] dark:bg-white/[0.03] dark:hover:border-zinc-500/25 dark:hover:bg-white/[0.05]',
   alert:
     'rounded-xl border border-red-500/20 bg-red-500/[0.08] p-3.5 text-sm text-red-700 dark:text-red-300',
   notice:
-    'rounded-xl border border-amber-500/25 bg-amber-500/[0.08] p-3.5 text-sm text-amber-900 dark:text-amber-100',
+    'rounded-xl border border-zinc-400/25 bg-zinc-400/[0.08] p-3.5 text-sm text-zinc-700 dark:text-zinc-200',
 } as const;
 
 type AppPageFrameProps = {
@@ -32,11 +32,7 @@ type AppPageFrameProps = {
   withAtmosphere?: boolean;
 };
 
-export function AppPageFrame({
-  children,
-  className,
-  withAtmosphere = true,
-}: AppPageFrameProps) {
+export function AppPageFrame({ children, className, withAtmosphere = true }: AppPageFrameProps) {
   return (
     <section className={cn(appSurface.page, className)}>
       {withAtmosphere ? <div aria-hidden className={appSurface.atmosphere} /> : null}
@@ -89,13 +85,7 @@ export function AppPanelHeader({ title, description, action, className }: AppPan
   );
 }
 
-export function AppPanelBody({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function AppPanelBody({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('p-5 sm:p-6', className)}>{children}</div>;
 }
 

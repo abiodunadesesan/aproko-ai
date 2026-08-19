@@ -42,7 +42,7 @@ export function PricingSection({
             {t.pricing.title}
           </h2>
           <Badge
-            className="mt-4 border-amber-300 bg-amber-50 text-amber-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+            className="mt-4 border-zinc-300 bg-zinc-50 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
             variant="outline"
           >
             <Sparkles className="mr-1 h-3 w-3" />
@@ -61,7 +61,7 @@ export function PricingSection({
             <Card
               className={`relative flex flex-col border text-zinc-900 dark:text-zinc-100 transition-colors ${
                 isCurrent
-                  ? 'border-amber-400/50 bg-amber-50/80 dark:border-zinc-400/50 dark:bg-zinc-800/40'
+                  ? 'border-zinc-400/50 bg-zinc-50/80 dark:border-zinc-400/50 dark:bg-zinc-800/40'
                   : isHighlighted
                     ? 'border-zinc-300 bg-white dark:border-zinc-500/50 dark:bg-zinc-900/80'
                     : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60'
@@ -98,7 +98,7 @@ export function PricingSection({
                 <ul className="flex-1 space-y-2 text-xs text-zinc-700 dark:text-zinc-300 sm:text-sm">
                   {plan.features.map((feature) => (
                     <li className="flex items-start gap-2" key={feature}>
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-300 sm:h-4 sm:w-4" />
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-600 dark:text-zinc-400 sm:h-4 sm:w-4" />
                       {feature}
                     </li>
                   ))}

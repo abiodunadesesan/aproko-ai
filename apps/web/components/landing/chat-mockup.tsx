@@ -397,7 +397,7 @@ function MemoryChatMockup() {
             <span className="font-medium text-zinc-200">Chat</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200">
+            <span className="rounded-md border border-zinc-400/30 bg-zinc-400/10 px-2 py-0.5 text-zinc-300">
               Remember
             </span>
             <span className="rounded-md border border-zinc-700 px-2 py-0.5">Smart Mode</span>

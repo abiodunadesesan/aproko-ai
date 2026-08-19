@@ -32,7 +32,7 @@ export function LanguageSelector({ compact = false }: LanguageSelectorProps) {
           className={
             compact
               ? 'mx-auto h-4 w-4'
-              : 'mr-1 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-300'
+              : 'mr-1 h-3.5 w-3.5 shrink-0 text-zinc-600 dark:text-zinc-400'
           }
         />
         {!compact ? <SelectValue /> : null}

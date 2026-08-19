@@ -5,7 +5,7 @@ export function ResearchSkeleton() {
     <section className="relative space-y-5 sm:space-y-6">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-6 h-44 bg-[radial-gradient(ellipse_at_top,theme(colors.amber.400/10),transparent_62%)] dark:bg-[radial-gradient(ellipse_at_top,theme(colors.amber.500/7),transparent_58%)]"
+        className="pointer-events-none absolute inset-x-0 -top-6 h-44 bg-[radial-gradient(ellipse_at_top,theme(colors.zinc.400/8),transparent_62%)] dark:bg-[radial-gradient(ellipse_at_top,theme(colors.zinc.500/6),transparent_58%)]"
       />
       <div className="relative space-y-5 sm:space-y-6">
         {Array.from({ length: 3 }).map((_, index) => (

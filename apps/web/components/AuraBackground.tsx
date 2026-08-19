@@ -18,7 +18,7 @@ function modelToAccent(model?: ChatModel | null): { a: string; b: string; c: str
   // Mapping matches your requested color palettes.
   switch (provider) {
     case 'anthropic':
-      return { a: '#d97706', b: '#7c3aed', c: '#ef4444' }; // warm amber + purple + crimson
+      return { a: '#71717a', b: '#7c3aed', c: '#ef4444' }; // zinc + purple + crimson
     case 'google':
       return { a: '#2563eb', b: '#4f46e5', c: '#0891b2' }; // electric blue + indigo + cyan
     case 'openai':
@@ -48,7 +48,10 @@ export function AuraBackground({ model, isStreaming = false, className }: AuraBa
   };
 
   return (
-    <div aria-hidden className={['absolute inset-0 pointer-events-none -z-10', className ?? ''].join(' ')}>
+    <div
+      aria-hidden
+      className={['absolute inset-0 pointer-events-none -z-10', className ?? ''].join(' ')}
+    >
       {/* Soft base haze */}
       <div
         className="absolute inset-0"
@@ -93,10 +96,13 @@ export function AuraBackground({ model, isStreaming = false, className }: AuraBa
           ...orbCommon,
           background: `radial-gradient(circle at 40% 40%, ${accents.c}66, transparent 62%)`,
         }}
-        animate={{ ...drift, scale: isStreaming ? [1, 1.08, 0.98, 1] : 1, filter: `blur(60px) brightness(${brightness})` }}
+        animate={{
+          ...drift,
+          scale: isStreaming ? [1, 1.08, 0.98, 1] : 1,
+          filter: `blur(60px) brightness(${brightness})`,
+        }}
         transition={{ repeat: Infinity, duration: duration + 6, ease: 'linear' }}
       />
     </div>
   );
 }
-

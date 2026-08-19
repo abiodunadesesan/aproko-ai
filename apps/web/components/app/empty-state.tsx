@@ -30,7 +30,7 @@ export function EmptyState({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.amber.400/12),transparent_55%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.zinc.400/10),transparent_55%)]"
       />
       <span className="relative inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-black/[0.06] bg-white text-zinc-700 shadow-premium dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-200 dark:shadow-premium-dark">
         <Icon className="h-6 w-6" />

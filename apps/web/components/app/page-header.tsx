@@ -22,7 +22,7 @@ export function PageHeader({
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-5', className)}>
       <div className="flex min-w-0 items-start gap-4">
-        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-black/[0.06] bg-gradient-to-br from-zinc-900 to-zinc-700 text-amber-300 shadow-premium dark:border-white/10 dark:from-zinc-100 dark:to-zinc-300 dark:text-zinc-900 dark:shadow-premium-dark">
+        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-black/[0.06] bg-gradient-to-br from-zinc-900 to-zinc-700 text-zinc-300 shadow-premium dark:border-white/10 dark:from-zinc-100 dark:to-zinc-300 dark:text-zinc-900 dark:shadow-premium-dark">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 pt-0.5">
@@ -31,7 +31,7 @@ export function PageHeader({
               {title}
             </h2>
             {badge ? (
-              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-amber-800 dark:text-amber-200">
+              <span className="rounded-full border border-zinc-400/25 bg-zinc-400/10 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-zinc-700 dark:text-zinc-300">
                 {badge}
               </span>
             ) : null}

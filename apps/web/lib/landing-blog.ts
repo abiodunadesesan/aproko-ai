@@ -28,9 +28,9 @@ export const blogCategoryStyles: Record<BlogCategory, string> = {
   productivity:
     'border border-zinc-300/80 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300',
   study:
-    'border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/15 dark:text-amber-200',
+    'border border-zinc-400/30 bg-zinc-400/10 text-zinc-800 dark:border-zinc-400/25 dark:bg-zinc-400/15 dark:text-zinc-300',
   writing:
-    'border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/15 dark:text-amber-200',
+    'border border-zinc-400/30 bg-zinc-400/10 text-zinc-800 dark:border-zinc-400/25 dark:bg-zinc-400/15 dark:text-zinc-300',
 };
 
 export const blogPosts: BlogPost[] = [

@@ -29,7 +29,7 @@ function BlogPageContent() {
 
   return (
     <main className="relative min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.amber.400/8),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/12),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,theme(colors.zinc.400/6),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,theme(colors.zinc.700/12),transparent_45%)]" />
 
       <LandingNav />
 

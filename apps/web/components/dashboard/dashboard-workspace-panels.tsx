@@ -10,7 +10,11 @@ import { EmptyState } from '@/components/app/empty-state';
 import { AudioRecorder } from '@/components/study/audio-recorder';
 import { FlashcardDeck } from '@/components/study/flashcard';
 import { PresentationBuilder } from '@/components/study/presentation-builder';
-import { QuizSimulator, type QuizSimulatorAttempt, type QuizSimulatorQuestion } from '@/components/study/quiz-simulator';
+import {
+  QuizSimulator,
+  type QuizSimulatorAttempt,
+  type QuizSimulatorQuestion,
+} from '@/components/study/quiz-simulator';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isSlideOutlineTitle } from '@/lib/study/generation-ux';
@@ -143,11 +147,13 @@ export function DashboardChatPanel() {
           ) : (
             sessions.slice(0, 6).map((session) => (
               <Link
-                className="block rounded-xl border border-black/[0.06] bg-black/[0.02] px-3.5 py-3 transition hover:border-amber-500/25 hover:bg-white dark:border-white/[0.07] dark:bg-white/[0.03] dark:hover:bg-white/[0.05]"
+                className="block rounded-xl border border-black/[0.06] bg-black/[0.02] px-3.5 py-3 transition hover:border-zinc-400/25 hover:bg-white dark:border-white/[0.07] dark:bg-white/[0.03] dark:hover:bg-white/[0.05]"
                 href={`/chat?session=${session.id}`}
                 key={session.id}
               >
-                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{session.title}</p>
+                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  {session.title}
+                </p>
                 <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                   {session.lastMessageAt
                     ? new Date(session.lastMessageAt).toLocaleString()
@@ -270,7 +276,12 @@ export function DashboardFlashcardsPanel() {
     <AppPanel>
       <AppPanelHeader
         action={
-          <Button className="rounded-full" onClick={() => router.push('/study')} size="sm" variant="outline">
+          <Button
+            className="rounded-full"
+            onClick={() => router.push('/study')}
+            size="sm"
+            variant="outline"
+          >
             Manage in Study
           </Button>
         }
@@ -415,7 +426,12 @@ export function DashboardQuizzesPanel() {
     <AppPanel>
       <AppPanelHeader
         action={
-          <Button className="rounded-full" onClick={() => router.push('/study')} size="sm" variant="outline">
+          <Button
+            className="rounded-full"
+            onClick={() => router.push('/study')}
+            size="sm"
+            variant="outline"
+          >
             Manage in Study
           </Button>
         }
@@ -476,7 +492,9 @@ export function DashboardPresentationsPanel() {
         if (cancelled) {
           return;
         }
-        const slideOutlines = (payload.data ?? []).filter((entry) => isSlideOutlineTitle(entry.title));
+        const slideOutlines = (payload.data ?? []).filter((entry) =>
+          isSlideOutlineTitle(entry.title),
+        );
         setOutlines(slideOutlines);
         setActiveOutlineId(slideOutlines[0]?.id ?? null);
       } finally {
@@ -505,7 +523,12 @@ export function DashboardPresentationsPanel() {
     <AppPanel>
       <AppPanelHeader
         action={
-          <Button className="rounded-full" onClick={() => router.push('/study')} size="sm" variant="outline">
+          <Button
+            className="rounded-full"
+            onClick={() => router.push('/study')}
+            size="sm"
+            variant="outline"
+          >
             Generate in Study
           </Button>
         }
