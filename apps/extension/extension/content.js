@@ -364,8 +364,10 @@ function handleAskSubmit(query) {
   state.askStreaming = true;
   const host = ensureCursorTip();
   const shadow = host.shadowRoot;
+  const askInput = shadow?.getElementById('ask-input');
   const askAnswer = shadow?.getElementById('ask-answer');
   const askHint = shadow?.getElementById('ask-hint');
+  if (askInput) askInput.value = '';
   if (askAnswer) askAnswer.textContent = 'Thinking…';
   if (askHint) askHint.textContent = 'Streaming answer…';
 
@@ -395,7 +397,8 @@ function handleAskSubmit(query) {
       const sse = response.sse || '';
       const text = parseSseDeltas(sse);
       if (askAnswer) askAnswer.textContent = text || 'No answer returned.';
-      if (askHint) askHint.textContent = 'Enter to ask again · Esc to close';
+      if (askHint) askHint.textContent = 'Ask a follow-up or Esc to close';
+      if (askInput) setTimeout(() => askInput.focus(), 30);
     },
   );
 }
@@ -412,7 +415,9 @@ function parseSseDeltas(raw) {
     try {
       const payload = JSON.parse(dataLine.replace('data:', '').trim());
       if (payload.content) result += payload.content;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   return result.trim();
 }
@@ -505,7 +510,11 @@ async function startMicRecording() {
 
 function stopMicRecording() {
   if (micRecorder && micRecorder.state === 'recording') {
-    try { micRecorder.stop(); } catch { /* already stopped */ }
+    try {
+      micRecorder.stop();
+    } catch {
+      /* already stopped */
+    }
   }
   if (micMediaStream) {
     micMediaStream.getTracks().forEach((t) => t.stop());
