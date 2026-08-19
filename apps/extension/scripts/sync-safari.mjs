@@ -97,7 +97,7 @@ const manifest = {
   },
   background: {
     service_worker: 'background.js',
-    type: 'module',
+    // Safari does not support "type": "module" for service workers
   },
   commands: {
     'toggle-aproko-live-context': {
