@@ -1,3 +1,5 @@
+import { isExtensionEmbedFrame } from '@/lib/extension/embed-frame';
+
 export function extensionAuthHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {};
   if (token) {
@@ -13,13 +15,77 @@ export function workspaceLiveContextChatPath(workspaceId: string): string {
   return `/api/v1/workspaces/${workspaceId}/live-context/chat`;
 }
 
-export async function fetchExtensionSession(token: string): Promise<{
+export type ExtensionSessionPayload = {
   workspaceId: string;
   name: string | null;
   role: string | null;
   planCode?: string;
   liveContextCompanion?: boolean;
-} | null> {
+};
+
+function isExtensionPanelOrigin(origin: string, pageOrigin: string): boolean {
+  return (
+    origin === pageOrigin ||
+    origin.startsWith('chrome-extension://') ||
+    origin.startsWith('safari-web-extension://') ||
+    origin.startsWith('safari-extension://')
+  );
+}
+
+/** Safari popup iframes often cannot validate handoff tokens via direct fetch — proxy through the extension. */
+function fetchExtensionSessionViaProxy(token: string): Promise<ExtensionSessionPayload | null> {
+  return new Promise((resolve) => {
+    const requestId = crypto.randomUUID();
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener('message', onMessage);
+      resolve(null);
+    }, 20_000);
+
+    function onMessage(event: MessageEvent) {
+      if (!isExtensionPanelOrigin(event.origin, window.location.origin)) {
+        return;
+      }
+      if (
+        event.data?.type !== 'APROKO_PROXY_EXTENSION_SESSION_RESULT' ||
+        event.data.requestId !== requestId
+      ) {
+        return;
+      }
+
+      window.clearTimeout(timeout);
+      window.removeEventListener('message', onMessage);
+
+      if (!event.data.ok || !event.data.session?.workspaceId) {
+        resolve(null);
+        return;
+      }
+
+      resolve({
+        workspaceId: event.data.session.workspaceId,
+        name: event.data.session.name ?? null,
+        role: event.data.session.role ?? null,
+        planCode: event.data.session.planCode,
+        liveContextCompanion: event.data.session.liveContextCompanion,
+      });
+    }
+
+    window.addEventListener('message', onMessage);
+    window.parent.postMessage(
+      {
+        type: 'APROKO_PROXY_EXTENSION_SESSION',
+        requestId,
+        token,
+      },
+      '*',
+    );
+  });
+}
+
+export async function fetchExtensionSession(token: string): Promise<ExtensionSessionPayload | null> {
+  if (typeof window !== 'undefined' && isExtensionEmbedFrame()) {
+    return fetchExtensionSessionViaProxy(token);
+  }
+
   const response = await fetch('/api/v1/extension/session', {
     headers: {
       ...extensionAuthHeaders(token),

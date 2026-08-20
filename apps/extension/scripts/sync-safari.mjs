@@ -4,6 +4,7 @@
  * Safari has no chrome.sidePanel — toolbar action opens a popup (same UI).
  */
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -190,3 +191,106 @@ This copies content/UI assets from \`extension/\` and regenerates Safari \`manif
 await writeFile(path.join(safariDir, 'README.md'), readme);
 
 console.log(`Safari package synced → ${safariDir}`);
+
+// Auto-build the macOS scheme if the Xcode project exists
+const xcodeproj = path.join(
+  root,
+  'safari-app',
+  'Aproko Live Context',
+  'Aproko Live Context.xcodeproj',
+);
+
+try {
+  await import('node:fs').then(({ default: fs }) => {
+    if (!fs.existsSync(xcodeproj)) throw new Error('no project');
+  });
+
+  // Sign with the user's Personal Team so Safari can discover the extension.
+  // Team ID is also baked into project.pbxproj; keep in sync if the Apple ID changes.
+  const developmentTeam = process.env.APROKO_SAFARI_TEAM_ID || 'Z55LJ78DGQ';
+  console.log(`\nBuilding macOS scheme with Apple Development team ${developmentTeam} …`);
+  const buildOutput = execSync(
+    `xcodebuild \
+      -project "${xcodeproj}" \
+      -scheme "Aproko Live Context (macOS)" \
+      -configuration Debug \
+      -destination "platform=macOS" \
+      -allowProvisioningUpdates \
+      build \
+      DEVELOPMENT_TEAM=${developmentTeam} \
+      CODE_SIGN_STYLE=Automatic \
+      CODE_SIGNING_REQUIRED=YES \
+      CODE_SIGNING_ALLOWED=YES \
+      2>&1`,
+    { encoding: 'utf8', shell: '/bin/zsh' },
+  );
+  const buildFailed = /BUILD FAILED/.test(buildOutput);
+  if (buildFailed) {
+    console.error(
+      buildOutput
+        .split('\n')
+        .filter((line) => /error:|warning:.*[Ss]ign|BUILD FAILED|No profiles|requires a development team/.test(line))
+        .join('\n'),
+    );
+    throw new Error('xcodebuild failed');
+  }
+  console.log(buildOutput.split('\n').filter((line) => /BUILD SUCCEEDED/.test(line)).join('\n'));
+
+  const { default: fs } = await import('node:fs');
+  const builtApp = (() => {
+    const derived = path.join(
+      process.env.HOME || '',
+      'Library/Developer/Xcode/DerivedData',
+    );
+    if (!fs.existsSync(derived)) return null;
+    for (const entry of fs.readdirSync(derived)) {
+      if (!entry.startsWith('Aproko_Live_Context-')) continue;
+      const candidate = path.join(
+        derived,
+        entry,
+        'Build/Products/Debug/Aproko Live Context.app',
+      );
+      if (fs.existsSync(candidate)) return candidate;
+    }
+    return null;
+  })();
+
+  if (builtApp) {
+    // Install into /Applications so Safari can discover the extension reliably.
+    // Do NOT re-sign with ad-hoc "-" — that strips the team signature Safari needs.
+    const installPath = '/Applications/Aproko Live Context.app';
+    try {
+      execSync(`rm -rf "${installPath}" && cp -R "${builtApp}" "${installPath}"`, {
+        stdio: 'inherit',
+      });
+      const teamLine = execSync(`codesign -dv "${installPath}" 2>&1 | rg "TeamIdentifier|Signature=" || true`, {
+        encoding: 'utf8',
+        shell: '/bin/zsh',
+      }).trim();
+      console.log(`\n✅ Installed → ${installPath}`);
+      if (teamLine) console.log(`   ${teamLine.replace(/\n/g, ' | ')}`);
+    } catch {
+      console.warn('\n⚠️  Could not copy to /Applications (permission?). Open the DerivedData app instead:');
+      console.warn(`   open "${builtApp}"`);
+    }
+  }
+
+  console.log('\n✅ macOS build succeeded.');
+  console.log('   Next steps:');
+  console.log('   1. open "/Applications/Aproko Live Context.app"');
+  console.log('   2. Quit Safari completely (Cmd+Q), reopen it');
+  console.log('   3. Develop → Allow Unsigned Extensions (every Safari launch)');
+  console.log('   4. Safari → Settings → Extensions → enable "Aproko Live Context"');
+} catch (err) {
+  if (err.message !== 'no project') {
+    console.warn('\n⚠️  xcodebuild failed — open Xcode manually and run the macOS scheme:');
+    console.warn(`   open "${xcodeproj}"`);
+    console.warn(
+      '   Then select scheme "Aproko Live Context (macOS)" + destination "My Mac" and press ⌘R.',
+    );
+  } else {
+    console.log(
+      '\nXcode project not found. Run the safari-web-extension-converter first (see README).',
+    );
+  }
+}

@@ -242,11 +242,62 @@ function setActiveMode(mode) {
   }
 }
 
-async function pushExtensionAuth() {
-  const response = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
-  if (response?.ok && response.auth?.token) {
-    postAuthToFrame(response.auth);
+async function readStoredAuth() {
+  try {
+    const localStored = await chrome.storage.local.get(['extensionHandoff']);
+    if (localStored.extensionHandoff?.token) {
+      return localStored.extensionHandoff;
+    }
+  } catch {
+    // ignore
   }
+
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
+    if (response?.ok && response.auth?.token) {
+      return response.auth;
+    }
+  } catch {
+    // Service worker may be asleep.
+  }
+
+  return null;
+}
+
+function deliverAuthToFrame(auth) {
+  if (!auth?.token) {
+    return;
+  }
+  postAuthToFrame(auth);
+  setTimeout(() => postAuthToFrame(auth), 600);
+  setTimeout(() => postAuthToFrame(auth), 1800);
+}
+
+async function pushExtensionAuth() {
+  const auth = await readStoredAuth();
+  if (auth?.token) {
+    setStatus(`Signed in${auth.name ? ` · ${auth.name}` : ''}`);
+    deliverAuthToFrame(auth);
+    return true;
+  }
+
+  setStatus('Not signed in — open the connect checklist link below in a browser tab.');
+  return false;
+}
+
+let authPollTimer = null;
+function startAuthPolling() {
+  if (authPollTimer) {
+    return;
+  }
+  authPollTimer = setInterval(() => {
+    void pushExtensionAuth().then((ok) => {
+      if (ok && authPollTimer) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+      }
+    });
+  }, 1500);
 }
 
 async function loadSettings() {
@@ -330,7 +381,11 @@ function handleHoverCaptured(message) {
 appFrame.addEventListener('load', () => {
   chrome.runtime.sendMessage({ type: 'APROKO_CLEAR_BADGE' });
   setTimeout(() => {
-    void pushExtensionAuth();
+    void pushExtensionAuth().then((ok) => {
+      if (!ok) {
+        startAuthPolling();
+      }
+    });
     if (lastContext) {
       postContextToFrame(lastContext);
     }
@@ -344,6 +399,38 @@ window.addEventListener('message', (event) => {
 
   if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
     void pushExtensionAuth();
+    return;
+  }
+
+  if (event.data?.type === 'APROKO_PROXY_EXTENSION_SESSION') {
+    chrome.runtime.sendMessage(
+      {
+        type: 'APROKO_PROXY_EXTENSION_SESSION',
+        token: event.data.token ?? null,
+        workspaceId: event.data.workspaceId ?? null,
+        workspaceName: event.data.workspaceName ?? null,
+        workspaceRole: event.data.workspaceRole ?? null,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          postMessageToFrame({
+            type: 'APROKO_PROXY_EXTENSION_SESSION_RESULT',
+            requestId: event.data.requestId,
+            ok: false,
+            error: chrome.runtime.lastError.message,
+          });
+          return;
+        }
+        postMessageToFrame({
+          type: 'APROKO_PROXY_EXTENSION_SESSION_RESULT',
+          requestId: event.data.requestId,
+          ok: Boolean(response?.ok),
+          session: response?.session ?? null,
+          error: response?.error,
+          status: response?.status ?? null,
+        });
+      },
+    );
     return;
   }
 
@@ -492,7 +579,12 @@ chrome.runtime.onMessage.addListener((message) => {
     setStatus('Captured — ask in the panel below');
   }
   if (message?.type === 'APROKO_EXTENSION_AUTH_UPDATED') {
-    void pushExtensionAuth();
+    void pushExtensionAuth().then((ok) => {
+      if (ok && authPollTimer) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+      }
+    });
   }
   if (message?.type === 'APROKO_HOVER_CAPTURED') {
     handleHoverCaptured(message);
@@ -506,6 +598,11 @@ chrome.runtime.onMessage.addListener((message) => {
 void loadSettings();
 void syncStoredTheme();
 void loadStoredContext();
+void pushExtensionAuth().then((ok) => {
+  if (!ok) {
+    startAuthPolling();
+  }
+});
 
 if (hoverEnabledEl) {
   hoverEnabledEl.addEventListener('change', async () => {

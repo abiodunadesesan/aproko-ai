@@ -242,65 +242,61 @@ function setActiveMode(mode) {
   }
 }
 
-let _authPollTimer = null;
-
-async function bootstrapSafariAuth() {
-  // Read storage.local directly — reliable in Safari even when service worker sleeps.
-  let auth = null;
+async function readStoredAuth() {
   try {
-    const local = await chrome.storage.local.get(['extensionHandoff']);
-    if (local.extensionHandoff?.token) {
-      auth = local.extensionHandoff;
+    const localStored = await chrome.storage.local.get(['extensionHandoff']);
+    if (localStored.extensionHandoff?.token) {
+      return localStored.extensionHandoff;
     }
   } catch {
-    // fall through to background fallback
+    // ignore
   }
 
-  // Fallback: ask background (may fail if service worker sleeping).
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
+    if (response?.ok && response.auth?.token) {
+      return response.auth;
+    }
+  } catch {
+    // Service worker may be asleep.
+  }
+
+  return null;
+}
+
+function deliverAuthToFrame(auth) {
   if (!auth?.token) {
-    try {
-      const res = await chrome.runtime.sendMessage({ type: 'APROKO_GET_EXTENSION_AUTH' });
-      if (res?.ok && res.auth?.token) {
-        auth = res.auth;
-      }
-    } catch {
-      // service worker not responding
-    }
+    return;
   }
+  postAuthToFrame(auth);
+  setTimeout(() => postAuthToFrame(auth), 600);
+  setTimeout(() => postAuthToFrame(auth), 1800);
+}
 
+async function pushExtensionAuth() {
+  const auth = await readStoredAuth();
   if (auth?.token) {
-    // Stop polling — we have a token.
-    if (_authPollTimer) {
-      clearInterval(_authPollTimer);
-      _authPollTimer = null;
-    }
-    setStatus('');
-    // Send multiple times to beat iframe load-timing races.
-    postAuthToFrame(auth);
-    setTimeout(() => postAuthToFrame(auth), 600);
-    setTimeout(() => postAuthToFrame(auth), 1800);
-    return;
+    setStatus(`Signed in${auth.name ? ` · ${auth.name}` : ''}`);
+    deliverAuthToFrame(auth);
+    return true;
   }
 
-  // No token yet — show hint and poll storage.local every 1.5s.
   setStatus('Not signed in — open the connect checklist link below in a browser tab.');
-  if (_authPollTimer) {
+  return false;
+}
+
+let authPollTimer = null;
+function startAuthPolling() {
+  if (authPollTimer) {
     return;
   }
-  _authPollTimer = setInterval(async () => {
-    try {
-      const local = await chrome.storage.local.get(['extensionHandoff']);
-      const stored = local.extensionHandoff;
-      if (stored?.token && stored?.workspaceId) {
-        clearInterval(_authPollTimer);
-        _authPollTimer = null;
-        setStatus('');
-        postAuthToFrame(stored);
-        setTimeout(() => postAuthToFrame(stored), 600);
+  authPollTimer = setInterval(() => {
+    void pushExtensionAuth().then((ok) => {
+      if (ok && authPollTimer) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
       }
-    } catch {
-      // keep polling
-    }
+    });
   }, 1500);
 }
 
@@ -385,11 +381,15 @@ function handleHoverCaptured(message) {
 appFrame.addEventListener('load', () => {
   chrome.runtime.sendMessage({ type: 'APROKO_CLEAR_BADGE' });
   setTimeout(() => {
-    void bootstrapSafariAuth();
+    void pushExtensionAuth().then((ok) => {
+      if (!ok) {
+        startAuthPolling();
+      }
+    });
     if (lastContext) {
       postContextToFrame(lastContext);
     }
-  }, 500);
+  }, 250);
 });
 
 window.addEventListener('message', (event) => {
@@ -398,7 +398,39 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'APROKO_REQUEST_EXTENSION_AUTH') {
-    void bootstrapSafariAuth();
+    void pushExtensionAuth();
+    return;
+  }
+
+  if (event.data?.type === 'APROKO_PROXY_EXTENSION_SESSION') {
+    chrome.runtime.sendMessage(
+      {
+        type: 'APROKO_PROXY_EXTENSION_SESSION',
+        token: event.data.token ?? null,
+        workspaceId: event.data.workspaceId ?? null,
+        workspaceName: event.data.workspaceName ?? null,
+        workspaceRole: event.data.workspaceRole ?? null,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          postMessageToFrame({
+            type: 'APROKO_PROXY_EXTENSION_SESSION_RESULT',
+            requestId: event.data.requestId,
+            ok: false,
+            error: chrome.runtime.lastError.message,
+          });
+          return;
+        }
+        postMessageToFrame({
+          type: 'APROKO_PROXY_EXTENSION_SESSION_RESULT',
+          requestId: event.data.requestId,
+          ok: Boolean(response?.ok),
+          session: response?.session ?? null,
+          error: response?.error,
+          status: response?.status ?? null,
+        });
+      },
+    );
     return;
   }
 
@@ -547,7 +579,12 @@ chrome.runtime.onMessage.addListener((message) => {
     setStatus('Captured — ask in the panel below');
   }
   if (message?.type === 'APROKO_EXTENSION_AUTH_UPDATED') {
-    void bootstrapSafariAuth();
+    void pushExtensionAuth().then((ok) => {
+      if (ok && authPollTimer) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+      }
+    });
   }
   if (message?.type === 'APROKO_HOVER_CAPTURED') {
     handleHoverCaptured(message);
@@ -561,6 +598,11 @@ chrome.runtime.onMessage.addListener((message) => {
 void loadSettings();
 void syncStoredTheme();
 void loadStoredContext();
+void pushExtensionAuth().then((ok) => {
+  if (!ok) {
+    startAuthPolling();
+  }
+});
 
 if (hoverEnabledEl) {
   hoverEnabledEl.addEventListener('change', async () => {

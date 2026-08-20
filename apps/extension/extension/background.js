@@ -38,14 +38,15 @@ async function getSettings() {
 }
 
 async function storeHandoff(auth) {
-  if (!auth?.token || !auth?.workspaceId) {
+  if (!auth?.token) {
     return;
   }
 
+  const workspaceId = auth.workspaceId || auth.workspace_id || '';
   const payload = {
     extensionHandoff: {
       token: auth.token,
-      workspaceId: auth.workspaceId,
+      workspaceId,
       name: auth.name ?? null,
       role: auth.role ?? null,
       storedAt: Date.now(),
@@ -564,6 +565,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           error: error instanceof Error ? error.message : 'Auth failed',
         }),
       );
+    return true;
+  }
+
+  if (message?.type === 'APROKO_PROXY_EXTENSION_SESSION') {
+    void (async () => {
+      try {
+        const authOverride = message.token
+          ? {
+              token: message.token,
+              workspaceId: message.workspaceId || '',
+              name: message.workspaceName ?? null,
+              role: message.workspaceRole ?? null,
+            }
+          : null;
+
+        if (authOverride?.token) {
+          await storeHandoff(authOverride);
+        }
+
+        const { response, json } = await fetchWebAppJson(
+          '/api/v1/extension/session',
+          { method: 'GET', headers: { Accept: 'application/json' } },
+          authOverride,
+        );
+
+        if (!response.ok || !json?.data?.workspaceId) {
+          sendResponse({
+            ok: false,
+            status: response.status,
+            error:
+              json?.error ||
+              (response.status === 401
+                ? 'Session expired. Open the connect checklist in a Safari/Chrome tab, then reload the panel.'
+                : `Session check failed (${response.status})`),
+          });
+          return;
+        }
+
+        sendResponse({ ok: true, session: json.data });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Session check failed',
+        });
+      }
+    })();
     return true;
   }
 
