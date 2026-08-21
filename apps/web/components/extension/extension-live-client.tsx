@@ -613,9 +613,15 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
           {requiresPro ? (
             <div className="rounded-xl border border-zinc-400/25 bg-zinc-400/10 p-3 text-sm text-zinc-800 dark:text-zinc-200">
               Live Context is included on <strong className="font-semibold">Aproko Pro</strong>.{' '}
-              <Link href="/billing" className="font-medium underline underline-offset-2">
+              <button
+                type="button"
+                className="font-medium underline underline-offset-2"
+                onClick={() =>
+                  openInExtensionBrowserTab(`${webAppUrl || window.location.origin}/billing`)
+                }
+              >
                 Upgrade your workspace
-              </Link>{' '}
+              </button>{' '}
               to capture pages and ask from the extension.
             </div>
           ) : null}
@@ -655,7 +661,11 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={isLoading ? 'Loading workspace…' : 'Ask about the synced page'}
+              placeholder={
+                isLoading && !activeWorkspaceId
+                  ? 'Loading workspace…'
+                  : 'Ask about the synced page'
+              }
               disabled={!synced || !activeWorkspaceId || streaming || requiresPro}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {

@@ -9,8 +9,10 @@ export type PlanEntitlements = {
 };
 
 const ENTITLEMENTS: Record<PlanCode, PlanEntitlements> = {
-  free: { planCode: 'free', monthlyAiQueries: 100, liveContextCompanion: false },
-  teams: { planCode: 'teams', monthlyAiQueries: 500, liveContextCompanion: false },
+  // Live Context companion is available on Free so users can ask about captured pages
+  // from the browser extension without a Pro upgrade gate.
+  free: { planCode: 'free', monthlyAiQueries: 100, liveContextCompanion: true },
+  teams: { planCode: 'teams', monthlyAiQueries: 500, liveContextCompanion: true },
   pro_monthly: { planCode: 'pro_monthly', monthlyAiQueries: null, liveContextCompanion: true },
   pro_yearly: { planCode: 'pro_yearly', monthlyAiQueries: null, liveContextCompanion: true },
 };
