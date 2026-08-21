@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 export type ExtensionHandoffPayload = {
@@ -23,16 +21,69 @@ export function isExtensionHandoffConfigured(): boolean {
   return Boolean(getHandoffSecret());
 }
 
-function signBody(body: string, secret: string): string {
-  return createHmac('sha256', secret).update(body).digest('base64url');
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-export function createExtensionHandoffToken(input: {
+function fromBase64Url(value: string): Uint8Array {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padLength = (4 - (padded.length % 4)) % 4;
+  const binary = atob(padded + '='.repeat(padLength));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a[i]! ^ b[i]!;
+  }
+  return diff === 0;
+}
+
+/**
+ * Edge-safe HMAC-SHA256 using Web Crypto when available, with a hard try/catch
+ * so token verification never crashes the route isolate.
+ */
+async function hmacSha256Base64Url(secret: string, body: string): Promise<string | null> {
+  try {
+    if (!globalThis.crypto?.subtle) {
+      return null;
+    }
+    const key = await globalThis.crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const signature = await globalThis.crypto.subtle.sign(
+      'HMAC',
+      key,
+      new TextEncoder().encode(body),
+    );
+    return toBase64Url(new Uint8Array(signature));
+  } catch {
+    return null;
+  }
+}
+
+export async function createExtensionHandoffToken(input: {
   userId: string;
   workspaceId: string;
   workspaceName: string;
   role: string;
-}): string | null {
+}): Promise<string | null> {
   const secret = getHandoffSecret();
   if (!secret) {
     return null;
@@ -46,33 +97,42 @@ export function createExtensionHandoffToken(input: {
     exp: Date.now() + TOKEN_TTL_MS,
   };
 
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  return `${body}.${signBody(body, secret)}`;
+  const body = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  const signature = await hmacSha256Base64Url(secret, body);
+  if (!signature) {
+    return null;
+  }
+  return `${body}.${signature}`;
 }
 
-export function verifyExtensionHandoffToken(token: string): ExtensionHandoffPayload | null {
-  const secret = getHandoffSecret();
-  if (!secret) {
-    return null;
-  }
-
-  const [body, signature] = token.split('.');
-  if (!body || !signature) {
-    return null;
-  }
-
-  const expected = signBody(body, secret);
-  const actualBuffer = Buffer.from(signature);
-  const expectedBuffer = Buffer.from(expected);
-  if (
-    actualBuffer.length !== expectedBuffer.length ||
-    !timingSafeEqual(actualBuffer, expectedBuffer)
-  ) {
-    return null;
-  }
-
+export async function verifyExtensionHandoffToken(
+  token: string,
+): Promise<ExtensionHandoffPayload | null> {
   try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as ExtensionHandoffPayload;
+    const secret = getHandoffSecret();
+    if (!secret) {
+      return null;
+    }
+
+    const [body, signature] = token.split('.');
+    if (!body || !signature) {
+      return null;
+    }
+
+    const expected = await hmacSha256Base64Url(secret, body);
+    if (!expected) {
+      return null;
+    }
+
+    const actualBytes = fromBase64Url(signature);
+    const expectedBytes = fromBase64Url(expected);
+    if (!timingSafeEqualBytes(actualBytes, expectedBytes)) {
+      return null;
+    }
+
+    const payload = JSON.parse(
+      new TextDecoder().decode(fromBase64Url(body)),
+    ) as ExtensionHandoffPayload;
     if (
       !payload.userId ||
       !payload.workspaceId ||

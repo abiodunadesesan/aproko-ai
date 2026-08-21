@@ -1,8 +1,8 @@
 import {
   getPlanEntitlements,
   resolveEffectivePlanCode,
-  type PlanCode,
 } from '@/lib/billing/plan-entitlements';
+import type { PlanCode } from '@/lib/pricing-plans';
 import { getBillingSubscription } from '@/lib/storage/billing';
 
 export type LiveContextPlanAccess =

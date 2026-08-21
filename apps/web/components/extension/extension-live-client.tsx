@@ -388,7 +388,78 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
       persistCapture: shouldPersistCapture,
     };
 
+  // Always proxy Ask through the extension background in embed mode.
+  // Safari popup iframes cannot rely on Clerk cookies, and direct bearer
+  // fetches were racing middleware that called auth() before handoff checks.
+  if (shouldProxyLiveContextChatThroughExtension(embed)) {
     try {
+      const response = await fetchLiveContextChatViaExtensionProxy(
+        activeWorkspaceId,
+        requestBody,
+        {
+          token: extensionAuth?.token ?? null,
+          name: extensionAuth?.name ?? null,
+          role: extensionAuth?.role ?? null,
+        },
+      );
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response stream');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let assistant = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const parsed = parseLiveContextSseEventsFromBuffer(buffer);
+        buffer = parsed.rest;
+
+        for (const event of parsed.events) {
+          if (event.event === 'start') {
+            const saved = readLiveContextSavedSource(event.payload);
+            if (saved) {
+              setSavedSourceLabel(saved.name);
+            }
+          }
+          if (event.event === 'delta') {
+            const delta = readLiveContextSseDelta(event.payload);
+            if (delta) {
+              assistant += delta;
+              const snapshot = assistant;
+              setLines((prev) => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'assistant', content: snapshot };
+                return next;
+              });
+            }
+          }
+          if (event.event === 'error') {
+            throw new Error(readLiveContextSseError(event.payload));
+          }
+        }
+      }
+
+      if (!assistant.trim()) {
+        setError('Empty response from the model. Check API keys / quota.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Ask failed';
+      setLines((prev) => prev.slice(0, -2));
+      setError(message);
+    } finally {
+      setStreaming(false);
+    }
+    return;
+  }
+
+  try {
       const authHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         ...extensionAuthHeaders(extensionAuth?.token),
@@ -398,24 +469,12 @@ export function ExtensionLiveClient({ embed = false }: { embed?: boolean }) {
         ? EXTENSION_LIVE_CONTEXT_CHAT_PATH
         : workspaceLiveContextChatPath(activeWorkspaceId);
 
-      let response = await fetch(chatUrl, {
+      const response = await fetch(chatUrl, {
         method: 'POST',
         credentials: 'include',
         headers: authHeaders,
         body: JSON.stringify(requestBody),
       });
-
-      if (
-        !response.ok &&
-        response.status === 401 &&
-        shouldProxyLiveContextChatThroughExtension(embed)
-      ) {
-        response = await fetchLiveContextChatViaExtensionProxy(activeWorkspaceId, requestBody, {
-          token: extensionAuth?.token ?? null,
-          name: extensionAuth?.name ?? null,
-          role: extensionAuth?.role ?? null,
-        });
-      }
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as {

@@ -13,20 +13,29 @@ export type ExtensionRequestAuth = {
 export async function resolveExtensionRequestAuth(
   request?: Request,
 ): Promise<ExtensionRequestAuth | null> {
-  // Check bearer token first — extension requests from service workers
-  // never have Clerk cookies, and auth() can throw in edge cases.
+  // Prefer the dedicated extension header. Clerk middleware treats Authorization
+  // Bearer values as Clerk JWTs and can crash on our handoff tokens.
   if (request) {
+    const dedicated = request.headers.get('x-aproko-extension-token')?.trim();
     const authHeader = request.headers.get('Authorization')?.trim();
-    if (authHeader?.startsWith('Bearer ext.')) {
-      const token = authHeader.slice('Bearer ext.'.length);
-      const handoff = verifyExtensionHandoffToken(token);
-      if (handoff) {
-        return {
-          userId: handoff.userId,
-          source: 'extension-handoff',
-          handoff,
-        };
+    const bearerToken =
+      authHeader?.startsWith('Bearer ext.') ? authHeader.slice('Bearer ext.'.length) : null;
+    const token = dedicated || bearerToken;
+
+    if (token) {
+      try {
+        const handoff = await verifyExtensionHandoffToken(token);
+        if (handoff) {
+          return {
+            userId: handoff.userId,
+            source: 'extension-handoff',
+            handoff,
+          };
+        }
+      } catch {
+        // Invalid/malformed handoff must not fall through to Clerk auth().
       }
+      return null;
     }
   }
 

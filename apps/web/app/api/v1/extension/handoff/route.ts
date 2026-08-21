@@ -21,7 +21,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Failed to resolve workspace' }, { status: 500 });
   }
 
-  const token = createExtensionHandoffToken({
+  const token = await createExtensionHandoffToken({
     userId,
     workspaceId: workspace.workspaceId,
     workspaceName: workspace.name,

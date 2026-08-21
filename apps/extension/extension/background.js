@@ -81,7 +81,7 @@ async function fetchWebApp(path, options = {}, authOverride = null) {
   const url = `${settings.webAppUrl}${path}`;
   const headers = { ...(options.headers || {}) };
   if (auth?.token) {
-    headers.Authorization = `Bearer ext.${auth.token}`;
+    headers['X-Aproko-Extension-Token'] = auth.token;
   }
 
   const response = await fetch(url, {

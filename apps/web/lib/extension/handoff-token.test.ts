@@ -5,10 +5,10 @@ import {
   verifyExtensionHandoffToken,
 } from './handoff-token';
 
-test('extension handoff token round-trips when secret is configured', () => {
+test('extension handoff token round-trips when secret is configured', async () => {
   process.env.EXTENSION_HANDOFF_SECRET = 'test-handoff-secret';
 
-  const token = createExtensionHandoffToken({
+  const token = await createExtensionHandoffToken({
     userId: 'user_123',
     workspaceId: 'ws_123',
     workspaceName: 'Personal',
@@ -16,7 +16,7 @@ test('extension handoff token round-trips when secret is configured', () => {
   });
 
   assert.ok(token);
-  const payload = verifyExtensionHandoffToken(token!);
+  const payload = await verifyExtensionHandoffToken(token!);
   assert.equal(payload?.userId, 'user_123');
   assert.equal(payload?.workspaceId, 'ws_123');
   assert.equal(payload?.workspaceName, 'Personal');
@@ -24,17 +24,17 @@ test('extension handoff token round-trips when secret is configured', () => {
   delete process.env.EXTENSION_HANDOFF_SECRET;
 });
 
-test('extension handoff token rejects tampered signature', () => {
+test('extension handoff token rejects tampered signature', async () => {
   process.env.EXTENSION_HANDOFF_SECRET = 'test-handoff-secret';
 
-  const token = createExtensionHandoffToken({
+  const token = await createExtensionHandoffToken({
     userId: 'user_123',
     workspaceId: 'ws_123',
     workspaceName: 'Personal',
     role: 'owner',
   });
 
-  assert.equal(verifyExtensionHandoffToken(`${token}x`), null);
+  assert.equal(await verifyExtensionHandoffToken(`${token}x`), null);
 
   delete process.env.EXTENSION_HANDOFF_SECRET;
 });

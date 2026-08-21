@@ -3,7 +3,8 @@ import { isExtensionEmbedFrame } from '@/lib/extension/embed-frame';
 export function extensionAuthHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {};
   if (token) {
-    headers.Authorization = `Bearer ext.${token}`;
+    // Custom header avoids Clerk middleware treating handoff tokens as Clerk JWTs.
+    headers['X-Aproko-Extension-Token'] = token;
   }
   return headers;
 }
@@ -60,13 +61,18 @@ function fetchExtensionSessionViaProxy(token: string): Promise<ExtensionSessionP
         return;
       }
 
-      resolve({
+      const result: ExtensionSessionPayload = {
         workspaceId: event.data.session.workspaceId,
         name: event.data.session.name ?? null,
         role: event.data.session.role ?? null,
-        planCode: event.data.session.planCode,
-        liveContextCompanion: event.data.session.liveContextCompanion,
-      });
+      };
+      if (event.data.session.planCode !== undefined) {
+        result.planCode = event.data.session.planCode;
+      }
+      if (event.data.session.liveContextCompanion !== undefined) {
+        result.liveContextCompanion = event.data.session.liveContextCompanion;
+      }
+      resolve(result);
     }
 
     window.addEventListener('message', onMessage);
@@ -110,11 +116,16 @@ export async function fetchExtensionSession(token: string): Promise<ExtensionSes
     return null;
   }
 
-  return {
+  const result: ExtensionSessionPayload = {
     workspaceId: payload.data.workspaceId,
     name: payload.data.name ?? null,
     role: payload.data.role ?? null,
-    planCode: payload.data.planCode,
-    liveContextCompanion: payload.data.liveContextCompanion,
   };
+  if (payload.data.planCode !== undefined) {
+    result.planCode = payload.data.planCode;
+  }
+  if (payload.data.liveContextCompanion !== undefined) {
+    result.liveContextCompanion = payload.data.liveContextCompanion;
+  }
+  return result;
 }

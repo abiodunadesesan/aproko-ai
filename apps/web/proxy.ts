@@ -61,13 +61,20 @@ export default clerkMiddleware(
       if (req.method === 'OPTIONS') {
         return;
       }
+
+      // Extension handoff uses a custom header so Clerk middleware does not try to
+      // parse it as a Clerk session JWT (that was crashing with HTTP 500).
+      const extensionHandoff =
+        req.headers.get('x-aproko-extension-token')?.trim() ||
+        (req.headers.get('Authorization')?.trim().startsWith('Bearer ext.')
+          ? req.headers.get('Authorization')?.trim()
+          : null);
+      if (extensionHandoff) {
+        return;
+      }
+
       const { userId } = await auth();
       if (!userId) {
-        const authHeader = req.headers.get('Authorization')?.trim();
-        if (authHeader?.startsWith('Bearer ext.')) {
-          // Route handlers validate extension handoff tokens.
-          return;
-        }
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       return;
