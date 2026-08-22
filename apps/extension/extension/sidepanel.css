@@ -152,6 +152,14 @@ h1 {
   color: var(--accent-fg);
 }
 
+.tracking-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .tracking-capsule {
   display: inline-flex;
   align-items: center;
@@ -167,6 +175,44 @@ h1 {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tracking-capsule:hover {
+  border-color: color-mix(in srgb, var(--fg) 20%, var(--glass-border));
+}
+
+.tracking-capsule[data-state='off'] {
+  opacity: 0.72;
+}
+
+.tracking-capsule[data-state='off'] .tracking-dot {
+  background: var(--muted);
+}
+
+.cursor-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cursor-toggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+.cursor-toggle-card {
+  margin: 4px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--glass) 80%, transparent);
 }
 
 .tracking-dot {

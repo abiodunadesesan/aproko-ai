@@ -7,12 +7,15 @@ const tabAudioBtn = document.getElementById('tab-audio-btn');
 const statusEl = document.getElementById('status');
 const webAppUrlEl = document.getElementById('web-app-url');
 const hoverEnabledEl = document.getElementById('hover-enabled');
+const cursorToggleEl = document.getElementById('cursor-toggle');
+const cursorTogglePanelEl = document.getElementById('cursor-toggle-panel');
 const saveSettingsBtn = document.getElementById('save-settings');
 const connectLink = document.getElementById('connect-link');
 const transcriptsLink = document.getElementById('transcripts-link');
 const openTranscriptsBtn = document.getElementById('open-transcripts-btn');
 const appFrame = document.getElementById('app-frame');
 const trackingIndicator = document.getElementById('tracking-indicator');
+const trackingLabel = trackingIndicator?.querySelector('.tracking-label');
 const hoverFeedList = document.getElementById('hover-feed-list');
 const liveTranscriptList = document.getElementById('live-transcript-list');
 const modePills = Array.from(document.querySelectorAll('.mode-pill'));
@@ -127,12 +130,61 @@ function postAuthToFrame(auth) {
   });
 }
 
+function syncHoverControls() {
+  if (hoverEnabledEl) {
+    hoverEnabledEl.checked = hoverEnabled;
+  }
+  if (cursorToggleEl) {
+    cursorToggleEl.checked = hoverEnabled;
+  }
+  if (cursorTogglePanelEl) {
+    cursorTogglePanelEl.checked = hoverEnabled;
+  }
+  if (trackingIndicator) {
+    trackingIndicator.setAttribute('aria-pressed', hoverEnabled ? 'true' : 'false');
+    if (!hoverEnabled) {
+      trackingIndicator.dataset.state = 'off';
+    } else if (trackingIndicator.dataset.state === 'off') {
+      trackingIndicator.dataset.state = 'idle';
+    }
+  }
+  if (trackingLabel) {
+    trackingLabel.textContent = hoverEnabled ? 'Cursor on' : 'Cursor off';
+  }
+}
+
+async function setHoverEnabled(next, { persist = true, announce = true } = {}) {
+  hoverEnabled = Boolean(next);
+  syncHoverControls();
+  if (!hoverEnabled) {
+    setTrackingState('off');
+  } else if (trackingState === 'off') {
+    setTrackingState('idle');
+  }
+  if (persist) {
+    await chrome.storage.sync.set({ hoverEnabled });
+  }
+  if (announce) {
+    setStatus(hoverEnabled ? 'Cursor tips on' : 'Cursor tips off');
+  }
+}
+
 function setTrackingState(state) {
   trackingState = state;
   if (!trackingIndicator) {
     return;
   }
-  trackingIndicator.dataset.state = state;
+  if (!hoverEnabled) {
+    trackingIndicator.dataset.state = 'off';
+    if (trackingLabel) {
+      trackingLabel.textContent = 'Cursor off';
+    }
+    return;
+  }
+  trackingIndicator.dataset.state = state === 'off' ? 'idle' : state;
+  if (trackingLabel && (state === 'idle' || state === 'off')) {
+    trackingLabel.textContent = 'Cursor on';
+  }
 }
 
 function scheduleTrackingIdle() {
@@ -141,7 +193,7 @@ function scheduleTrackingIdle() {
   }
   trackingResetTimer = setTimeout(() => {
     if (trackingState !== 'locked') {
-      setTrackingState(hoverEnabled ? 'idle' : 'idle');
+      setTrackingState(hoverEnabled ? 'idle' : 'off');
     }
   }, 2400);
 }
@@ -306,16 +358,18 @@ async function loadSettings() {
   webAppUrlEl.value = webAppUrl;
   const hoverSettings = await chrome.storage.sync.get({ hoverEnabled: true });
   hoverEnabled = hoverSettings.hoverEnabled !== false;
-  if (hoverEnabledEl) {
-    hoverEnabledEl.checked = hoverEnabled;
+  syncHoverControls();
+  if (connectLink) {
+    connectLink.href = `${webAppUrl}/extension/connect?from=extension`;
   }
-  connectLink.href = `${webAppUrl}/extension/connect?from=extension`;
-  transcriptsLink.href = transcriptsUrl(webAppUrl);
+  if (transcriptsLink) {
+    transcriptsLink.href = transcriptsUrl(webAppUrl);
+  }
   const nextSrc = panelUrl(webAppUrl);
-  if (appFrame.src !== nextSrc) {
+  if (appFrame && appFrame.src !== nextSrc) {
     appFrame.src = nextSrc;
   }
-  setTrackingState(hoverEnabled ? 'idle' : 'idle');
+  setTrackingState(hoverEnabled ? 'idle' : 'off');
   return webAppUrl;
 }
 
@@ -605,10 +659,25 @@ void pushExtensionAuth().then((ok) => {
 });
 
 if (hoverEnabledEl) {
-  hoverEnabledEl.addEventListener('change', async () => {
-    hoverEnabled = hoverEnabledEl.checked;
-    await chrome.storage.sync.set({ hoverEnabled });
-    setTrackingState(hoverEnabled ? 'idle' : 'idle');
-    setStatus(hoverEnabled ? 'Cursor hover focus enabled' : 'Cursor hover focus disabled');
+  hoverEnabledEl.addEventListener('change', () => {
+    void setHoverEnabled(hoverEnabledEl.checked);
+  });
+}
+
+if (cursorToggleEl) {
+  cursorToggleEl.addEventListener('change', () => {
+    void setHoverEnabled(cursorToggleEl.checked);
+  });
+}
+
+if (cursorTogglePanelEl) {
+  cursorTogglePanelEl.addEventListener('change', () => {
+    void setHoverEnabled(cursorTogglePanelEl.checked);
+  });
+}
+
+if (trackingIndicator) {
+  trackingIndicator.addEventListener('click', () => {
+    void setHoverEnabled(!hoverEnabled);
   });
 }

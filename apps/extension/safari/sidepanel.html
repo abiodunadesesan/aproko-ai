@@ -32,9 +32,22 @@
       </button>
     </div>
 
-    <div class="tracking-capsule" id="tracking-indicator" data-state="idle">
-      <span class="tracking-dot" aria-hidden="true"></span>
-      <span class="tracking-label">Tracking cursor</span>
+    <div class="tracking-row">
+      <button
+        id="tracking-indicator"
+        class="tracking-capsule"
+        type="button"
+        data-state="idle"
+        aria-pressed="true"
+        title="Toggle cursor hover tips"
+      >
+        <span class="tracking-dot" aria-hidden="true"></span>
+        <span class="tracking-label">Cursor on</span>
+      </button>
+      <label class="cursor-toggle" for="cursor-toggle">
+        <input id="cursor-toggle" type="checkbox" checked />
+        <span>Show cursor tips</span>
+      </label>
     </div>
 
     <section class="mode-panel is-active" data-mode-panel="ask">
@@ -69,12 +82,18 @@
     <section class="mode-panel" data-mode-panel="cursor" hidden>
       <div class="glass-card hover-feed-card">
         <div class="hover-feed-header">
-          <p class="card-title">Hover feed</p>
-          <p class="card-copy muted">Live snippets from the element under your pointer.</p>
+          <p class="card-title">Cursor tips</p>
+          <p class="card-copy muted">
+            When on, hover shows a tip and Ctrl+/ (Cmd+/) opens ask at the cursor.
+          </p>
         </div>
+        <label class="cursor-toggle cursor-toggle-card" for="cursor-toggle-panel">
+          <input id="cursor-toggle-panel" type="checkbox" checked />
+          <span>Cursor hover tips</span>
+        </label>
         <ul id="hover-feed-list" class="hover-feed-list" aria-live="polite"></ul>
         <p id="hover-feed-empty" class="hover-feed-empty muted">
-          Move your cursor over readable text on the page. Hover focus must be enabled in Settings.
+          Move your cursor over readable text on the page while tips are enabled.
         </p>
       </div>
     </section>
@@ -86,7 +105,7 @@
       <div class="settings-row">
         <input id="hover-enabled" type="checkbox" />
         <label for="hover-enabled" class="checkbox-label">
-          Enable cursor hover focus
+          Enable cursor hover tips (same as Cursor on toggle)
         </label>
       </div>
       <button id="save-settings" type="button">Save & reload panel</button>

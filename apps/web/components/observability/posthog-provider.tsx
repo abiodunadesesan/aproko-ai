@@ -3,7 +3,12 @@
 import posthog from 'posthog-js';
 import { PostHogProvider as PostHogProviderShell, usePostHog } from 'posthog-js/react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import {
+  hasAnalyticsConsent,
+  readCookieConsent,
+  type CookieConsentPreferences,
+} from '@/lib/cookie-consent';
 
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim();
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() ?? 'https://eu.i.posthog.com';
@@ -22,6 +27,17 @@ function initPosthogClient() {
       maskAllInputs: true,
     },
   });
+}
+
+function shutdownPosthogClient() {
+  if (!posthog.__loaded) {
+    return;
+  }
+  try {
+    posthog.opt_out_capturing();
+  } catch {
+    // ignore
+  }
 }
 
 function PostHogPageviews() {
@@ -43,11 +59,35 @@ function PostHogPageviews() {
 }
 
 export function PostHogProvider({ children }: { children: ReactNode }) {
+  const [analyticsAllowed, setAnalyticsAllowed] = useState(false);
+
   useEffect(() => {
-    initPosthogClient();
+    function applyConsent(preferences: CookieConsentPreferences | null) {
+      const allowed = hasAnalyticsConsent(preferences);
+      setAnalyticsAllowed(allowed);
+      if (allowed) {
+        initPosthogClient();
+        try {
+          posthog.opt_in_capturing();
+        } catch {
+          // ignore
+        }
+      } else {
+        shutdownPosthogClient();
+      }
+    }
+
+    applyConsent(readCookieConsent());
+
+    function onConsentChanged(event: Event) {
+      applyConsent((event as CustomEvent<CookieConsentPreferences>).detail ?? null);
+    }
+
+    window.addEventListener('aproko-cookie-consent-changed', onConsentChanged);
+    return () => window.removeEventListener('aproko-cookie-consent-changed', onConsentChanged);
   }, []);
 
-  if (!posthogKey) {
+  if (!posthogKey || !analyticsAllowed) {
     return children;
   }
 

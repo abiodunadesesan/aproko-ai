@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cookies, headers } from 'next/headers';
 import { Suspense } from 'react';
 import { ClerkProviderShell } from '@/components/auth/clerk-provider-shell';
+import { CookieConsentBanner } from '@/components/cookies/cookie-consent-banner';
 import { PostHogProvider } from '@/components/observability/posthog-provider';
 import { ObservabilityProvider } from '@/components/observability-provider';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -35,6 +36,7 @@ function LocaleRootLayoutFallback({ children }: LocaleRootLayoutProps) {
             ) : (
               children
             )}
+            <CookieConsentBanner />
           </PostHogProvider>
         </ThemeProvider>
       </body>
@@ -77,6 +79,7 @@ async function LocaleRootLayout({ children }: LocaleRootLayoutProps) {
             ) : (
               appContent
             )}
+            <CookieConsentBanner />
           </PostHogProvider>
         </ThemeProvider>
       </body>
